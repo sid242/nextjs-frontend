@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { FormField } from "@/components/molecules/form-field";
+import { ControlledInput, FormWrapper } from "@/components/molecules/forms";
 import { SubmitButton } from "@/components/molecules/submit-button";
 import { getErrorMessage } from "@/lib/api/errors";
 import { safeNextPath } from "@/lib/auth/paths";
@@ -17,50 +17,50 @@ import { loginSchema, type LoginValues } from "../schemas";
 export function LoginForm({ next }: { next?: string }) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const form = useForm<LoginValues>({
+  const methods = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "" },
   });
 
   const mutation = useMutation({
     mutationFn: login,
-    meta: { silent: true }, // the error is shown inline below, so skip the global toast
+    meta: { silent: true }, // inline error below
     onSuccess: () => {
-      queryClient.clear(); // a different user may have used this tab before: start clean
+      queryClient?.clear?.();
       resetAllStores();
-      router.replace(safeNextPath(next));
-      router.refresh();
+      router?.replace?.(safeNextPath(next));
+      router?.refresh?.();
     },
   });
 
-  const { errors } = form.formState;
-
   return (
-    <form
-      onSubmit={form.handleSubmit((values) => mutation.mutate(values))}
+    <FormWrapper
+      methods={methods}
+      onSubmit={(values) => mutation?.mutate(values)}
       className="grid gap-4"
-      noValidate
     >
-      {mutation.isError ? (
+      {mutation?.isError ? (
         <Alert variant="destructive">
-          <AlertDescription>{getErrorMessage(mutation.error)}</AlertDescription>
+          <AlertDescription>{getErrorMessage(mutation?.error)}</AlertDescription>
         </Alert>
       ) : null}
-      <FormField
+      <ControlledInput
+        name="email"
         label="Email"
         type="email"
         autoComplete="email"
-        error={errors.email?.message}
-        {...form.register("email")}
+        placeholder="name@example.com"
+        required
       />
-      <FormField
+      <ControlledInput
+        name="password"
         label="Password"
         type="password"
         autoComplete="current-password"
-        error={errors.password?.message}
-        {...form.register("password")}
+        placeholder="••••••••"
+        required
       />
-      <SubmitButton pending={mutation.isPending} pendingText="Signing in…">
+      <SubmitButton pending={mutation?.isPending} pendingText="Signing in…">
         Sign in
       </SubmitButton>
       <p className="text-muted-foreground text-center text-sm">
@@ -72,6 +72,6 @@ export function LoginForm({ next }: { next?: string }) {
           Create one
         </Link>
       </p>
-    </form>
+    </FormWrapper>
   );
 }

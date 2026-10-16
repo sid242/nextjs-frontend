@@ -17,3 +17,9 @@ See [AGENTS.md](./AGENTS.md) for full architecture and engineering guidelines.
    - Run `npm run format` after generating new code.
 4. **Git Commits**:
    - Conventional Commits enforced (`feat:`, `fix:`, `chore:`, etc.).
+5. **Defensive Coding & Null-Safety**:
+   - Always use optional chaining (`?.`) when accessing object properties or calling operations on arrays (`obj?.prop`, `arr?.map(...)`, `arr?.length`, `e?.target?.value`).
+   - Pair with nullish coalescing (`??`) to avoid runtime crashes from `undefined` or `null` data.
+6. **Named React Imports**:
+   - Never use `import * as React from "react"`.
+   - Always use named imports and explicit type imports (`import { useState, useRef, type ReactNode, type Ref } from "react"`).

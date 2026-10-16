@@ -47,7 +47,7 @@ src/
 │       auth/ users/ realtime/
 ├── components/           # SHARED UI, atomic layers (feature-agnostic)
 │   ├── ui/               #   atoms: shadcn/ui primitives
-│   ├── molecules/        #   FormField, PageHeader, EmptyState, ConfirmDialog, OfflineBanner...
+│   ├── molecules/        #   FormInput, PageHeader, EmptyState, ConfirmDialog, OfflineBanner...
 │   ├── organisms/        #   AppShell, AppSidebar, SidebarNav (feature UI arrives through slots)
 │   └── providers/        #   theme, query client, devtools, store hydration, toaster
 ├── lib/

@@ -104,6 +104,11 @@ src/features/<feature-name>/
 - **Error Handling**:
   - All client HTTP errors are mapped to `ApiError { status, code, message, details, requestId, retryAfter }`.
   - Use `getErrorMessage(error)` to display user-facing errors without leaking internal stack traces.
+- **Defensive Programming & Null Safety**:
+  - Always use optional chaining (`?.`) when accessing properties from objects or calling operations on arrays (e.g., `obj?.prop`, `arr?.map(...)`, `arr?.length`, `e?.target?.value`).
+- **React Imports**:
+  - Do NOT use `import * as React from "react"` or namespace calls like `React.useState`, `React.useRef`, `React.Fragment`.
+  - Always use named imports and explicit type imports directly: `import { useState, useRef, Fragment, type ReactNode, type Ref } from "react"`.
 - **Environment Variables**:
   - Server environment variables are defined with Zod schema in `src/lib/server/env.ts` (`getEnv()`).
   - No secrets in `NEXT_PUBLIC_*` variables.

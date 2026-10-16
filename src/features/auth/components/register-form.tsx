@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { FormField } from "@/components/molecules/form-field";
+import { ControlledInput, FormWrapper } from "@/components/molecules/forms";
 import { SubmitButton } from "@/components/molecules/submit-button";
 import { getErrorMessage } from "@/lib/api/errors";
 import { resetAllStores } from "@/lib/stores/reset";
@@ -16,57 +16,58 @@ import { registerSchema, type RegisterValues } from "../schemas";
 export function RegisterForm() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const form = useForm<RegisterValues>({
+  const methods = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: { name: "", email: "", password: "" },
   });
 
   const mutation = useMutation({
     mutationFn: register,
-    meta: { silent: true }, // shown inline below
+    meta: { silent: true },
     onSuccess: () => {
-      queryClient.clear();
+      queryClient?.clear?.();
       resetAllStores();
-      router.replace("/dashboard");
-      router.refresh();
+      router?.replace?.("/dashboard");
+      router?.refresh?.();
     },
   });
 
-  const { errors } = form.formState;
-
   return (
-    <form
-      onSubmit={form.handleSubmit((values) => mutation.mutate(values))}
+    <FormWrapper
+      methods={methods}
+      onSubmit={(values) => mutation?.mutate(values)}
       className="grid gap-4"
-      noValidate
     >
-      {mutation.isError ? (
+      {mutation?.isError ? (
         <Alert variant="destructive">
-          <AlertDescription>{getErrorMessage(mutation.error)}</AlertDescription>
+          <AlertDescription>{getErrorMessage(mutation?.error)}</AlertDescription>
         </Alert>
       ) : null}
-      <FormField
+      <ControlledInput
+        name="name"
         label="Name"
         autoComplete="name"
-        error={errors.name?.message}
-        {...form.register("name")}
+        placeholder="Jane Doe"
+        required
       />
-      <FormField
+      <ControlledInput
+        name="email"
         label="Email"
         type="email"
         autoComplete="email"
-        error={errors.email?.message}
-        {...form.register("email")}
+        placeholder="name@example.com"
+        required
       />
-      <FormField
+      <ControlledInput
+        name="password"
         label="Password"
         type="password"
         autoComplete="new-password"
+        placeholder="••••••••"
         hint="At least 8 characters."
-        error={errors.password?.message}
-        {...form.register("password")}
+        required
       />
-      <SubmitButton pending={mutation.isPending} pendingText="Creating account…">
+      <SubmitButton pending={mutation?.isPending} pendingText="Creating account…">
         Create account
       </SubmitButton>
       <p className="text-muted-foreground text-center text-sm">
@@ -78,6 +79,6 @@ export function RegisterForm() {
           Sign in
         </Link>
       </p>
-    </form>
+    </FormWrapper>
   );
 }

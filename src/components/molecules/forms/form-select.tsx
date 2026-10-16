@@ -1,52 +1,51 @@
 "use client";
 
-import * as React from "react";
+import { useId, type ReactNode, type Ref } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  VirtualizedSelect,
+  type SelectOption,
+  type SelectValue,
+  type VirtualizedSelectProps,
+} from "@/components/ui/virtualized-select";
 import { cn } from "@/lib/utils";
 
-export interface SelectOption {
-  label: string;
-  value: string;
-  disabled?: boolean;
-}
+export type { SelectOption, SelectValue };
 
-export interface FormSelectProps {
+export interface FormSelectProps<T extends string | number = string> extends Omit<
+  VirtualizedSelectProps<T>,
+  "id" | "name" | "error" | "ref"
+> {
   id?: string;
   name?: string;
-  label?: string;
+  label?: ReactNode;
   error?: string;
   hint?: string;
-  badge?: string;
+  description?: string;
+  helperText?: string;
+  badge?: ReactNode;
+  badgeClassName?: string;
   required?: boolean;
-  disabled?: boolean;
-  placeholder?: string;
-  options: SelectOption[];
-  value?: string;
-  defaultValue?: string;
-  onValueChange?: (value: string) => void;
-  className?: string;
   containerClassName?: string;
   labelClassName?: string;
+  errorClassName?: string;
+  ref?: Ref<HTMLDivElement>;
 }
 
-export function FormSelect({
+export function FormSelect<T extends string | number = string>({
   id,
   name,
   label,
   error,
   hint,
+  description,
+  helperText,
   badge,
+  badgeClassName,
   required,
   disabled,
-  placeholder = "Select an option",
+  placeholder = "Select an option…",
   options,
   value,
   defaultValue,
@@ -54,12 +53,25 @@ export function FormSelect({
   className,
   containerClassName,
   labelClassName,
-}: FormSelectProps) {
-  const autoId = React.useId();
+  errorClassName,
+  isSearchable = true,
+  isClearable = true,
+  isMultiSelect = false,
+  loading = false,
+  hasMore = false,
+  isLoadingMore = false,
+  onLoadMore,
+  onSearchChange,
+  ref,
+  ...props
+}: FormSelectProps<T>) {
+  const autoId = useId();
   const fieldId = id ?? name ?? autoId;
   const errorId = `${fieldId}-error`;
   const hintId = `${fieldId}-hint`;
-  const describedBy = error ? errorId : hint ? hintId : undefined;
+
+  const resolvedHint = hint ?? description ?? helperText;
+  const describedBy = error ? errorId : resolvedHint ? hintId : undefined;
 
   return (
     <div className={cn("grid gap-1.5", containerClassName)}>
@@ -72,44 +84,48 @@ export function FormSelect({
             </Label>
           ) : null}
           {badge ? (
-            <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
+            <Badge variant="secondary" className={cn("px-1.5 py-0 text-[10px]", badgeClassName)}>
               {badge}
             </Badge>
           ) : null}
         </div>
       ) : null}
 
-      <Select
+      <VirtualizedSelect
+        ref={ref}
+        id={fieldId}
         name={name}
+        options={options}
         value={value}
         defaultValue={defaultValue}
         onValueChange={onValueChange}
+        placeholder={placeholder}
         disabled={disabled}
-      >
-        <SelectTrigger
-          id={fieldId}
-          aria-invalid={error ? true : undefined}
-          aria-describedby={describedBy}
-          className={className}
-        >
-          <SelectValue placeholder={placeholder} />
-        </SelectTrigger>
-        <SelectContent>
-          {options.map((option) => (
-            <SelectItem key={option.value} value={option.value} disabled={option.disabled}>
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        error={Boolean(error)}
+        isSearchable={isSearchable}
+        isClearable={isClearable}
+        isMultiSelect={isMultiSelect}
+        loading={loading}
+        hasMore={hasMore}
+        isLoadingMore={isLoadingMore}
+        onLoadMore={onLoadMore}
+        onSearchChange={onSearchChange}
+        className={className}
+        aria-describedby={describedBy}
+        {...props}
+      />
 
       {error ? (
-        <p id={errorId} role="alert" className="text-destructive text-xs font-medium">
+        <p
+          id={errorId}
+          role="alert"
+          className={cn("text-destructive text-xs font-medium", errorClassName)}
+        >
           {error}
         </p>
-      ) : hint ? (
+      ) : resolvedHint ? (
         <p id={hintId} className="text-muted-foreground text-xs">
-          {hint}
+          {resolvedHint}
         </p>
       ) : null}
     </div>

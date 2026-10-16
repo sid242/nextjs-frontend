@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import {
   Controller,
   useFormContext,
@@ -8,25 +7,48 @@ import {
   type FieldPath,
   type FieldValues,
 } from "react-hook-form";
-import { FormSelect, type FormSelectProps } from "./form-select";
+import { FormSelect, type FormSelectProps, type SelectOption } from "./form-select";
 
 export interface ControlledSelectProps<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
-> extends Omit<FormSelectProps, "name" | "value" | "defaultValue" | "onValueChange"> {
+  TOptionValue extends string | number = string,
+> extends Omit<FormSelectProps<TOptionValue>, "name" | "value" | "defaultValue" | "onValueChange"> {
   name: TName;
   control?: Control<TFieldValues>;
-  handleChange?: (value: string) => void;
+  /**
+   * If true, saves only the primitive ID (`option.value`) into react-hook-form state.
+   * Defaults to false (passes `{ label, value }` object) so API-paginated selects
+   * retain their human-readable label regardless of active page.
+   */
+  returnPrimitiveValue?: boolean;
+  handleChange?: (
+    value:
+      | SelectOption<TOptionValue>
+      | SelectOption<TOptionValue>[]
+      | TOptionValue
+      | TOptionValue[]
+      | null,
+  ) => void;
 }
 
 /**
  * Production-grade Controlled Select component integrated with React Hook Form.
- * Automatically resolves `control` from `FormWrapper` and handles error states.
+ * Automatically resolves `control` from `FormWrapper`, passes { label, value } to form
+ * state to preserve labels in paginated/virtualized APIs, and binds field errors.
  */
 export function ControlledSelect<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
->({ name, control, handleChange, error, ...props }: ControlledSelectProps<TFieldValues, TName>) {
+  TOptionValue extends string | number = string,
+>({
+  name,
+  control,
+  returnPrimitiveValue = false,
+  handleChange,
+  error,
+  ...props
+}: ControlledSelectProps<TFieldValues, TName, TOptionValue>) {
   const formContext = useFormContext<TFieldValues>();
   const resolvedControl = control ?? formContext?.control;
 
@@ -43,13 +65,25 @@ export function ControlledSelect<
       render={({ field, fieldState }) => (
         <FormSelect
           {...props}
-          id={props.id ?? String(name)}
-          name={field.name}
-          value={field.value ?? ""}
-          error={fieldState.error?.message ?? error}
-          onValueChange={(val) => {
-            field.onChange(val);
-            handleChange?.(val);
+          id={props?.id ?? String(name)}
+          name={field?.name}
+          value={field?.value}
+          error={fieldState?.error?.message ?? error}
+          onValueChange={(selected) => {
+            const formVal:
+              | SelectOption<TOptionValue>
+              | SelectOption<TOptionValue>[]
+              | TOptionValue
+              | TOptionValue[]
+              | null =
+              returnPrimitiveValue && selected && !Array.isArray(selected)
+                ? (selected as SelectOption<TOptionValue>)?.value
+                : returnPrimitiveValue && Array.isArray(selected)
+                  ? selected?.map((s) => s?.value)
+                  : selected;
+
+            field?.onChange?.(formVal);
+            handleChange?.(formVal);
           }}
         />
       )}
