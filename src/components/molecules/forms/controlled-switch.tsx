@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import {
   Controller,
   useFormContext,
@@ -42,12 +41,12 @@ export function ControlledSwitch<
       render={({ field, fieldState }) => (
         <FormSwitch
           {...props}
-          id={props.id ?? String(name)}
-          name={field.name}
-          checked={Boolean(field.value)}
-          error={fieldState.error?.message ?? error}
+          id={props?.id ?? String(name)}
+          name={field?.name}
+          checked={Boolean(field?.value)}
+          error={fieldState?.error?.message ?? error}
           onCheckedChange={(checked) => {
-            field.onChange(checked);
+            field?.onChange?.(checked);
             handleChange?.(checked);
           }}
         />

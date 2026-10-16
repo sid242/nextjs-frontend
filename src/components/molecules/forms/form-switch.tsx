@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import { useId, type ReactNode } from "react";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
@@ -8,8 +8,8 @@ import { cn } from "@/lib/utils";
 export interface FormSwitchProps {
   id?: string;
   name?: string;
-  label?: React.ReactNode;
-  description?: React.ReactNode;
+  label?: ReactNode;
+  description?: ReactNode;
   error?: string;
   required?: boolean;
   disabled?: boolean;
@@ -34,7 +34,7 @@ export function FormSwitch({
   className,
   containerClassName,
 }: FormSwitchProps) {
-  const autoId = React.useId();
+  const autoId = useId();
   const fieldId = id ?? name ?? autoId;
   const errorId = `${fieldId}-error`;
   const descId = `${fieldId}-desc`;
