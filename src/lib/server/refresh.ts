@@ -1,7 +1,10 @@
 import "server-only";
+
 import type { NextRequest } from "next/server";
+
 import { REFRESH_COOKIE } from "@/lib/auth/constants";
 import type { Tokens } from "@/lib/auth/cookies";
+
 import { backendFetch } from "./backend";
 import { forwardedHeaders } from "./request";
 
@@ -29,11 +32,13 @@ export async function refreshTokens(req: NextRequest): Promise<RefreshResult> {
   }
 
   if (res.ok) {
-    const data = (await res.json().catch(() => null)) as Partial<Tokens> | null;
-    if (data?.accessToken && data.refreshToken) {
+    const data = (await res.json().catch(() => null)) as
+      (Partial<Tokens> & { data?: Partial<Tokens> }) | null;
+    const tokens = data?.data ?? data;
+    if (tokens?.accessToken && tokens?.refreshToken) {
       return {
         ok: true,
-        tokens: { accessToken: data.accessToken, refreshToken: data.refreshToken },
+        tokens: { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken },
       };
     }
     return { ok: false, reason: "unavailable" };

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { clearFinished, isFinished, patchItem, removeItem, type UploadItem } from "./upload-state";
 
 const item = (id: string, status: UploadItem["status"] = "queued"): UploadItem => ({

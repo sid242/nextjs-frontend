@@ -1,5 +1,6 @@
 import type { HTMLAttributes, ReactNode, Ref } from "react";
-import { Box, type BoxProps, type BoxComponent } from "@/components/ui/box";
+
+import { Box, type BoxComponent, type BoxProps } from "@/components/ui/box";
 import { cn } from "@/lib/utils";
 
 export interface SectionWrapperProps extends HTMLAttributes<HTMLElement> {

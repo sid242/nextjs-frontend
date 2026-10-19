@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { formatBytes, initials } from "./format";
 
 describe("formatBytes", () => {

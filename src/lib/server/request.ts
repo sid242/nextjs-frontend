@@ -34,5 +34,6 @@ export function forwardedHeaders(req: Request): Record<string, string | undefine
     "x-request-id": req.headers.get("x-request-id") ?? crypto.randomUUID(),
     "x-forwarded-for": req.headers.get("x-forwarded-for") ?? undefined,
     "user-agent": req.headers.get("user-agent") ?? undefined,
+    "x-tenant-id": req.headers.get("x-tenant-id") ?? undefined,
   };
 }

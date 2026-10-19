@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
+
 import { PageHeader } from "@/components/molecules/page-header";
 import { FilesTable, FileUploader, prefetchFiles } from "@/features/files";
 import { getServerQueryClient } from "@/lib/query/server";

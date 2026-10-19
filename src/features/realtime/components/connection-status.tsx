@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+
 import { useConnectionStatus } from "../use-socket";
 
 /** Small header indicator for the realtime connection. Renders nothing when there's nothing useful to say. */

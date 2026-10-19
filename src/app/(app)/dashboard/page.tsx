@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
+
+import { PageHeader } from "@/components/molecules/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { PageHeader } from "@/components/molecules/page-header";
-import { FilesSummary, prefetchFiles } from "@/features/files";
+import { FilesSummary, prefetchFiles, RecentFilesCard } from "@/features/files";
 import { requireUser } from "@/lib/auth/session";
 import { getServerQueryClient } from "@/lib/query/server";
 
@@ -32,6 +33,7 @@ export default async function DashboardPage() {
             </CardHeader>
           </Card>
         </div>
+        <RecentFilesCard />
       </div>
     </HydrationBoundary>
   );

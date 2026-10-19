@@ -1,14 +1,19 @@
 import "server-only";
+
 import { cache } from "react";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { backendFetch } from "@/lib/server/backend";
+
 import type { User } from "@/lib/api/types";
-import { ACCESS_COOKIE } from "./constants";
+import { backendFetch } from "@/lib/server/backend";
+
+import { ACCESS_COOKIE, IMPERSONATOR_BACKUP_COOKIE } from "./constants";
 
 export const getAccessToken = cache(
   async () => (await cookies()).get(ACCESS_COOKIE)?.value ?? null,
 );
+
+export const isImpersonating = cache(async () => (await cookies()).has(IMPERSONATOR_BACKUP_COOKIE));
 
 /** Current user for this request (deduped across layouts/pages). null => not signed in / token rejected. */
 export const getCurrentUser = cache(async (): Promise<User | null> => {
@@ -17,7 +22,8 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
   const res = await backendFetch("/users/me", { token });
   if (res.status === 401) return null;
   if (!res.ok) throw new Error(`Could not load session (${res.status})`);
-  return (await res.json()) as User;
+  const body = (await res.json()) as { data?: User } | User;
+  return ("data" in body && body.data ? body.data : body) as User;
 });
 
 /**

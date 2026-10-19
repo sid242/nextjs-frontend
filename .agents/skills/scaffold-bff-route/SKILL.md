@@ -25,6 +25,7 @@ Create `src/app/api/<route-name>/route.ts`:
 
 ```typescript
 import { NextResponse, type NextRequest } from "next/server";
+
 import { ACCESS_COOKIE } from "@/lib/auth/constants";
 import { backendFetch } from "@/lib/server/backend";
 import { assertSameOrigin, forwardedHeaders } from "@/lib/server/request";

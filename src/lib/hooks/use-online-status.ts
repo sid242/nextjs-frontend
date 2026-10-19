@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useSyncExternalStore } from "react";
 
 function subscribe(callback: () => void) {
   window.addEventListener("online", callback);
@@ -11,7 +11,7 @@ function subscribe(callback: () => void) {
 
 /** Browser connectivity (navigator.onLine). Server render and first paint assume online, so no hydration mismatch. */
 export function useOnlineStatus(): boolean {
-  return React.useSyncExternalStore(
+  return useSyncExternalStore(
     subscribe,
     () => navigator.onLine,
     () => true,

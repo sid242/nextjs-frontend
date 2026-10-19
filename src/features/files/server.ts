@@ -1,8 +1,11 @@
 import "server-only";
+
 import type { QueryClient } from "@tanstack/react-query";
-import { getAccessToken } from "@/lib/auth/session";
+
 import type { FileRecord } from "@/lib/api/types";
+import { getAccessToken } from "@/lib/auth/session";
 import { backendFetch } from "@/lib/server/backend";
+
 import { filesKeys } from "./keys";
 
 /**
@@ -19,7 +22,8 @@ export async function prefetchFiles(queryClient: QueryClient): Promise<void> {
     queryFn: async () => {
       const res = await backendFetch("/files", { token });
       if (!res.ok) throw new Error(`Prefetch /files failed (${res.status})`);
-      return (await res.json()) as FileRecord[];
+      const body = (await res.json()) as { data?: FileRecord[] } | FileRecord[];
+      return (Array.isArray(body) ? body : (body?.data ?? [])) as FileRecord[];
     },
   });
 }

@@ -1,12 +1,14 @@
 "use client";
 
-import * as React from "react";
+import { useEffect, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { io } from "socket.io-client";
+
 import { isApiError } from "@/lib/api/errors";
 import { authApi } from "@/lib/api/http";
 import { refreshSession } from "@/lib/api/refresh";
 import { sleep } from "@/lib/async";
+
 import type { AppSocket } from "./events";
 import { useRealtimeStore, type SocketStatus } from "./store";
 
@@ -45,10 +47,10 @@ async function getFirstTicket(
  *  - React StrictMode double-mount and logout: everything is torn down in the cleanup
  * Realtime is an enhancement: if it fails the app still works through normal refetching.
  */
-export function SocketProvider({ children }: { children: React.ReactNode }) {
+export function SocketProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
 
-  React.useEffect(() => {
+  useEffect(() => {
     const { setSocket, setStatus } = useRealtimeStore.getState();
     let disposed = false;
     let socket: AppSocket | null = null;

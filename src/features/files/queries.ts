@@ -1,7 +1,9 @@
 "use client";
 
 import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
 import type { FileRecord } from "@/lib/api/types";
+
 import { deleteFile, listFiles } from "./api";
 import { filesKeys } from "./keys";
 
@@ -9,7 +11,21 @@ import { filesKeys } from "./keys";
 // for useQuery, prefetchQuery and setQueryData with full type inference.
 export const filesQueryOptions = {
   list: () =>
-    queryOptions({ queryKey: filesKeys.list(), queryFn: ({ signal }) => listFiles(signal) }),
+    queryOptions({
+      queryKey: filesKeys.list(),
+      queryFn: async ({ signal }) => {
+        const res = await listFiles(signal);
+        if (Array.isArray(res)) return res;
+        if (
+          res &&
+          typeof res === "object" &&
+          Array.isArray((res as { data?: FileRecord[] }).data)
+        ) {
+          return (res as { data: FileRecord[] }).data;
+        }
+        return [];
+      },
+    }),
 };
 
 export const useFiles = () => useQuery(filesQueryOptions.list());

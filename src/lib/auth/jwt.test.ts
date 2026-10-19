@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { decodeJwt } from "./jwt";
 
 const encode = (obj: object) => Buffer.from(JSON.stringify(obj)).toString("base64url");

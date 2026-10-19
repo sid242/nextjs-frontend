@@ -1,6 +1,9 @@
 import "client-only"; // build error if a server component imports this: server code uses backendFetch instead
+
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from "axios";
+
 import { createId } from "@/lib/id";
+
 import { toApiError } from "./errors";
 import { refreshSession } from "./refresh";
 
@@ -27,6 +30,12 @@ function createInstance(baseURL: string): AxiosInstance {
   // End-to-end tracing: the BFF forwards this id to the backend, so one id spans browser -> Next -> API logs.
   instance.interceptors.request.use((config) => {
     if (!config.headers.has("x-request-id")) config.headers.set("x-request-id", createId());
+    if (typeof window !== "undefined") {
+      const tenantId = window.localStorage.getItem("active-tenant-id");
+      if (tenantId && !config.headers.has("x-tenant-id")) {
+        config.headers.set("x-tenant-id", tenantId);
+      }
+    }
     return config;
   });
   return instance;
@@ -75,8 +84,31 @@ authHttp.interceptors.response.use(
 );
 
 function createApi(instance: AxiosInstance) {
-  const unwrap = <T>(res: AxiosResponse<T>): T =>
-    res.status === 204 ? (undefined as T) : res.data;
+  const unwrap = <T>(res: AxiosResponse<T>): T => {
+    if (res.status === 204) return undefined as T;
+    const body = res.data as { success?: boolean; data?: T; message?: string } | T;
+    if (body && typeof body === "object" && "success" in body && "data" in body) {
+      const data = (body as { data: T }).data;
+      const envelopeMessage = (body as { message?: string }).message;
+      if (Array.isArray(data)) {
+        return data as T;
+      }
+      if (data && typeof data === "object") {
+        if (
+          !("message" in (data as Record<string, unknown>)) &&
+          typeof envelopeMessage === "string"
+        ) {
+          return { ...(data as Record<string, unknown>), message: envelopeMessage } as T;
+        }
+        return data;
+      }
+      if ((data === null || data === undefined) && typeof envelopeMessage === "string") {
+        return { message: envelopeMessage } as unknown as T;
+      }
+      return data;
+    }
+    return body as T;
+  };
   return {
     get: <T>(url: string, config?: AxiosRequestConfig) => instance.get<T>(url, config).then(unwrap),
     post: <T = void>(url: string, data?: unknown, config?: AxiosRequestConfig) =>

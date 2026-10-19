@@ -2,8 +2,10 @@
 
 import * as React from "react";
 import { UploadIcon } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
 import { FILE_INPUT_ACCEPT, MAX_UPLOAD_MB } from "../constants";
 import { useUploadFiles } from "../use-upload-files";
 import { UploadList } from "./upload-list";

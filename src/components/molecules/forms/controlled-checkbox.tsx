@@ -8,6 +8,7 @@ import {
   type FieldPath,
   type FieldValues,
 } from "react-hook-form";
+
 import { FormCheckbox, type FormCheckboxProps } from "./form-checkbox";
 
 export interface ControlledCheckboxProps<

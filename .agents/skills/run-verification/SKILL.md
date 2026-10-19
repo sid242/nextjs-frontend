@@ -47,9 +47,10 @@ If linting fails:
 - **Deep Feature Import Violation**: If an error says `Import from a feature's public API (@/features/<name>), not its internals`, update the import to use the barrel:
   ```typescript
   // Bad:
-  import { useFiles } from "@/features/files/queries";
+
   // Good:
   import { useFiles } from "@/features/files";
+  import { useFiles } from "@/features/files/queries";
   ```
 - **Layer Boundary Violation**: If an atom/molecule imports from an organism or a feature, refactor to pass the component via slots or props.
 

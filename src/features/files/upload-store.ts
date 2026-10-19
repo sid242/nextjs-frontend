@@ -1,5 +1,7 @@
 import { create } from "zustand";
+
 import { registerStoreReset } from "@/lib/stores/reset";
+
 import { clearFinished, patchItem, removeItem, type UploadItem } from "./upload-state";
 
 interface UploadStoreState {

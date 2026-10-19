@@ -1,0 +1,492 @@
+/* ─── TipTap editor shell ───────────────────────────────────────────────────── */
+.tiptap-editor-c {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: visible;
+}
+
+.tiptap-editor-c label {
+  display: inline-block;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.tiptap-editor-c label .required {
+  color: #ef4444;
+  margin-left: 4px;
+}
+
+/* ── Toolbar ─────────────────────────────────────────────────────────────────── */
+.tiptap-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 8px;
+  background: var(--card, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  user-select: none;
+}
+
+.tiptap-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 7px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--foreground, #333);
+  line-height: 1.4;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+  white-space: nowrap;
+}
+
+.tiptap-btn:hover:not(.is-disabled) {
+  background: var(--accent, #f3f4f6);
+  border-color: var(--border, #ccc);
+}
+
+.tiptap-btn.is-active {
+  background: var(--accent, #e8f0fe);
+  border-color: #4285f4;
+  color: #1a73e8;
+}
+
+.tiptap-btn.is-disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.tiptap-sep {
+  display: inline-block;
+  width: 1px;
+  height: 20px;
+  background: var(--border, #ddd);
+  margin: 0 4px;
+}
+
+.tiptap-select {
+  padding: 3px 6px;
+  border: 1px solid var(--border, #ccc);
+  border-radius: 4px;
+  font-size: 13px;
+  background: var(--card, #fff);
+  cursor: pointer;
+  color: var(--foreground, #333);
+}
+
+.tiptap-select:focus {
+  outline: none;
+  border-color: #4285f4;
+}
+
+/* Colour picker row */
+.tiptap-color-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  padding: 3px 7px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.tiptap-color-wrap:hover {
+  background: var(--accent, #f0f0f0);
+  border-color: var(--border, #ccc);
+}
+
+.tiptap-color-label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.tiptap-color-input {
+  width: 18px;
+  height: 18px;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  background: transparent;
+}
+
+/* ── Content area ───────────────────────────────────────────────────────────── */
+.tiptap-content .ProseMirror,
+.tiptap-preview .ProseMirror-static {
+  min-height: 14rem;
+  max-height: 24rem;
+  overflow-y: auto;
+  padding: 12px 16px;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 0 0 6px 6px;
+  outline: none;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--foreground, #1a1a1a);
+  background: var(--card, #fff);
+}
+
+.tiptap-content .ProseMirror:focus {
+  border-color: #4285f4;
+  box-shadow: 0 0 0 1px #4285f4;
+}
+
+/* Placeholder */
+.tiptap-content .ProseMirror p.is-editor-empty:first-child::before {
+  color: #aaa;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Headings */
+.tiptap-content .ProseMirror h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 1rem 0 0.5rem;
+}
+.tiptap-content .ProseMirror h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0.9rem 0 0.4rem;
+}
+.tiptap-content .ProseMirror h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0.8rem 0 0.4rem;
+}
+.tiptap-content .ProseMirror h4,
+.tiptap-content .ProseMirror h5,
+.tiptap-content .ProseMirror h6 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0.6rem 0 0.3rem;
+}
+
+.tiptap-content .ProseMirror p {
+  margin: 0.5rem 0;
+}
+
+.tiptap-content .ProseMirror strong {
+  font-weight: 700;
+}
+.tiptap-content .ProseMirror em {
+  font-style: italic;
+}
+.tiptap-content .ProseMirror u {
+  text-decoration: underline;
+}
+.tiptap-content .ProseMirror s {
+  text-decoration: line-through;
+}
+.tiptap-content .ProseMirror sub {
+  vertical-align: sub;
+  font-size: smaller;
+}
+.tiptap-content .ProseMirror sup {
+  vertical-align: super;
+  font-size: smaller;
+}
+
+/* Lists */
+.tiptap-content .ProseMirror ul,
+.tiptap-content .ProseMirror ol {
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+.tiptap-content .ProseMirror ul {
+  list-style-type: disc;
+}
+.tiptap-content .ProseMirror ol {
+  list-style-type: decimal;
+}
+.tiptap-content .ProseMirror li {
+  margin: 0.2rem 0;
+}
+
+/* Blockquote */
+.tiptap-content .ProseMirror blockquote {
+  border-left: 4px solid #ccc;
+  margin: 1rem 0;
+  padding: 0.5rem 1rem;
+  color: #555;
+  font-style: italic;
+  background: #f9f9f9;
+  border-radius: 0 4px 4px 0;
+}
+
+/* Code */
+.tiptap-content .ProseMirror code {
+  background: #f4f4f4;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 0.875em;
+  padding: 0.1em 0.3em;
+}
+
+.tiptap-content .ProseMirror pre {
+  background: #2d2d2d;
+  color: #f8f8f2;
+  font-family: monospace;
+  padding: 1rem;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  margin: 1rem 0;
+}
+
+.tiptap-content .ProseMirror pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  border-radius: 0;
+}
+
+/* Link */
+.tiptap-content .ProseMirror a {
+  color: #1a73e8;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Image & Resizer */
+.tiptap-content .ProseMirror img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  display: block;
+  margin: 0;
+}
+
+.tiptap-content .ProseMirror [data-resize-container] {
+  max-width: 100%;
+  margin-bottom: 1rem;
+}
+
+.tiptap-content .ProseMirror [data-resize-wrapper] {
+  position: relative !important;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.tiptap-content .ProseMirror [data-resize-wrapper] img {
+  display: block;
+  margin: 0;
+}
+
+.tiptap-content .ProseMirror [data-resize-wrapper]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2px solid transparent;
+  pointer-events: none;
+  transition: border-color 0.15s;
+  border-radius: 4px;
+}
+
+.tiptap-content .ProseMirror [data-resize-wrapper]:hover::after,
+.tiptap-content .ProseMirror [data-resize-wrapper][data-resize-state="resizing"]::after {
+  border-color: #4285f4;
+}
+
+.tiptap-content .ProseMirror [data-resize-handle] {
+  position: absolute !important;
+  width: 10px;
+  height: 10px;
+  background: #ffffff;
+  border: 2px solid #4285f4;
+  border-radius: 50%;
+  z-index: 50;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  transition:
+    background 0.15s,
+    transform 0.15s;
+}
+
+.tiptap-content .ProseMirror [data-resize-handle]:hover {
+  background: #4285f4;
+  transform: scale(1.2);
+}
+
+.tiptap-content .ProseMirror [data-resize-handle="top-left"] {
+  top: -5px !important;
+  left: -5px !important;
+  cursor: nwse-resize;
+}
+.tiptap-content .ProseMirror [data-resize-handle="top-right"] {
+  top: -5px !important;
+  right: -5px !important;
+  left: unset !important;
+  cursor: nesw-resize;
+}
+.tiptap-content .ProseMirror [data-resize-handle="bottom-left"] {
+  bottom: -5px !important;
+  top: unset !important;
+  left: -5px !important;
+  cursor: nesw-resize;
+}
+.tiptap-content .ProseMirror [data-resize-handle="bottom-right"] {
+  bottom: -5px !important;
+  top: unset !important;
+  right: -5px !important;
+  left: unset !important;
+  cursor: nwse-resize;
+}
+
+/* Table */
+.tiptap-content .ProseMirror table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+  table-layout: fixed;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.tiptap-content .ProseMirror table td,
+.tiptap-content .ProseMirror table th {
+  border: 1px solid #d0d0d0;
+  padding: 8px 12px;
+  vertical-align: top;
+  min-width: 60px;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.tiptap-content .ProseMirror table th {
+  background: #f0f4ff;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-align: left;
+  color: #333;
+}
+
+.tiptap-content .ProseMirror table tr:nth-child(even) td {
+  background: #fafafa;
+}
+
+.tiptap-content .ProseMirror table tr:hover td {
+  background: #f0f7ff;
+}
+
+.tiptap-content .ProseMirror table .selectedCell::after {
+  z-index: 2;
+  position: absolute;
+  content: "";
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(66, 133, 244, 0.15);
+  pointer-events: none;
+}
+
+.tiptap-content .ProseMirror table .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: #4285f4;
+  cursor: col-resize;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.tiptap-content .ProseMirror table .column-resize-handle:hover {
+  opacity: 1;
+}
+
+.tiptap-content .ProseMirror.resize-cursor {
+  cursor: col-resize;
+}
+
+/* Bubble Menu */
+.tiptap-bubble-menu {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #2d2d2d;
+  border-radius: 6px;
+  padding: 4px 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid #444;
+}
+
+.tiptap-bubble-menu .bubble-btn {
+  background: transparent;
+  border: none;
+  color: #eee;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.tiptap-bubble-menu .bubble-btn:hover {
+  background: #444;
+  color: #fff;
+}
+
+.tiptap-bubble-menu .bubble-btn.is-active {
+  background: #4285f4;
+  color: #fff;
+}
+
+.tiptap-bubble-menu .bubble-alt-input {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #1f2937;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.tiptap-bubble-menu .bubble-alt-input input {
+  min-width: 12rem;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 4px 6px;
+  font-size: 12px;
+  color: #111;
+  outline: none;
+}
+
+.tiptap-bubble-menu .bubble-sep {
+  width: 1px;
+  height: 16px;
+  background: #555;
+  margin: 0 4px;
+}
+
+.tiptap-content .ProseMirror [data-resize-container]:has(img[data-align="left"]) {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+}
+.tiptap-content .ProseMirror [data-resize-container]:has(img[data-align="center"]) {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+.tiptap-content .ProseMirror [data-resize-container]:has(img[data-align="right"]) {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+}

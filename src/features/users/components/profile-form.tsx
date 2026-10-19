@@ -1,17 +1,17 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { useForm } from "react-hook-form";
+
 import { ControlledInput, FormInput, FormWrapper } from "@/components/molecules/forms";
 import { SubmitButton } from "@/components/molecules/submit-button";
 import type { User } from "@/lib/api/types";
-import { updateMe } from "../api";
+
+import { useUpdateProfile } from "../queries";
 import { profileSchema, type ProfileValues } from "../schemas";
 
-export function ProfileForm({ user }: { user: Pick<User, "name" | "email"> }) {
+export function ProfileForm({ user }: { user?: Pick<User, "name" | "email"> }) {
   const router = useRouter();
   const methods = useForm<ProfileValues>({
     resolver: zodResolver(profileSchema),
@@ -19,11 +19,8 @@ export function ProfileForm({ user }: { user: Pick<User, "name" | "email"> }) {
     mode: "onChange",
   });
 
-  const mutation = useMutation({
-    mutationFn: updateMe,
-    meta: { errorMessage: "Could not update your profile." },
+  const updateProfileMutation = useUpdateProfile({
     onSuccess: (updated) => {
-      toast.success("Profile updated");
       methods?.reset({ name: updated?.name ?? "" });
       router?.refresh();
     },
@@ -32,7 +29,7 @@ export function ProfileForm({ user }: { user: Pick<User, "name" | "email"> }) {
   return (
     <FormWrapper
       methods={methods}
-      onSubmit={(values) => mutation?.mutate(values)}
+      onSubmit={(values) => updateProfileMutation?.mutate(values)}
       className="grid max-w-md gap-4"
     >
       <ControlledInput
@@ -44,14 +41,14 @@ export function ProfileForm({ user }: { user: Pick<User, "name" | "email"> }) {
       />
       <FormInput
         label="Email"
-        value={user?.email}
+        value={user?.email ?? ""}
         readOnly
         disabled
         hint="Email can't be changed here."
       />
       <div>
         <SubmitButton
-          pending={mutation?.isPending}
+          pending={updateProfileMutation?.isPending}
           pendingText="Saving…"
           disabled={!methods?.formState?.isDirty}
         >

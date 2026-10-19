@@ -1,12 +1,14 @@
 "use client";
 
 import { XIcon } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { formatBytes } from "@/lib/format";
-import { cancelUpload } from "../use-upload-files";
+
 import { isFinished, type UploadItem } from "../upload-state";
 import { useUploadStore } from "../upload-store";
+import { cancelUpload } from "../use-upload-files";
 
 function statusText(item: UploadItem): string {
   switch (item.status) {

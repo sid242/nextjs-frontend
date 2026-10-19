@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+
 import { backendUrl } from "@/lib/server/backend";
 
 export const dynamic = "force-dynamic";

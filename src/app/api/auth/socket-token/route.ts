@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+
 import { ACCESS_COOKIE } from "@/lib/auth/constants";
 import { applyAuthCookies, clearAuthCookies } from "@/lib/auth/cookies";
 import { getEnv } from "@/lib/server/env";

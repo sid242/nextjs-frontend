@@ -1,5 +1,6 @@
 import axios, { AxiosError, type AxiosAdapter, type InternalAxiosRequestConfig } from "axios";
 import { describe, expect, it } from "vitest";
+
 import { ApiError, isCanceledError } from "./errors";
 import { api, http } from "./http";
 

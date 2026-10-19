@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+
 import { ACCESS_COOKIE, REFRESH_COOKIE } from "@/lib/auth/constants";
 import { isAuthPage, isProtectedPath } from "@/lib/auth/paths";
 
@@ -54,16 +55,10 @@ export function proxy(req: NextRequest) {
     const target = hasRefresh
       ? `/api/auth/refresh?next=${encodeURIComponent(pathname + search)}`
       : `/login?next=${encodeURIComponent(pathname + search)}`;
-    return new NextResponse(null, {
-      status: 307,
-      headers: { Location: target, "Cache-Control": "no-store" },
-    });
+    return NextResponse.redirect(new URL(target, req.url));
   }
   if (isAuthPage(pathname) && hasAccess) {
-    return new NextResponse(null, {
-      status: 307,
-      headers: { Location: "/dashboard", "Cache-Control": "no-store" },
-    });
+    return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
   const nonce = btoa(crypto.randomUUID());

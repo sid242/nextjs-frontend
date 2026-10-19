@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { ApiError, getErrorMessage, isApiError, isCanceledError, toApiError } from "./errors";
 
 const axiosError = (

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { loginSchema, registerSchema } from "./schemas";
+
+import { forgotPasswordSchema, loginSchema, registerSchema, resetPasswordSchema } from "./schemas";
 
 describe("auth schemas", () => {
   it("accepts valid credentials and trims email", () => {
@@ -13,5 +14,24 @@ describe("auth schemas", () => {
   });
   it("rejects bad emails", () => {
     expect(loginSchema.safeParse({ email: "nope", password: "x" }).success).toBe(false);
+  });
+  it("validates forgotPassword and resetPassword schemas", () => {
+    expect(forgotPasswordSchema.safeParse({ email: "test@example.com" }).success).toBe(true);
+    expect(forgotPasswordSchema.safeParse({ email: "invalid" }).success).toBe(false);
+
+    expect(
+      resetPasswordSchema.safeParse({
+        token: "xyz",
+        newPassword: "password123",
+        confirmPassword: "password123",
+      }).success,
+    ).toBe(true);
+    expect(
+      resetPasswordSchema.safeParse({
+        token: "xyz",
+        newPassword: "password123",
+        confirmPassword: "mismatch",
+      }).success,
+    ).toBe(false);
   });
 });

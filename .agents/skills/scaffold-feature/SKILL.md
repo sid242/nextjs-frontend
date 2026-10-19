@@ -54,7 +54,8 @@ Implement pure typed async functions using `api` from `@/lib/api/http`:
 
 ```typescript
 import { api } from "@/lib/api/http";
-import type { Item, CreateItemInput } from "./schemas";
+
+import type { CreateItemInput, Item } from "./schemas";
 
 export async function getItems(signal?: AbortSignal): Promise<Item[]> {
   return api.get<Item[]>("/items", { signal });
@@ -83,7 +84,8 @@ Create reusable `queryOptions` and mutation hooks:
 
 ```typescript
 import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getItems, createItem } from "./api";
+
+import { createItem, getItems } from "./api";
 import { itemKeys } from "./keys";
 import type { CreateItemInput } from "./schemas";
 

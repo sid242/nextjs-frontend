@@ -1,9 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
+
 import { REFRESH_GUARD_COOKIE } from "@/lib/auth/constants";
 import { applyAuthCookies, clearAuthCookies, setRefreshGuard } from "@/lib/auth/cookies";
 import { safeNextPath } from "@/lib/auth/paths";
-import { assertSameOrigin } from "@/lib/server/request";
 import { refreshTokens } from "@/lib/server/refresh";
+import { assertSameOrigin } from "@/lib/server/request";
 import { errorResponse, redirectTo } from "@/lib/server/response";
 
 export const dynamic = "force-dynamic";

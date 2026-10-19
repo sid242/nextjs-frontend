@@ -1,6 +1,9 @@
 import "server-only";
+
 import { NextResponse, type NextRequest } from "next/server";
+
 import { applyAuthCookies } from "@/lib/auth/cookies";
+
 import { backendFetch } from "./backend";
 import { assertSameOrigin, forwardedHeaders } from "./request";
 import { errorResponse } from "./response";
@@ -33,9 +36,12 @@ export async function handleCredentials(
     accessToken?: string;
     refreshToken?: string;
     error?: unknown;
+    data?: { user?: unknown; accessToken?: string; refreshToken?: string };
   } | null;
 
-  if (!upstream.ok || !data?.accessToken || !data.refreshToken) {
+  const authData = data?.data ?? data;
+
+  if (!upstream.ok || !authData?.accessToken || !authData?.refreshToken) {
     const headers: Record<string, string> = { "Cache-Control": "no-store" };
     const retryAfter = upstream.headers.get("retry-after");
     if (retryAfter) headers["Retry-After"] = retryAfter;
@@ -49,8 +55,11 @@ export async function handleCredentials(
   }
 
   const res = NextResponse.json(
-    { user: data.user },
+    { user: authData.user },
     { status: upstream.status, headers: { "Cache-Control": "no-store" } },
   );
-  return applyAuthCookies(res, { accessToken: data.accessToken, refreshToken: data.refreshToken });
+  return applyAuthCookies(res, {
+    accessToken: authData.accessToken,
+    refreshToken: authData.refreshToken,
+  });
 }

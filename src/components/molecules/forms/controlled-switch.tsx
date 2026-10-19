@@ -7,6 +7,7 @@ import {
   type FieldPath,
   type FieldValues,
 } from "react-hook-form";
+
 import { FormSwitch, type FormSwitchProps } from "./form-switch";
 
 export interface ControlledSwitchProps<

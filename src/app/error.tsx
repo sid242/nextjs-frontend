@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
-import { reportError } from "@/lib/monitoring";
+
 import { Button } from "@/components/ui/button";
+import { reportError } from "@/lib/monitoring";
 
 export default function Error({
   error,

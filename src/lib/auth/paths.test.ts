@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { isAuthPage, isProtectedPath, safeNextPath } from "./paths";
 
 describe("safeNextPath", () => {

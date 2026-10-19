@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
+
 import { AppProviders } from "@/components/providers/app-providers";
 import { siteConfig } from "@/config/site";
+
 import "./globals.css";
 
 export const metadata: Metadata = {

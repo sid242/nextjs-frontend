@@ -1,26 +1,17 @@
-import type { Metadata } from "next";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { PageHeader } from "@/components/molecules/page-header";
-import { ProfileForm } from "@/features/users";
-import { requireUser } from "@/lib/auth/session";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = { title: "Settings" };
+interface SettingsPageProps {
+  searchParams: Promise<{ tab?: string }>;
+}
 
-export default async function SettingsPage() {
-  const user = await requireUser();
+export default async function SettingsPage({ searchParams }: SettingsPageProps) {
+  const resolved = await searchParams;
+  const tab = resolved?.tab;
 
-  return (
-    <div className="grid gap-6">
-      <PageHeader title="Settings" description="Manage your account." />
-      <Card>
-        <CardHeader>
-          <CardTitle>Profile</CardTitle>
-          <CardDescription>How your name appears across the app.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ProfileForm user={user} />
-        </CardContent>
-      </Card>
-    </div>
-  );
+  if (tab === "workspace") redirect("/settings/workspace");
+  if (tab === "smtp" || tab === "email") redirect("/settings/email");
+  if (tab === "security") redirect("/settings/security");
+  if (tab === "admin") redirect("/settings/admin");
+
+  redirect("/settings/profile");
 }

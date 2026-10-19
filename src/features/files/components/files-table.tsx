@@ -1,10 +1,15 @@
 "use client";
 
-import * as React from "react";
-import { DownloadIcon, FileIcon, Trash2Icon } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { DownloadIcon, EyeIcon, FileIcon, SearchIcon, Trash2Icon, XIcon } from "lucide-react";
 import { toast } from "sonner";
+
+import { ColumnConfigDropdown } from "@/components/molecules/column-config-dropdown";
+import { ConfirmDialog } from "@/components/molecules/confirm-dialog";
+import { EmptyState } from "@/components/molecules/empty-state";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -14,15 +19,39 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ConfirmDialog } from "@/components/molecules/confirm-dialog";
-import { EmptyState } from "@/components/molecules/empty-state";
 import { getErrorMessage } from "@/lib/api/errors";
 import type { FileRecord } from "@/lib/api/types";
 import { formatBytes, formatDate } from "@/lib/format";
+import {
+  useDebouncedValue,
+  useSearchQueryParams,
+  useTableColumns,
+  type TableColumnDef,
+} from "@/lib/hooks";
+
 import { getDownloadUrl } from "../api";
 import { useDeleteFile, useFiles } from "../queries";
 import { useFileRealtime } from "../use-file-realtime";
+import { FilePreviewDialog } from "./file-preview-dialog";
 import { FileStatusBadge } from "./file-status-badge";
+
+type FileColumnId = "name" | "size" | "status" | "added" | "actions";
+
+const FILE_COLUMNS: TableColumnDef<FileColumnId>[] = [
+  { id: "name", label: "Name", canHide: false, defaultVisible: true },
+  { id: "size", label: "Size", canHide: true, defaultVisible: true },
+  { id: "status", label: "Status", canHide: true, defaultVisible: true },
+  { id: "added", label: "Date Added", canHide: true, defaultVisible: true },
+  { id: "actions", label: "Actions", canHide: false, defaultVisible: true },
+];
+
+const COLUMN_CONFIG: Record<FileColumnId, { label: string; className?: string }> = {
+  name: { label: "Name" },
+  size: { label: "Size" },
+  status: { label: "Status" },
+  added: { label: "Added" },
+  actions: { label: "Actions", className: "text-right" },
+};
 
 function openInNewTab(url: string) {
   const link = document.createElement("a");
@@ -35,14 +64,112 @@ function openInNewTab(url: string) {
 export function FilesTable() {
   useFileRealtime();
   const { data, isPending, isError, error, refetch } = useFiles();
+  const fileList = useMemo(() => {
+    if (Array.isArray(data)) return data;
+    if (data && typeof data === "object" && Array.isArray((data as { data?: FileRecord[] }).data)) {
+      return (data as { data: FileRecord[] }).data;
+    }
+    return [];
+  }, [data]);
   const remove = useDeleteFile();
-  const [toDelete, setToDelete] = React.useState<FileRecord | null>(null);
+
+  const [toDelete, setToDelete] = useState<FileRecord | null>(null);
+  const [previewFile, setPreviewFile] = useState<FileRecord | null>(null);
+
+  const { get, setParam } = useSearchQueryParams();
+  const initialSearch = get("q") ?? "";
+  const [searchInput, setSearchInput] = useState<string>(initialSearch);
+  const debouncedSearch = useDebouncedValue(searchInput, 250);
+
+  // Synchronize debounced search to URL query parameter (?q=...)
+  useEffect(() => {
+    const currentQ = get("q") ?? "";
+    const nextQ = debouncedSearch.trim();
+    if (nextQ !== currentQ) {
+      setParam("q", nextQ || null, { mode: "replace", scroll: false });
+    }
+  }, [debouncedSearch, get, setParam]);
+
+  const filteredFiles = useMemo(() => {
+    const term = debouncedSearch.trim().toLowerCase();
+    if (!term) return fileList;
+    return fileList.filter((f) => f?.filename?.toLowerCase().includes(term));
+  }, [fileList, debouncedSearch]);
+
+  const tableColumns = useTableColumns<FileColumnId>({
+    columns: FILE_COLUMNS,
+    tableId: "files_table",
+  });
 
   async function download(file: FileRecord) {
     try {
       openInNewTab((await getDownloadUrl(file.id)).url);
     } catch (err) {
       toast.error(getErrorMessage(err));
+    }
+  }
+
+  function renderCell(colId: FileColumnId, file: FileRecord) {
+    switch (colId) {
+      case "name":
+        return (
+          <TableCell key="name" className="max-w-64 truncate font-medium" title={file?.filename}>
+            <button
+              type="button"
+              onClick={() => setPreviewFile(file)}
+              className="hover:text-primary max-w-full truncate text-left font-medium transition-colors hover:underline"
+            >
+              {file?.filename}
+            </button>
+          </TableCell>
+        );
+      case "size":
+        return <TableCell key="size">{formatBytes(file?.size ?? 0)}</TableCell>;
+      case "status":
+        return (
+          <TableCell key="status">
+            <FileStatusBadge status={file?.status} />
+          </TableCell>
+        );
+      case "added":
+        return (
+          <TableCell key="added" className="text-muted-foreground">
+            {formatDate(file?.createdAt)}
+          </TableCell>
+        );
+      case "actions":
+        return (
+          <TableCell key="actions" className="text-right">
+            <Button
+              size="icon"
+              variant="ghost"
+              aria-label={`Preview ${file?.filename}`}
+              onClick={() => setPreviewFile(file)}
+              title="Preview file directly"
+            >
+              <EyeIcon className="size-4" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              aria-label={`Download ${file?.filename}`}
+              disabled={file?.status !== "UPLOADED"}
+              onClick={() => void download(file)}
+              title="Download file"
+            >
+              <DownloadIcon className="size-4" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              aria-label={`Delete ${file?.filename}`}
+              onClick={() => setToDelete(file)}
+              title="Delete file"
+            >
+              <Trash2Icon className="size-4" />
+            </Button>
+          </TableCell>
+        );
     }
   }
 
@@ -69,7 +196,7 @@ export function FilesTable() {
     );
   }
 
-  if (data.length === 0) {
+  if (fileList.length === 0) {
     return (
       <EmptyState
         icon={<FileIcon />}
@@ -80,52 +207,80 @@ export function FilesTable() {
   }
 
   return (
-    <>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Size</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Added</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data.map((file) => (
-            <TableRow key={file.id}>
-              <TableCell className="max-w-64 truncate font-medium" title={file.filename}>
-                {file.filename}
-              </TableCell>
-              <TableCell>{formatBytes(file.size)}</TableCell>
-              <TableCell>
-                <FileStatusBadge status={file.status} />
-              </TableCell>
-              <TableCell className="text-muted-foreground">{formatDate(file.createdAt)}</TableCell>
-              <TableCell className="text-right">
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  aria-label={`Download ${file.filename}`}
-                  disabled={file.status !== "UPLOADED"}
-                  onClick={() => void download(file)}
-                >
-                  <DownloadIcon />
-                </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  aria-label={`Delete ${file.filename}`}
-                  onClick={() => setToDelete(file)}
-                >
-                  <Trash2Icon />
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+    <div className="grid gap-3">
+      {/* Table Toolbar */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative max-w-xs flex-1">
+          <SearchIcon className="text-muted-foreground absolute top-2.5 left-2.5 size-3.5" />
+          <Input
+            placeholder="Filter files by name…"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className="h-8 pr-7 pl-8 text-xs"
+          />
+          {searchInput ? (
+            <button
+              type="button"
+              onClick={() => setSearchInput("")}
+              className="text-muted-foreground hover:text-foreground absolute top-2 right-2 p-0.5"
+              aria-label="Clear search"
+            >
+              <XIcon className="size-3" />
+            </button>
+          ) : null}
+        </div>
 
+        <div className="flex items-center justify-between gap-3 sm:justify-end">
+          <p className="text-muted-foreground text-xs font-medium">
+            {filteredFiles.length} {filteredFiles.length === 1 ? "file" : "files"}
+            {debouncedSearch ? ` (filtered from ${fileList.length})` : ""}
+          </p>
+          <ColumnConfigDropdown tableColumns={tableColumns} />
+        </div>
+      </div>
+
+      {filteredFiles.length === 0 ? (
+        <div className="rounded-md border p-8 text-center">
+          <p className="text-sm font-medium">No files matching &ldquo;{debouncedSearch}&rdquo;</p>
+          <p className="text-muted-foreground pt-1 text-xs">
+            Try adjusting your search terms or clear the filter.
+          </p>
+          <Button
+            size="sm"
+            variant="outline"
+            className="mt-3 text-xs"
+            onClick={() => setSearchInput("")}
+          >
+            Clear Filter
+          </Button>
+        </div>
+      ) : (
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {tableColumns.orderedVisibleColumns.map((colId) => {
+                  const header = COLUMN_CONFIG[colId];
+                  return (
+                    <TableHead key={colId} className={header?.className}>
+                      {header?.label}
+                    </TableHead>
+                  );
+                })}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredFiles.map((file) => (
+                <TableRow key={file?.id}>
+                  {tableColumns.orderedVisibleColumns.map((colId) => renderCell(colId, file))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
       <ConfirmDialog
         open={toDelete !== null}
         onOpenChange={(open) => !open && setToDelete(null)}
@@ -138,10 +293,17 @@ export function FilesTable() {
           if (!toDelete) return;
           remove.mutate(toDelete.id, {
             onSuccess: () => toast.success("File deleted"),
-            onSettled: () => setToDelete(null), // failures show the global error toast and the row is restored
+            onSettled: () => setToDelete(null),
           });
         }}
       />
-    </>
+
+      {/* In-browser File Preview Modal */}
+      <FilePreviewDialog
+        file={previewFile}
+        open={previewFile !== null}
+        onOpenChange={(open) => !open && setPreviewFile(null)}
+      />
+    </div>
   );
 }

@@ -1,4 +1,5 @@
 import "server-only";
+
 import { getEnv } from "./env";
 
 export interface BackendInit extends Omit<RequestInit, "headers"> {

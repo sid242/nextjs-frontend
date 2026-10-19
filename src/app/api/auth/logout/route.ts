@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+
 import { REFRESH_COOKIE } from "@/lib/auth/constants";
 import { clearAuthCookies } from "@/lib/auth/cookies";
 import { backendFetch } from "@/lib/server/backend";
