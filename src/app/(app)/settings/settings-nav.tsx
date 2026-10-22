@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2Icon, MailIcon, ShieldIcon, UserIcon, UsersIcon } from "lucide-react";
+import {
+  Building2Icon,
+  CreditCardIcon,
+  MailIcon,
+  ShieldIcon,
+  UserIcon,
+  UsersIcon,
+} from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -25,6 +32,12 @@ export function SettingsNav({ isAdmin }: SettingsNavProps) {
       label: "Workspace",
       icon: Building2Icon,
       active: pathname === "/settings/workspace",
+    },
+    {
+      href: "/settings/billing",
+      label: "Plans & Billing",
+      icon: CreditCardIcon,
+      active: pathname === "/settings/billing",
     },
     {
       href: "/settings/email",

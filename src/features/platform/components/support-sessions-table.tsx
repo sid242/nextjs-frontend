@@ -1,8 +1,28 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertCircle, Clock, LifeBuoy, Radio, ShieldAlert, StopCircle, Timer } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  AlertCircle,
+  Clock,
+  ExternalLink,
+  LifeBuoy,
+  Radio,
+  ShieldAlert,
+  StopCircle,
+  Timer,
+} from "lucide-react";
+import { useForm } from "react-hook-form";
 
+import {
+  ControlledInput,
+  ControlledSelect,
+  ControlledTextarea,
+  FormWrapper,
+} from "@/components/molecules/forms";
+import { SubmitButton } from "@/components/molecules/submit-button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,15 +34,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -32,11 +43,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
 import { getErrorMessage } from "@/lib/api/errors";
 
 import { useEndSupportSession, useStartSupportSession, useSupportSessions } from "../queries";
-import type { PlatformSupportSession } from "../schemas";
+import {
+  startSupportSessionSchema,
+  type PlatformSupportSession,
+  type StartSupportSessionInput,
+} from "../schemas";
 
 function SessionCountdown({ expiresAt }: { expiresAt: string }) {
   const [timeLeft, setTimeLeft] = useState<string>("");
@@ -73,57 +87,11 @@ function SessionCountdown({ expiresAt }: { expiresAt: string }) {
 }
 
 export function SupportSessionsTable() {
+  const router = useRouter();
   const [initiateDialogOpen, setInitiateDialogOpen] = useState(false);
   const [terminateSession, setTerminateSession] = useState<PlatformSupportSession | null>(null);
-  const [outcomeNotes, setOutcomeNotes] = useState("");
-
-  // Initiate form state
-  const [tenantId, setTenantId] = useState("");
-  const [reason, setReason] = useState("");
-  const [durationMinutes, setDurationMinutes] = useState(30);
-  const [formError, setFormError] = useState<string | null>(null);
 
   const { data: sessionData, isLoading, error } = useSupportSessions();
-  const { mutateAsync: startSession, isPending: isStarting } = useStartSupportSession();
-  const { mutateAsync: endSession, isPending: isEnding } = useEndSupportSession();
-
-  const handleStartSession = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormError(null);
-
-    if (!tenantId || !reason) {
-      setFormError("Tenant ID and a valid business reason are required");
-      return;
-    }
-
-    try {
-      await startSession({
-        tenantId: tenantId.trim(),
-        reason: reason.trim(),
-        durationMinutes,
-      });
-      setInitiateDialogOpen(false);
-      setTenantId("");
-      setReason("");
-      setDurationMinutes(30);
-    } catch (err: unknown) {
-      setFormError(getErrorMessage(err, "Failed to initiate support session"));
-    }
-  };
-
-  const handleTerminate = async () => {
-    if (!terminateSession) return;
-    try {
-      await endSession({
-        sessionId: terminateSession.id,
-        outcome: outcomeNotes || undefined,
-      });
-      setTerminateSession(null);
-      setOutcomeNotes("");
-    } catch (err: unknown) {
-      alert(getErrorMessage(err, "Failed to terminate session"));
-    }
-  };
 
   const activeSessions = (sessionData?.items ?? []).filter((s) => s?.status === "ACTIVE");
 
@@ -139,10 +107,7 @@ export function SupportSessionsTable() {
           </p>
         </div>
         <Button
-          onClick={() => {
-            setFormError(null);
-            setInitiateDialogOpen(true);
-          }}
+          onClick={() => setInitiateDialogOpen(true)}
           className="gap-2 bg-emerald-600 text-white shadow-md shadow-emerald-600/20 hover:bg-emerald-700"
         >
           <LifeBuoy className="h-4 w-4" />
@@ -301,15 +266,37 @@ export function SupportSessionsTable() {
 
                       <TableCell className="text-right">
                         {isActive && (
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => setTerminateSession(session)}
-                            className="h-7 gap-1 text-xs"
-                          >
-                            <StopCircle className="h-3.5 w-3.5" />
-                            Terminate
-                          </Button>
+                          <div className="flex items-center justify-end gap-1.5">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={async () => {
+                                await fetch("/api/platform/support-session/enter", {
+                                  method: "POST",
+                                  headers: { "content-type": "application/json" },
+                                  body: JSON.stringify({
+                                    sessionId: session.id,
+                                    tenantId: session.tenantId,
+                                  }),
+                                });
+                                router?.push?.("/dashboard");
+                                router?.refresh?.();
+                              }}
+                              className="h-7 gap-1 border-emerald-500/30 text-xs text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                              Access Workspace
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => setTerminateSession(session)}
+                              className="h-7 gap-1 text-xs"
+                            >
+                              <StopCircle className="h-3.5 w-3.5" />
+                              Terminate
+                            </Button>
+                          </div>
                         )}
                       </TableCell>
                     </TableRow>
@@ -322,132 +309,219 @@ export function SupportSessionsTable() {
       </Card>
 
       {/* Initiate Session Dialog */}
-      <Dialog open={initiateDialogOpen} onOpenChange={setInitiateDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <LifeBuoy className="h-5 w-5 text-emerald-500" />
-              Initiate Customer Support Delegation
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              This action grants temporary, audited customer tenant access to investigate tickets.
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleStartSession} className="space-y-4 py-2">
-            {formError && (
-              <div className="bg-destructive/10 text-destructive border-destructive/20 rounded-md border p-3 text-xs">
-                {formError}
-              </div>
-            )}
-
-            <div className="space-y-1.5">
-              <Label className="text-xs">Customer Tenant ID (UUID)</Label>
-              <Input
-                placeholder="e.g. 550e8400-e29b-41d4-a716-446655440000"
-                value={tenantId}
-                onChange={(e) => setTenantId(e.target.value)}
-                className="h-9 font-mono text-xs"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs">Justification / Support Ticket Ref</Label>
-              <Textarea
-                placeholder="Describe ticket reference (e.g. TICKET-9421: Investigating data export failure)"
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                className="h-20 resize-none text-xs"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs">Access Duration Window</Label>
-              <Select
-                value={String(durationMinutes)}
-                onValueChange={(val) => setDurationMinutes(Number(val))}
-              >
-                <SelectTrigger className="h-9 text-xs">
-                  <SelectValue placeholder="Duration" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="15">15 minutes (Quick Diagnosis)</SelectItem>
-                  <SelectItem value="30">30 minutes (Standard Support)</SelectItem>
-                  <SelectItem value="60">60 minutes (Deep Troubleshooting)</SelectItem>
-                  <SelectItem value="120">120 minutes (Emergency Incident)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-[11px] text-amber-500">
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>
-                Session initiation is logged to the Platform Compliance Audit Trail with your staff
-                identity and IP address.
-              </span>
-            </div>
-
-            <DialogFooter className="pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setInitiateDialogOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                size="sm"
-                disabled={isStarting}
-                className="bg-emerald-600 text-white hover:bg-emerald-700"
-              >
-                {isStarting ? "Authorizing..." : "Start Audited Session"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <InitiateSupportSessionDialog
+        open={initiateDialogOpen}
+        onOpenChange={setInitiateDialogOpen}
+      />
 
       {/* Terminate Session Dialog */}
-      <Dialog
+      <TerminateSessionDialog
+        session={terminateSession}
         open={Boolean(terminateSession)}
         onOpenChange={(open) => !open && setTerminateSession(null)}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-destructive flex items-center gap-2">
-              <StopCircle className="h-5 w-5" />
-              Terminate Active Support Delegation
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              Immediately revokes support session {terminateSession?.id.slice(0, 8)}... and blocks
-              all cross-tenant access.
-            </DialogDescription>
-          </DialogHeader>
+      />
+    </div>
+  );
+}
 
-          <div className="space-y-3 py-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Optional Outcome Resolution Notes</Label>
-              <Input
-                placeholder="e.g. Export job successfully restarted, ticket resolved"
-                value={outcomeNotes}
-                onChange={(e) => setOutcomeNotes(e.target.value)}
-                className="h-9 text-xs"
-              />
-            </div>
+function InitiateSupportSessionDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [formError, setFormError] = useState<string | null>(null);
+  const { mutateAsync: startSession, isPending } = useStartSupportSession();
+
+  const methods = useForm<StartSupportSessionInput>({
+    resolver: zodResolver(startSupportSessionSchema),
+    defaultValues: {
+      tenantId: "",
+      targetUserId: "",
+      reason: "",
+      durationMinutes: 30,
+    },
+  });
+
+  const durationOptions = [
+    { label: "15 minutes (Quick Diagnosis)", value: "15" },
+    { label: "30 minutes (Standard Support)", value: "30" },
+    { label: "60 minutes (Deep Troubleshooting)", value: "60" },
+    { label: "120 minutes (Emergency Incident)", value: "120" },
+  ];
+
+  const onSubmit = async (values: StartSupportSessionInput) => {
+    setFormError(null);
+    try {
+      await startSession({
+        tenantId: values.tenantId.trim(),
+        targetUserId: values.targetUserId?.trim() || undefined,
+        reason: values.reason.trim(),
+        durationMinutes: Number(values.durationMinutes),
+      });
+      methods.reset();
+      onOpenChange(false);
+    } catch (err: unknown) {
+      setFormError(getErrorMessage(err, "Failed to initiate support session"));
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <LifeBuoy className="h-5 w-5 text-emerald-500" />
+            Initiate Customer Support Delegation
+          </DialogTitle>
+          <DialogDescription className="text-xs">
+            This action grants temporary, audited customer tenant access to investigate tickets.
+          </DialogDescription>
+        </DialogHeader>
+
+        <FormWrapper methods={methods} onSubmit={onSubmit} className="space-y-4 py-2">
+          {formError ? (
+            <Alert variant="destructive">
+              <AlertDescription>{formError}</AlertDescription>
+            </Alert>
+          ) : null}
+
+          <ControlledInput
+            name="tenantId"
+            label="Customer Tenant ID (UUID)"
+            placeholder="e.g. 550e8400-e29b-41d4-a716-446655440000"
+            required
+            className="h-9 font-mono text-xs"
+          />
+
+          <ControlledInput
+            name="targetUserId"
+            label="Target User ID (Optional Impersonation)"
+            placeholder="Leave empty for workspace-level support, or enter target user UUID"
+            className="h-9 font-mono text-xs"
+          />
+
+          <ControlledTextarea
+            name="reason"
+            label="Justification / Support Ticket Ref"
+            placeholder="Describe ticket reference (e.g. TICKET-9421: Investigating data export failure)"
+            required
+            className="h-20 resize-none text-xs"
+          />
+
+          <ControlledSelect
+            name="durationMinutes"
+            label="Access Duration Window"
+            placeholder="Select duration"
+            options={durationOptions}
+            returnPrimitiveValue
+            required
+          />
+
+          <div className="flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-[11px] text-amber-500">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>
+              Session initiation is logged to the Platform Compliance Audit Trail with your staff
+              identity and IP address.
+            </span>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setTerminateSession(null)}>
+          <DialogFooter className="pt-2">
+            <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button variant="destructive" size="sm" onClick={handleTerminate} disabled={isEnding}>
-              {isEnding ? "Terminating..." : "Terminate Immediately"}
-            </Button>
+            <SubmitButton
+              pending={isPending}
+              pendingText="Authorizing..."
+              size="sm"
+              className="bg-emerald-600 text-white hover:bg-emerald-700"
+            >
+              Start Audited Session
+            </SubmitButton>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+        </FormWrapper>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function TerminateSessionDialog({
+  session,
+  open,
+  onOpenChange,
+}: {
+  session: PlatformSupportSession | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [formError, setFormError] = useState<string | null>(null);
+  const { mutateAsync: endSession, isPending } = useEndSupportSession();
+
+  const methods = useForm<{ outcome: string }>({
+    defaultValues: {
+      outcome: "",
+    },
+  });
+
+  const onSubmit = async (values: { outcome: string }) => {
+    if (!session) return;
+    setFormError(null);
+    try {
+      await endSession({
+        sessionId: session.id,
+        outcome: values.outcome.trim() || undefined,
+      });
+      methods.reset();
+      onOpenChange(false);
+    } catch (err: unknown) {
+      setFormError(getErrorMessage(err, "Failed to terminate session"));
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-destructive flex items-center gap-2">
+            <StopCircle className="h-5 w-5" />
+            Terminate Active Support Delegation
+          </DialogTitle>
+          <DialogDescription className="text-xs">
+            Immediately revokes support session {session?.id.slice(0, 8)}... and blocks all
+            cross-tenant access.
+          </DialogDescription>
+        </DialogHeader>
+
+        <FormWrapper methods={methods} onSubmit={onSubmit} className="space-y-4 py-2">
+          {formError ? (
+            <Alert variant="destructive">
+              <AlertDescription>{formError}</AlertDescription>
+            </Alert>
+          ) : null}
+
+          <ControlledInput
+            name="outcome"
+            label="Optional Outcome Resolution Notes"
+            placeholder="e.g. Export job successfully restarted, ticket resolved"
+            className="h-9 text-xs"
+          />
+
+          <DialogFooter>
+            <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <SubmitButton
+              pending={isPending}
+              pendingText="Terminating..."
+              size="sm"
+              variant="destructive"
+            >
+              Terminate Immediately
+            </SubmitButton>
+          </DialogFooter>
+        </FormWrapper>
+      </DialogContent>
+    </Dialog>
   );
 }

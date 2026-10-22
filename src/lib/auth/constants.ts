@@ -5,3 +5,5 @@ export const REFRESH_GUARD_COOKIE = "rg";
 // The refresh token is only ever sent to our auth routes, never to pages or the data proxy.
 export const REFRESH_COOKIE_PATH = "/api/auth";
 export const IMPERSONATOR_BACKUP_COOKIE = "imp_at";
+export const PLATFORM_STAFF_COOKIE = "platform_staff_token";
+export const SUPPORT_SESSION_COOKIE = "support_session_id";

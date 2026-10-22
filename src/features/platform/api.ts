@@ -104,6 +104,7 @@ export async function startSupportSession(
   return api.post<PlatformSupportSession>(`/platform/tenants/${input.tenantId}/support-sessions`, {
     reason: input.reason,
     durationMinutes: input.durationMinutes,
+    targetUserId: input?.targetUserId ? input.targetUserId.trim() : undefined,
   });
 }
 

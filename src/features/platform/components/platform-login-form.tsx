@@ -2,38 +2,42 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, ArrowRight, KeyRound, Lock, Mail, Radio, ShieldAlert } from "lucide-react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { ArrowRight, KeyRound, Lock, Mail, Radio, ShieldAlert } from "lucide-react";
+import { useForm } from "react-hook-form";
 
+import { ControlledInput, FormWrapper } from "@/components/molecules/forms";
+import { SubmitButton } from "@/components/molecules/submit-button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { getErrorMessage } from "@/lib/api/errors";
+import { safeNextPath } from "@/lib/auth/paths";
 
 import { usePlatformLogin } from "../queries";
+import { platformLoginSchema, type PlatformLoginInput } from "../schemas";
 
-export function PlatformLoginForm() {
+export function PlatformLoginForm({ next }: { next?: string }) {
   const router = useRouter();
-  const [email, setEmail] = useState("superadmin@platform.local");
-  const [password, setPassword] = useState("Password@123456");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const { mutateAsync: login, isPending } = usePlatformLogin();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const methods = useForm<PlatformLoginInput>({
+    resolver: zodResolver(platformLoginSchema),
+    defaultValues: {
+      email: "superadmin@platform.local",
+      password: "Password@123456",
+    },
+  });
+
+  const onSubmit = async (values: PlatformLoginInput) => {
     setErrorMsg(null);
-
-    if (!email || !password) {
-      setErrorMsg("Email and password are required");
-      return;
-    }
-
     try {
-      await login({ email: email.trim(), password });
-      router.push("/platform/staff");
-      router.refresh();
+      await login({ email: values?.email?.trim?.() ?? "", password: values?.password ?? "" });
+      const target = safeNextPath(next, "/platform/staff");
+      router?.push?.(target);
+      router?.refresh?.();
     } catch (err: unknown) {
       setErrorMsg(getErrorMessage(err, "Invalid platform credentials or account suspended"));
     }
@@ -69,55 +73,46 @@ export function PlatformLoginForm() {
         </CardHeader>
 
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {errorMsg && (
-              <div className="bg-destructive/10 text-destructive border-destructive/20 flex items-start gap-2 rounded-lg border p-3 text-xs">
-                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>{errorMsg}</span>
-              </div>
-            )}
+          <FormWrapper methods={methods} onSubmit={onSubmit} className="space-y-4">
+            {errorMsg ? (
+              <Alert variant="destructive">
+                <AlertDescription>{errorMsg}</AlertDescription>
+              </Alert>
+            ) : null}
 
-            <div className="space-y-1.5">
-              <Label className="text-xs">Staff Email</Label>
-              <div className="relative">
-                <Mail className="text-muted-foreground absolute top-2.5 left-3 h-4 w-4" />
-                <Input
-                  type="email"
-                  placeholder="operator@platform.local"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="h-9 pl-9 font-mono text-xs"
-                  disabled={isPending}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs">Master Password</Label>
-              <div className="relative">
-                <KeyRound className="text-muted-foreground absolute top-2.5 left-3 h-4 w-4" />
-                <Input
-                  type="password"
-                  placeholder="••••••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="h-9 pl-9 text-xs"
-                  disabled={isPending}
-                  required
-                />
-              </div>
-            </div>
-
-            <Button
-              type="submit"
+            <ControlledInput
+              name="email"
+              label="Staff Email"
+              type="email"
+              autoComplete="email"
+              placeholder="operator@platform.local"
+              prefix={<Mail className="h-4 w-4" />}
               disabled={isPending}
+              required
+              className="h-9 font-mono text-xs"
+            />
+
+            <ControlledInput
+              name="password"
+              label="Master Password"
+              type="password"
+              autoComplete="current-password"
+              placeholder="••••••••••••"
+              prefix={<KeyRound className="h-4 w-4" />}
+              disabled={isPending}
+              required
+              className="h-9 text-xs"
+            />
+
+            <SubmitButton
+              pending={isPending}
+              pendingText="Verifying Credentials..."
               className="h-9 w-full gap-2 bg-gradient-to-r from-red-600 to-amber-600 text-xs text-white shadow-md shadow-red-600/20 hover:from-red-700 hover:to-amber-700"
             >
-              {isPending ? "Verifying Credentials..." : "Authenticate Platform Session"}
+              Authenticate Platform Session
               <ArrowRight className="h-4 w-4" />
-            </Button>
-          </form>
+            </SubmitButton>
+          </FormWrapper>
 
           {/* Seed Defaults Reminder */}
           <div className="bg-muted/40 border-border/60 text-muted-foreground mt-4 space-y-1 rounded-lg border p-3 font-mono text-[11px]">

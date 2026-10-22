@@ -14,8 +14,16 @@ export function safeNextPath(next: string | null | undefined, fallback = "/dashb
 export const PROTECTED_PREFIXES = ["/dashboard", "/files", "/settings"] as const;
 export const AUTH_PAGES = ["/login", "/register"] as const;
 
+export const PLATFORM_PREFIX = "/platform";
+export const PLATFORM_LOGIN_PATH = "/platform/login";
+
 export const isProtectedPath = (pathname: string) =>
   PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
 export const isAuthPage = (pathname: string) =>
   (AUTH_PAGES as readonly string[]).includes(pathname);
+
+export const isPlatformPath = (pathname: string) =>
+  pathname === PLATFORM_PREFIX || pathname.startsWith(`${PLATFORM_PREFIX}/`);
+
+export const isPlatformLogin = (pathname: string) => pathname === PLATFORM_LOGIN_PATH;

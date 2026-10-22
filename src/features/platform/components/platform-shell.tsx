@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   ExternalLink,
   FileText,
+  Layers,
   LifeBuoy,
   LogOut,
   Menu,
@@ -48,6 +49,12 @@ const NAV_ITEMS = [
     label: "Roles & Permissions",
     description: "System & custom resource::action catalogue",
     icon: ShieldCheck,
+  },
+  {
+    href: "/platform/plans",
+    label: "Plans & Entitlements",
+    description: "Multi-tenant tiers, seat limits & quotas",
+    icon: Layers,
   },
   {
     href: "/platform/support-sessions",

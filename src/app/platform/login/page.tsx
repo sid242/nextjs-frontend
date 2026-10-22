@@ -8,7 +8,13 @@ export const metadata = {
   description: "Secure authentication surface for internal SaaS platform operators.",
 };
 
-export default function PlatformLoginPage() {
+export default async function PlatformLoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string | string[] }>;
+}) {
+  const { next } = await searchParams;
+
   return (
     <div className="bg-background flex min-h-screen flex-col justify-between p-4 sm:p-8">
       <div className="mx-auto flex w-full max-w-5xl items-center justify-between">
@@ -22,7 +28,7 @@ export default function PlatformLoginPage() {
       </div>
 
       <div className="py-12">
-        <PlatformLoginForm />
+        <PlatformLoginForm next={typeof next === "string" ? next : undefined} />
       </div>
 
       <div className="text-muted-foreground/60 mx-auto max-w-sm text-center font-mono text-xs">

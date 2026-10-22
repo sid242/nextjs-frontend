@@ -30,10 +30,15 @@ export function assertSameOrigin(req: Request): Response | null {
  * rate limiter would see EVERY user as the Next.js server's IP.
  */
 export function forwardedHeaders(req: Request): Record<string, string | undefined> {
+  const supportHeader = req.headers.get("x-support-session-id");
+  const cookieMatch = req.headers.get("cookie")?.match(/(?:^|;\s*)support_session_id=([^;]+)/);
+  const supportSession = supportHeader ?? cookieMatch?.[1] ?? undefined;
+
   return {
     "x-request-id": req.headers.get("x-request-id") ?? crypto.randomUUID(),
     "x-forwarded-for": req.headers.get("x-forwarded-for") ?? undefined,
     "user-agent": req.headers.get("user-agent") ?? undefined,
     "x-tenant-id": req.headers.get("x-tenant-id") ?? undefined,
+    "x-support-session-id": supportSession,
   };
 }

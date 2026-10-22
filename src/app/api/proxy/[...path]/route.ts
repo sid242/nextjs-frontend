@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 
-import { ACCESS_COOKIE } from "@/lib/auth/constants";
+import { ACCESS_COOKIE, PLATFORM_STAFF_COOKIE } from "@/lib/auth/constants";
 import { backendFetch } from "@/lib/server/backend";
 import { assertSameOrigin, forwardedHeaders } from "@/lib/server/request";
 import { errorResponse } from "@/lib/server/response";
@@ -38,13 +38,13 @@ async function handler(req: NextRequest, { params }: Ctx) {
     upstreamPath === "/platform/auth/login" || upstreamPath === "/platform/auth/logout";
 
   const token =
-    req.cookies.get(ACCESS_COOKIE)?.value ?? req.cookies.get("platform_staff_token")?.value;
+    req.cookies.get(ACCESS_COOKIE)?.value ?? req.cookies.get(PLATFORM_STAFF_COOKIE)?.value;
   if (!token && !isPlatformAuth) return errorResponse(401, "UNAUTHORIZED", "Not signed in");
 
   let body: string | undefined;
   if (req.method !== "GET" && req.method !== "HEAD") {
     body = await req.text();
-    if (body.length > MAX_BODY_BYTES)
+    if (body && body.length > MAX_BODY_BYTES)
       return errorResponse(413, "PAYLOAD_TOO_LARGE", "Payload too large");
   }
 

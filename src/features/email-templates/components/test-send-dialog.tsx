@@ -1,8 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import { useMemo, useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { MailIcon, SendIcon } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 
+import { ControlledInput, FormWrapper } from "@/components/molecules/forms";
+import { SubmitButton } from "@/components/molecules/submit-button";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,12 +18,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Spinner } from "@/components/ui/spinner";
 
 import { STANDARD_VARIABLES } from "../constants";
 import { useTestSendEmailTemplate } from "../queries";
 import type { EmailTemplate } from "../types";
+
+const testSendFormSchema = z.object({
+  recipient: z.string().trim().email("Please enter a valid recipient email address"),
+});
+
+type TestSendFormValues = z.infer<typeof testSendFormSchema>;
 
 interface TestSendDialogProps {
   template: EmailTemplate | null;
@@ -28,9 +37,9 @@ interface TestSendDialogProps {
 
 function getInitialVariables(template: EmailTemplate): Record<string, string> {
   const defaults: Record<string, string> = {};
-  const allVars = template.variables || [];
+  const allVars = template?.variables ?? [];
   for (const key of allVars) {
-    const found = STANDARD_VARIABLES.find((v) => v.key === key);
+    const found = STANDARD_VARIABLES.find((v) => v?.key === key);
     defaults[key] = found ? found.sample : `Sample ${key}`;
   }
   return defaults;
@@ -43,21 +52,23 @@ function TestSendDialogContent({
   template: EmailTemplate;
   onOpenChange: (open: boolean) => void;
 }) {
-  const [recipient, setRecipient] = useState("");
-  const [variableValues, setVariableValues] = useState<Record<string, string>>(() =>
-    getInitialVariables(template),
-  );
+  const initialVars = useMemo(() => getInitialVariables(template), [template]);
+  const [variableValues, setVariableValues] = useState<Record<string, string>>(initialVars);
 
   const testSendMutation = useTestSendEmailTemplate();
 
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!recipient) return;
+  const methods = useForm<TestSendFormValues>({
+    resolver: zodResolver(testSendFormSchema),
+    defaultValues: {
+      recipient: "",
+    },
+  });
 
+  const onSubmit = async (values: TestSendFormValues) => {
     await testSendMutation.mutateAsync({
       id: template.id,
       data: {
-        to: recipient,
+        to: values.recipient.trim(),
         variables: variableValues,
       },
     });
@@ -81,23 +92,17 @@ function TestSendDialogContent({
         </div>
       </DialogHeader>
 
-      <form onSubmit={handleSend} className="space-y-4 pt-2">
-        <div className="space-y-1.5">
-          <Label htmlFor="recipient-email">Recipient Email Address *</Label>
-          <Input
-            id="recipient-email"
-            type="email"
-            required
-            placeholder="e.g. yourname@example.com"
-            value={recipient}
-            onChange={(e) => setRecipient(e.target.value)}
-          />
-          <p className="text-muted-foreground text-[11px]">
-            A real email will be delivered to this inbox with the interpolated variables below.
-          </p>
-        </div>
+      <FormWrapper methods={methods} onSubmit={onSubmit} className="space-y-4 pt-2">
+        <ControlledInput
+          name="recipient"
+          label="Recipient Email Address"
+          type="email"
+          required
+          placeholder="e.g. yourname@example.com"
+          hint="A real email will be delivered to this inbox with the interpolated variables below."
+        />
 
-        {template.variables && template.variables.length > 0 && (
+        {template?.variables && template.variables.length > 0 && (
           <div className="border-border/70 space-y-2 border-t pt-3">
             <div className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
               Template Variables ({template.variables.length})
@@ -110,9 +115,9 @@ function TestSendDialogContent({
                   </span>
                   <Input
                     className="col-span-7 h-7 font-sans text-xs"
-                    value={variableValues[key] || ""}
+                    value={variableValues[key] ?? ""}
                     onChange={(e) =>
-                      setVariableValues((prev) => ({ ...prev, [key]: e.target.value }))
+                      setVariableValues((prev) => ({ ...prev, [key]: e?.target?.value ?? "" }))
                     }
                     placeholder={`Value for ${key}`}
                   />
@@ -131,25 +136,16 @@ function TestSendDialogContent({
           >
             Cancel
           </Button>
-          <Button
-            type="submit"
-            disabled={testSendMutation.isPending || !recipient}
+          <SubmitButton
+            pending={testSendMutation.isPending}
+            pendingText="Dispatching..."
             className="gap-1.5"
           >
-            {testSendMutation.isPending ? (
-              <>
-                <Spinner className="size-4" />
-                <span>Dispatching...</span>
-              </>
-            ) : (
-              <>
-                <SendIcon className="size-4" />
-                <span>Send Test Email</span>
-              </>
-            )}
-          </Button>
+            <SendIcon className="size-4" />
+            <span>Send Test Email</span>
+          </SubmitButton>
         </DialogFooter>
-      </form>
+      </FormWrapper>
     </DialogContent>
   );
 }

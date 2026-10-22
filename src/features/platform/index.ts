@@ -29,3 +29,4 @@ export { RolesMatrix } from "./components/roles-matrix";
 export { SupportSessionsTable } from "./components/support-sessions-table";
 export { AuditLogsTable } from "./components/audit-logs-table";
 export { PlatformLoginForm } from "./components/platform-login-form";
+export { SupportSessionBanner } from "./components/support-session-banner";

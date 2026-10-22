@@ -99,6 +99,7 @@ export const supportSessionSchema = z.object({
   staffEmail: z.string().nullable().optional(),
   staffDisplayName: z.string().nullable().optional(),
   tenantId: z.string().uuid(),
+  targetUserId: z.string().uuid().nullable().optional(),
   reason: z.string(),
   status: z.enum(["ACTIVE", "EXPIRED", "TERMINATED"]),
   expiresAt: z.string(),
@@ -110,8 +111,9 @@ export type PlatformSupportSession = z.infer<typeof supportSessionSchema>;
 
 export const startSupportSessionSchema = z.object({
   tenantId: z.string().uuid("Valid customer tenant ID required"),
+  targetUserId: z.string().optional(),
   reason: z.string().trim().min(5, "Support reason must be at least 5 characters"),
-  durationMinutes: z.coerce.number().int().min(5).max(120).default(30),
+  durationMinutes: z.coerce.number().int().min(5).max(120),
 });
 
 export type StartSupportSessionInput = z.infer<typeof startSupportSessionSchema>;

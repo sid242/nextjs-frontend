@@ -1,5 +1,12 @@
-import { useState } from "react";
+"use client";
 
+import { useMemo } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+
+import { ControlledInput, ControlledSelect, FormWrapper } from "@/components/molecules/forms";
+import { SubmitButton } from "@/components/molecules/submit-button";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -9,17 +16,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 import { ROLE_OPTIONS } from "../constants";
+
+const inviteMemberFormSchema = z.object({
+  email: z.string().trim().email("Please enter a valid email address"),
+  role: z.string().min(1, "Please select a role"),
+});
+
+type InviteMemberFormValues = z.infer<typeof inviteMemberFormSchema>;
 
 interface InviteMemberDialogProps {
   open: boolean;
@@ -36,21 +41,27 @@ export function InviteMemberDialog({
   onInvite,
   isInviting = false,
 }: InviteMemberDialogProps) {
-  const [email, setEmail] = useState("");
-  const [role, setRole] = useState("MEMBER");
+  const methods = useForm<InviteMemberFormValues>({
+    resolver: zodResolver(inviteMemberFormSchema),
+    defaultValues: {
+      email: "",
+      role: "MEMBER",
+    },
+  });
 
-  const handleSubmit = async () => {
-    const trimmed = email.trim();
-    if (!trimmed) return;
-    await onInvite(trimmed, role);
-    setEmail("");
-    setRole("MEMBER");
+  const roleOptions = useMemo(
+    () => ROLE_OPTIONS?.map((opt) => ({ label: opt?.label, value: opt?.value })) ?? [],
+    [],
+  );
+
+  const onSubmit = async (values: InviteMemberFormValues) => {
+    await onInvite(values.email.trim(), values.role);
+    methods.reset();
   };
 
   const handleOpenChange = (isOpen: boolean) => {
     if (!isOpen) {
-      setEmail("");
-      setRole("MEMBER");
+      methods.reset();
     }
     onOpenChange(isOpen);
   };
@@ -65,43 +76,32 @@ export function InviteMemberDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 py-3">
-          <div className="grid gap-2">
-            <Label htmlFor="invite-email">Email Address</Label>
-            <Input
-              id="invite-email"
-              type="email"
-              placeholder="colleague@company.com"
-              value={email}
-              onChange={(e) => setEmail(e?.target?.value ?? "")}
-            />
-          </div>
+        <FormWrapper methods={methods} onSubmit={onSubmit} className="grid gap-4 py-3">
+          <ControlledInput
+            name="email"
+            label="Email Address"
+            type="email"
+            required
+            placeholder="colleague@company.com"
+          />
 
-          <div className="grid gap-2">
-            <Label htmlFor="invite-role">Assign Role</Label>
-            <Select value={role} onValueChange={(val) => setRole(val)}>
-              <SelectTrigger id="invite-role">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {ROLE_OPTIONS?.map((option) => (
-                  <SelectItem key={option?.value} value={option?.value}>
-                    {option?.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+          <ControlledSelect
+            name="role"
+            label="Assign Role"
+            options={roleOptions}
+            returnPrimitiveValue
+            required
+          />
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => handleOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} disabled={!email.trim() || isInviting}>
-            {isInviting ? "Inviting…" : "Send Invite"}
-          </Button>
-        </DialogFooter>
+          <DialogFooter className="pt-2">
+            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
+              Cancel
+            </Button>
+            <SubmitButton pending={isInviting} pendingText="Inviting…">
+              Send Invite
+            </SubmitButton>
+          </DialogFooter>
+        </FormWrapper>
       </DialogContent>
     </Dialog>
   );

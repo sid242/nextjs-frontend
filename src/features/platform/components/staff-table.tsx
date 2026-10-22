@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   CheckCircle2,
   Clock,
@@ -12,7 +13,11 @@ import {
   Users,
   XCircle,
 } from "lucide-react";
+import { useForm } from "react-hook-form";
 
+import { ControlledInput, ControlledSelect, FormWrapper } from "@/components/molecules/forms";
+import { SubmitButton } from "@/components/molecules/submit-button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,7 +38,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -53,7 +57,7 @@ import {
 import { getErrorMessage } from "@/lib/api/errors";
 
 import { useCreateStaff, usePlatformRoles, useStaffList, useUpdateStaff } from "../queries";
-import type { StaffMember } from "../schemas";
+import { createStaffSchema, type CreateStaffInput, type StaffMember } from "../schemas";
 
 export function StaffTable() {
   const [search, setSearch] = useState("");
@@ -61,19 +65,10 @@ export function StaffTable() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<StaffMember | null>(null);
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
-  const [newRoleId, setNewRoleId] = useState("");
-
-  // Form state for creating staff
-  const [formName, setFormName] = useState("");
-  const [formEmail, setFormEmail] = useState("");
-  const [formPassword, setFormPassword] = useState("");
-  const [formRoleId, setFormRoleId] = useState("");
-  const [formError, setFormError] = useState<string | null>(null);
 
   const { data: staffData, isLoading, error } = useStaffList();
   const { data: roles = [] } = usePlatformRoles();
-  const { mutateAsync: createStaff, isPending: isCreating } = useCreateStaff();
-  const { mutateAsync: updateStaff, isPending: isUpdating } = useUpdateStaff();
+  const { mutateAsync: updateStaff } = useUpdateStaff();
 
   const filteredStaff = useMemo(() => {
     return (staffData?.items ?? []).filter((member) => {
@@ -85,32 +80,6 @@ export function StaffTable() {
     });
   }, [staffData?.items, search, statusFilter]);
 
-  const handleCreateStaff = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormError(null);
-
-    if (!formName || !formEmail || !formPassword || !formRoleId) {
-      setFormError("All fields including platform role are required");
-      return;
-    }
-
-    try {
-      await createStaff({
-        displayName: formName,
-        email: formEmail,
-        password: formPassword,
-        roleId: formRoleId,
-      });
-      setCreateDialogOpen(false);
-      setFormName("");
-      setFormEmail("");
-      setFormPassword("");
-      setFormRoleId("");
-    } catch (err: unknown) {
-      setFormError(getErrorMessage(err, "Failed to create platform staff member"));
-    }
-  };
-
   const handleStatusToggle = async (member: StaffMember) => {
     const nextStatus = member?.status === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
     try {
@@ -120,20 +89,6 @@ export function StaffTable() {
       });
     } catch (err: unknown) {
       alert(getErrorMessage(err, "Failed to update status"));
-    }
-  };
-
-  const handleUpdateRole = async () => {
-    if (!selectedStaff || !newRoleId) return;
-    try {
-      await updateStaff({
-        id: selectedStaff.id,
-        input: { roleId: newRoleId },
-      });
-      setRoleDialogOpen(false);
-      setSelectedStaff(null);
-    } catch (err: unknown) {
-      alert(getErrorMessage(err, "Failed to update role"));
     }
   };
 
@@ -317,7 +272,6 @@ export function StaffTable() {
                           <DropdownMenuItem
                             onClick={() => {
                               setSelectedStaff(member);
-                              setNewRoleId(member.roleId);
                               setRoleDialogOpen(true);
                             }}
                           >
@@ -355,148 +309,227 @@ export function StaffTable() {
       </Card>
 
       {/* Provision Staff Modal */}
-      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <UserPlus className="h-5 w-5 text-red-500" />
-              Provision Platform Staff Member
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              Staff members operate across the internal SaaS surface and are never associated with
-              tenant customer accounts.
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleCreateStaff} className="space-y-4 py-2">
-            {formError && (
-              <div className="bg-destructive/10 text-destructive border-destructive/20 rounded-md border p-3 text-xs">
-                {formError}
-              </div>
-            )}
-
-            <div className="space-y-1.5">
-              <Label className="text-xs">Full Name</Label>
-              <Input
-                placeholder="Jane Operator"
-                value={formName}
-                onChange={(e) => setFormName(e.target.value)}
-                className="h-9 text-xs"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs">Work Email</Label>
-              <Input
-                type="email"
-                placeholder="jane@platform.com"
-                value={formEmail}
-                onChange={(e) => setFormEmail(e.target.value)}
-                className="h-9 text-xs"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs">Temporary Password</Label>
-              <Input
-                type="password"
-                placeholder="Minimum 8 characters"
-                value={formPassword}
-                onChange={(e) => setFormPassword(e.target.value)}
-                className="h-9 text-xs"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs">Platform Role</Label>
-              <Select value={formRoleId} onValueChange={setFormRoleId}>
-                <SelectTrigger className="h-9 text-xs">
-                  <SelectValue placeholder="Select platform role" />
-                </SelectTrigger>
-                <SelectContent>
-                  {roles.map((role) => (
-                    <SelectItem key={role.id} value={role.id}>
-                      {role.name} ({role.key})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <DialogFooter className="pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setCreateDialogOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                size="sm"
-                disabled={isCreating}
-                className="bg-red-600 text-white hover:bg-red-700"
-              >
-                {isCreating ? "Provisioning..." : "Create Staff Account"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <ProvisionStaffDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        roles={roles}
+      />
 
       {/* Change Role Modal */}
-      <Dialog open={roleDialogOpen} onOpenChange={setRoleDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-amber-500" />
-              Reassign Platform Role
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              Change the operational permission scope for {selectedStaff?.displayName}.
-            </DialogDescription>
-          </DialogHeader>
+      <ReassignRoleDialog
+        staff={selectedStaff}
+        open={roleDialogOpen}
+        onOpenChange={(open) => {
+          setRoleDialogOpen(open);
+          if (!open) setSelectedStaff(null);
+        }}
+        roles={roles}
+      />
+    </div>
+  );
+}
 
-          <div className="space-y-4 py-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Target Platform Role</Label>
-              <Select value={newRoleId} onValueChange={setNewRoleId}>
-                <SelectTrigger className="h-9 text-xs">
-                  <SelectValue placeholder="Select new role" />
-                </SelectTrigger>
-                <SelectContent>
-                  {roles.map((role) => (
-                    <SelectItem key={role.id} value={role.id}>
-                      {role.name} ({role.key})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+function ProvisionStaffDialog({
+  open,
+  onOpenChange,
+  roles,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  roles: Array<{ id: string; name: string; key: string }>;
+}) {
+  const [formError, setFormError] = useState<string | null>(null);
+  const { mutateAsync: createStaff, isPending } = useCreateStaff();
 
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setRoleDialogOpen(false)}
-            >
+  const methods = useForm<CreateStaffInput>({
+    resolver: zodResolver(createStaffSchema),
+    defaultValues: {
+      displayName: "",
+      email: "",
+      password: "",
+      roleId: "",
+    },
+  });
+
+  const roleOptions = useMemo(
+    () => roles?.map((r) => ({ label: `${r.name} (${r.key})`, value: r.id })) ?? [],
+    [roles],
+  );
+
+  const onSubmit = async (values: CreateStaffInput) => {
+    setFormError(null);
+    try {
+      await createStaff({
+        displayName: values.displayName.trim(),
+        email: values.email.trim(),
+        password: values.password,
+        roleId: values.roleId,
+      });
+      methods.reset();
+      onOpenChange(false);
+    } catch (err: unknown) {
+      setFormError(getErrorMessage(err, "Failed to create platform staff member"));
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <UserPlus className="h-5 w-5 text-red-500" />
+            Provision Platform Staff Member
+          </DialogTitle>
+          <DialogDescription className="text-xs">
+            Staff members operate across the internal SaaS surface and are never associated with
+            tenant customer accounts.
+          </DialogDescription>
+        </DialogHeader>
+
+        <FormWrapper methods={methods} onSubmit={onSubmit} className="space-y-4 py-2">
+          {formError ? (
+            <Alert variant="destructive">
+              <AlertDescription>{formError}</AlertDescription>
+            </Alert>
+          ) : null}
+
+          <ControlledInput
+            name="displayName"
+            label="Full Name"
+            placeholder="Jane Operator"
+            required
+            className="h-9 text-xs"
+          />
+
+          <ControlledInput
+            name="email"
+            label="Work Email"
+            type="email"
+            placeholder="jane@platform.com"
+            required
+            className="h-9 text-xs"
+          />
+
+          <ControlledInput
+            name="password"
+            label="Temporary Password"
+            type="password"
+            placeholder="Minimum 8 characters"
+            required
+            className="h-9 text-xs"
+          />
+
+          <ControlledSelect
+            name="roleId"
+            label="Platform Role"
+            placeholder="Select platform role"
+            options={roleOptions}
+            returnPrimitiveValue
+            required
+          />
+
+          <DialogFooter className="pt-2">
+            <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button
-              type="button"
+            <SubmitButton
+              pending={isPending}
+              pendingText="Provisioning..."
               size="sm"
-              onClick={handleUpdateRole}
-              disabled={isUpdating}
+              className="bg-red-600 text-white hover:bg-red-700"
+            >
+              Create Staff Account
+            </SubmitButton>
+          </DialogFooter>
+        </FormWrapper>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ReassignRoleDialog({
+  staff,
+  open,
+  onOpenChange,
+  roles,
+}: {
+  staff: StaffMember | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  roles: Array<{ id: string; name: string; key: string }>;
+}) {
+  const [formError, setFormError] = useState<string | null>(null);
+  const { mutateAsync: updateStaff, isPending } = useUpdateStaff();
+
+  const methods = useForm<{ roleId: string }>({
+    values: {
+      roleId: staff?.roleId ?? "",
+    },
+  });
+
+  const roleOptions = useMemo(
+    () => roles?.map((r) => ({ label: `${r.name} (${r.key})`, value: r.id })) ?? [],
+    [roles],
+  );
+
+  const onSubmit = async (values: { roleId: string }) => {
+    if (!staff || !values.roleId) return;
+    setFormError(null);
+    try {
+      await updateStaff({
+        id: staff.id,
+        input: { roleId: values.roleId },
+      });
+      onOpenChange(false);
+    } catch (err: unknown) {
+      setFormError(getErrorMessage(err, "Failed to update role"));
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5 text-amber-500" />
+            Reassign Platform Role
+          </DialogTitle>
+          <DialogDescription className="text-xs">
+            Change the operational permission scope for {staff?.displayName}.
+          </DialogDescription>
+        </DialogHeader>
+
+        <FormWrapper methods={methods} onSubmit={onSubmit} className="space-y-4 py-2">
+          {formError ? (
+            <Alert variant="destructive">
+              <AlertDescription>{formError}</AlertDescription>
+            </Alert>
+          ) : null}
+
+          <ControlledSelect
+            name="roleId"
+            label="Target Platform Role"
+            placeholder="Select new role"
+            options={roleOptions}
+            returnPrimitiveValue
+            required
+          />
+
+          <DialogFooter>
+            <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <SubmitButton
+              pending={isPending}
+              pendingText="Updating..."
+              size="sm"
               className="bg-amber-600 text-white hover:bg-amber-700"
             >
-              {isUpdating ? "Updating..." : "Save Role Assignment"}
-            </Button>
+              Save Role Assignment
+            </SubmitButton>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+        </FormWrapper>
+      </DialogContent>
+    </Dialog>
   );
 }

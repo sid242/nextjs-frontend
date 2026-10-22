@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { ACCESS_COOKIE, REFRESH_COOKIE } from "@/lib/auth/constants";
-import { isAuthPage, isProtectedPath } from "@/lib/auth/paths";
+import { ACCESS_COOKIE, PLATFORM_STAFF_COOKIE, REFRESH_COOKIE } from "@/lib/auth/constants";
+import { isAuthPage, isPlatformLogin, isPlatformPath, isProtectedPath } from "@/lib/auth/paths";
 
 const isDev = process.env.NODE_ENV !== "production";
 
@@ -59,14 +59,31 @@ function buildCsp(nonce: string): string {
 /**
  * Runs before every page request (not /api, not static assets):
  *  1. route guard: anonymous -> /login, signed-in -> away from /login & /register, stale access -> refresh
- *  2. per-request CSP nonce
- *  3. exposes the pathname to server components (used by requireUser to build the refresh redirect)
+ *  2. platform operator gate: non-staff -> /platform/login, authenticated staff on login -> /platform/staff
+ *  3. per-request CSP nonce
+ *  4. exposes the pathname to server components (used by requireUser to build the refresh redirect)
  * This is a UX gate only. Real authorization happens in the backend on every API call.
  */
 export function proxy(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
   const hasAccess = req.cookies.has(ACCESS_COOKIE);
   const hasRefresh = req.cookies.has(REFRESH_COOKIE);
+  const hasPlatformStaff = req.cookies.has(PLATFORM_STAFF_COOKIE);
+
+  // Platform console gate
+  if (isPlatformPath(pathname)) {
+    if (isPlatformLogin(pathname)) {
+      if (hasPlatformStaff) {
+        return NextResponse.redirect(new URL("/platform/staff", req.url));
+      }
+    } else {
+      if (!hasPlatformStaff) {
+        return NextResponse.redirect(
+          new URL(`/platform/login?next=${encodeURIComponent(pathname + search)}`, req.url),
+        );
+      }
+    }
+  }
 
   if (isProtectedPath(pathname) && !hasAccess) {
     const target = hasRefresh
