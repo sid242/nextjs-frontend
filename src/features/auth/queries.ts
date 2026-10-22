@@ -3,15 +3,24 @@
 import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
+  acceptWorkspaceInvite,
   changePassword,
   getUserSessions,
   requestEmailVerification,
+  requestMagicLink,
   revokeSession,
   stopImpersonation,
   verifyEmail,
+  verifyMagicLink,
 } from "./api";
 import { authKeys } from "./keys";
-import type { ChangePasswordValues, RequestEmailVerificationValues, UserSession } from "./schemas";
+import type {
+  ChangePasswordValues,
+  RequestEmailVerificationValues,
+  RequestMagicLinkValues,
+  UserSession,
+  VerifyMagicLinkValues,
+} from "./schemas";
 
 export const sessionsQueryOptions = () =>
   queryOptions({
@@ -62,5 +71,23 @@ export function useVerifyEmail() {
 export function useRequestEmailVerification() {
   return useMutation({
     mutationFn: (values?: RequestEmailVerificationValues) => requestEmailVerification(values),
+  });
+}
+
+export function useRequestMagicLink() {
+  return useMutation({
+    mutationFn: (values: RequestMagicLinkValues) => requestMagicLink(values),
+  });
+}
+
+export function useVerifyMagicLink() {
+  return useMutation({
+    mutationFn: (values: VerifyMagicLinkValues) => verifyMagicLink(values),
+  });
+}
+
+export function useAcceptWorkspaceInvite() {
+  return useMutation({
+    mutationFn: (token: string) => acceptWorkspaceInvite(token),
   });
 }

@@ -7,8 +7,10 @@ import type {
   LoginValues,
   RegisterValues,
   RequestEmailVerificationValues,
+  RequestMagicLinkValues,
   ResetPasswordValues,
   UserSession,
+  VerifyMagicLinkValues,
 } from "./schemas";
 
 // These hit our own Next.js BFF routes (/api/auth/*), which keep tokens in httpOnly cookies.
@@ -16,6 +18,18 @@ export const login = (values: LoginValues) => authApi.post<{ user: User }>("/log
 export const register = (values: RegisterValues) =>
   authApi.post<{ user: User }>("/register", values);
 export const logout = () => authApi.post("/logout");
+
+export const requestMagicLink = (values: RequestMagicLinkValues) =>
+  authApi.post<{ message: string; email?: string; token?: string; magicLinkUrl?: string }>(
+    "/magic-link/request",
+    values,
+  );
+
+export const verifyMagicLink = (values: VerifyMagicLinkValues) =>
+  authApi.post<{ user: User }>("/magic-link/verify", values);
+
+export const acceptWorkspaceInvite = (token: string) =>
+  authApi.post<{ user: User; activeTenantId?: string }>("/invitation/accept", { token });
 
 export const forgotPassword = (values: ForgotPasswordValues) =>
   authApi.post<{ message: string }>("/forgot-password", values);

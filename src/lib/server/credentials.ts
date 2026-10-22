@@ -11,7 +11,12 @@ import { errorResponse } from "./response";
 /** Shared by /api/auth/login and /api/auth/register: tokens go into cookies, the browser only gets the user. */
 export async function handleCredentials(
   req: NextRequest,
-  backendPath: "/auth/login" | "/auth/register",
+  backendPath:
+    | "/auth/login"
+    | "/auth/register"
+    | "/auth/magic-link/verify"
+    | "/tenants/invitations/accept"
+    | string,
 ) {
   const blocked = assertSameOrigin(req);
   if (blocked) return blocked;

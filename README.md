@@ -1,7 +1,7 @@
 # Next.js Scalable Frontend Foundation
 
 Next.js 16 (App Router) · TypeScript (strict) · Tailwind CSS v4 · shadcn/ui · axios · TanStack Query · Zustand ·
-React Hook Form + Zod · Socket.IO client. Pairs with the Express/Prisma backend foundation (`/api/v1`, JWT access +
+React Hook Form + Zod · Socket.IO client. Pairs with the Express/PostgreSQL/Drizzle ORM backend foundation (`/api/v1`, JWT access +
 rotating refresh tokens, S3 presigned uploads, Socket.IO).
 
 ## Verification status

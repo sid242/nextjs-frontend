@@ -6,7 +6,7 @@ import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
-import { QueryDevtools } from "./query-devtools";
+// import { QueryDevtools } from "./query-devtools";
 import { QueryProvider } from "./query-provider";
 import { StoreHydrator } from "./store-hydrator";
 
@@ -24,7 +24,7 @@ export function AppProviders({ children, nonce }: { children: ReactNode; nonce?:
           <StoreHydrator />
           {children}
           <Toaster richColors closeButton />
-          <QueryDevtools />
+          {/* <QueryDevtools /> */}
         </TooltipProvider>
       </QueryProvider>
     </ThemeProvider>

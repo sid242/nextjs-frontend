@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback } from "react";
 import { queryOptions, useQueryClient } from "@tanstack/react-query";
 
 import {
@@ -143,12 +144,35 @@ export function useTenantAuditLogsSearch(
 }
 
 export function useActiveTenant() {
+  const queryClient = useQueryClient();
   const { data: tenants = [], isLoading } = useTenants();
   const activeTenantId = useTenantStore((s) => s.activeTenantId);
-  const setActiveTenantId = useTenantStore((s) => s.setActiveTenantId);
+  const storeSetActiveTenantId = useTenantStore((s) => s.setActiveTenantId);
 
   const activeTenant: Tenant | undefined =
     tenants?.find((t) => t?.id === activeTenantId) ?? tenants?.[0];
+
+  const setActiveTenantId = useCallback(
+    (nextTenantId: string) => {
+      if (nextTenantId === activeTenantId) return;
+
+      // 1. Update active tenant in store and localStorage
+      storeSetActiveTenantId(nextTenantId);
+
+      // 2. Clear tenant-scoped queries to prevent cache leakage across tenants
+      queryClient.removeQueries({
+        predicate: (query) => {
+          const firstKey = String(query.queryKey[0]);
+          // Preserve global user session and list of available tenants; wipe everything else
+          return !["user", "auth", "tenants"].includes(firstKey);
+        },
+      });
+
+      // 3. Immediately trigger background refetches for new tenant context
+      void queryClient.invalidateQueries();
+    },
+    [activeTenantId, storeSetActiveTenantId, queryClient],
+  );
 
   return {
     activeTenant,
@@ -161,7 +185,7 @@ export function useActiveTenant() {
 
 export function useCreateTenant(options?: MutationOverrides<Tenant, CreateTenantInput>) {
   const queryClient = useQueryClient();
-  const setActiveTenantId = useTenantStore((s) => s.setActiveTenantId);
+  const { setActiveTenantId } = useActiveTenant();
 
   return useAppMutation(
     {
@@ -180,14 +204,29 @@ export function useCreateTenant(options?: MutationOverrides<Tenant, CreateTenant
 
 export function useAddTenantMember(
   tenantId: string,
-  options?: MutationOverrides<{ member: TenantMember }, AddMemberInput>,
+  options?: MutationOverrides<
+    {
+      member: TenantMember;
+      role: string;
+      inviteToken?: string;
+      inviteUrl?: string;
+      message?: string;
+    },
+    AddMemberInput
+  >,
 ) {
   const queryClient = useQueryClient();
 
   return useAppMutation(
     {
       mutationFn: (input: AddMemberInput) => addTenantMember(tenantId, input),
-      onSuccess: (res: { member: TenantMember }) => {
+      onSuccess: (res: {
+        member: TenantMember;
+        role: string;
+        inviteToken?: string;
+        inviteUrl?: string;
+        message?: string;
+      }) => {
         queryClient.setQueryData<TenantMember[]>(tenantKeys.members(tenantId), (old = []) => [
           ...(old ?? []),
           res?.member,

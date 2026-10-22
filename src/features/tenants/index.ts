@@ -33,3 +33,6 @@ export { TenantSwitcher } from "./components/tenant-switcher";
 export { TenantBrand } from "./components/tenant-brand";
 export { TenantSettingsCard } from "./components/tenant-settings-card";
 export { TenantSmtpCard } from "./components/tenant-smtp-card";
+export { TeamStatsCards } from "./components/team-stats-cards";
+export { TeamMembersList } from "./components/team-members-list";
+export { InviteMemberDialog } from "./components/invite-member-dialog";

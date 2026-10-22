@@ -2,7 +2,13 @@
 
 import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { createTenantRole, deleteTenantRole, getPlatformPermissions, getTenantRoles } from "./api";
+import {
+  createTenantRole,
+  deleteTenantRole,
+  getPlatformModules,
+  getPlatformPermissions,
+  getTenantRoles,
+} from "./api";
 import { rbacKeys } from "./keys";
 import type { CreateRoleInput, Role } from "./schemas";
 
@@ -21,12 +27,23 @@ export const permissionsQueryOptions = () =>
     staleTime: 10 * 60 * 1000,
   });
 
+export const modulesQueryOptions = () =>
+  queryOptions({
+    queryKey: rbacKeys.modules(),
+    queryFn: ({ signal }) => getPlatformModules(signal),
+    staleTime: 10 * 60 * 1000,
+  });
+
 export function useTenantRoles(tenantId?: string | null) {
   return useQuery(tenantRolesQueryOptions(tenantId ?? ""));
 }
 
 export function usePermissions() {
   return useQuery(permissionsQueryOptions());
+}
+
+export function useModules() {
+  return useQuery(modulesQueryOptions());
 }
 
 export function useCreateTenantRole(tenantId: string) {

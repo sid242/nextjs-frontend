@@ -23,17 +23,10 @@ import type { FileRecord } from "@/lib/api/types";
 import { formatBytes, formatDate } from "@/lib/format";
 
 import { getDownloadUrl } from "../api";
+import { triggerFileDownload } from "../download";
 import { useFiles } from "../queries";
 import { FilePreviewDialog } from "./file-preview-dialog";
 import { FileStatusBadge } from "./file-status-badge";
-
-function openInNewTab(url: string) {
-  const link = document.createElement("a");
-  link.href = url;
-  link.target = "_blank";
-  link.rel = "noopener noreferrer";
-  link.click();
-}
 
 function getFileIcon(filename: string, contentType: string) {
   if (contentType?.startsWith("image/") || /\.(png|jpe?g|webp|gif|svg)$/i.test(filename)) {
@@ -65,10 +58,11 @@ export function RecentFilesCard() {
 
   const handleDownload = async (file: FileRecord) => {
     try {
-      const { url } = await getDownloadUrl(file.id);
-      openInNewTab(url);
+      const { url } = await getDownloadUrl(file.id, "attachment");
+      await triggerFileDownload(url, file.filename);
+      toast.success(`Downloading ${file.filename}`);
     } catch (err) {
-      toast.error(getErrorMessage(err, "Failed to get download link."));
+      toast.error(getErrorMessage(err, "Failed to download file."));
     }
   };
 

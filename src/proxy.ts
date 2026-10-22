@@ -18,19 +18,36 @@ function socketOrigins(): string[] {
   }
 }
 
+function parseOrigins(raw?: string): string[] {
+  if (!raw) return [];
+  return raw
+    .split(/[,\s]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 function buildCsp(nonce: string): string {
-  const connect = [
-    "'self'",
-    ...socketOrigins(),
-    ...(process.env.CSP_CONNECT_EXTRA ?? "").split(/\s+/).filter(Boolean),
-  ];
+  const extraOrigins = Array.from(
+    new Set([
+      ...parseOrigins(process.env.CSP_CONNECT_EXTRA),
+      ...parseOrigins(process.env.CSP_STORAGE_EXTRA),
+      ...parseOrigins(process.env.CSP_IMG_EXTRA),
+    ]),
+  );
+
+  const connect = ["'self'", ...socketOrigins(), ...extraOrigins];
+
+  const storageMedia = ["'self'", "blob:", "data:", ...extraOrigins];
+
   return [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' blob: data:",
+    `img-src ${storageMedia.join(" ")}`,
     "font-src 'self' data:",
     `connect-src ${connect.join(" ")}`,
+    `media-src ${storageMedia.join(" ")}`,
+    `frame-src 'self' ${extraOrigins.join(" ")}`,
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

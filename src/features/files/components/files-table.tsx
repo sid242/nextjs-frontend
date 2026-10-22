@@ -30,6 +30,7 @@ import {
 } from "@/lib/hooks";
 
 import { getDownloadUrl } from "../api";
+import { triggerFileDownload } from "../download";
 import { useDeleteFile, useFiles } from "../queries";
 import { useFileRealtime } from "../use-file-realtime";
 import { FilePreviewDialog } from "./file-preview-dialog";
@@ -52,14 +53,6 @@ const COLUMN_CONFIG: Record<FileColumnId, { label: string; className?: string }>
   added: { label: "Added" },
   actions: { label: "Actions", className: "text-right" },
 };
-
-function openInNewTab(url: string) {
-  const link = document.createElement("a");
-  link.href = url;
-  link.target = "_blank";
-  link.rel = "noopener noreferrer";
-  link.click();
-}
 
 export function FilesTable() {
   useFileRealtime();
@@ -103,9 +96,11 @@ export function FilesTable() {
 
   async function download(file: FileRecord) {
     try {
-      openInNewTab((await getDownloadUrl(file.id)).url);
+      const { url } = await getDownloadUrl(file.id, "attachment");
+      await triggerFileDownload(url, file.filename);
+      toast.success(`Downloading ${file.filename}`);
     } catch (err) {
-      toast.error(getErrorMessage(err));
+      toast.error(getErrorMessage(err, "Failed to download file."));
     }
   }
 

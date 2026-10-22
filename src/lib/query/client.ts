@@ -56,6 +56,13 @@ export function makeQueryClient(): QueryClient {
   });
 }
 
+// TypeScript declaration for TanStack Query Devtools browser extension
+declare global {
+  interface Window {
+    __TANSTACK_QUERY_CLIENT__?: import("@tanstack/query-core").QueryClient;
+  }
+}
+
 let browserClient: QueryClient | undefined;
 
 /**
@@ -64,5 +71,11 @@ let browserClient: QueryClient | undefined;
  */
 export function getQueryClient(): QueryClient {
   if (isServer) return makeQueryClient();
-  return (browserClient ??= makeQueryClient());
+  if (!browserClient) {
+    browserClient = makeQueryClient();
+    if (typeof window !== "undefined") {
+      window.__TANSTACK_QUERY_CLIENT__ = browserClient;
+    }
+  }
+  return browserClient;
 }

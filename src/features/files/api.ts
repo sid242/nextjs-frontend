@@ -14,7 +14,9 @@ export const requestUpload = (
 export const confirmUpload = (id: string, signal?: AbortSignal) =>
   api.post<FileRecord>(`/files/${id}/confirm`, undefined, { signal });
 
-export const getDownloadUrl = (id: string) =>
-  api.get<{ url: string; expiresInSeconds: number }>(`/files/${id}/download-url`);
+export const getDownloadUrl = (id: string, disposition?: "attachment" | "inline") =>
+  api.get<{ url: string; expiresInSeconds: number }>(
+    `/files/${id}/download-url${disposition ? `?disposition=${disposition}` : ""}`,
+  );
 
 export const deleteFile = (id: string) => api.delete(`/files/${id}`);

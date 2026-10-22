@@ -7,3 +7,5 @@ export { FilePreviewDialog } from "./components/file-preview-dialog";
 
 // Server-only: import this barrel from server components (routes) only, never from client components.
 export { prefetchFiles } from "./server";
+
+export { triggerFileDownload } from "./download";

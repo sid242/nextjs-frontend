@@ -12,3 +12,14 @@ export { ActiveSessionsCard } from "./components/active-sessions-card";
 export { ChangePasswordCard } from "./components/change-password-card";
 export { ImpersonationBanner } from "./components/impersonation-banner";
 export { VerifyEmailView } from "./components/verify-email-view";
+export {
+  useChangePassword,
+  useRevokeSession,
+  useStopImpersonation,
+  useUserSessions,
+  useVerifyEmail,
+  useRequestEmailVerification,
+  useRequestMagicLink,
+  useVerifyMagicLink,
+  useAcceptWorkspaceInvite,
+} from "./queries";

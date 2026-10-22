@@ -151,12 +151,21 @@ export async function getTenantMembers(
 export async function addTenantMember(
   tenantId: string,
   input: AddMemberInput,
-): Promise<{ member: TenantMember; role: string }> {
+): Promise<{
+  member: TenantMember;
+  role: string;
+  inviteToken?: string;
+  inviteUrl?: string;
+  message?: string;
+}> {
   try {
-    return await api.post<{ member: TenantMember; role: string }>(
-      `/tenants/${tenantId}/members`,
-      input,
-    );
+    return await api.post<{
+      member: TenantMember;
+      role: string;
+      inviteToken?: string;
+      inviteUrl?: string;
+      message?: string;
+    }>(`/tenants/${tenantId}/members`, input);
   } catch {
     const fallback: TenantMember = {
       id: `mem-${Date.now()}`,

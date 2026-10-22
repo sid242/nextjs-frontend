@@ -34,8 +34,12 @@ async function handler(req: NextRequest, { params }: Ctx) {
     if (blocked) return blocked;
   }
 
-  const token = req.cookies.get(ACCESS_COOKIE)?.value;
-  if (!token) return errorResponse(401, "UNAUTHORIZED", "Not signed in");
+  const isPlatformAuth =
+    upstreamPath === "/platform/auth/login" || upstreamPath === "/platform/auth/logout";
+
+  const token =
+    req.cookies.get(ACCESS_COOKIE)?.value ?? req.cookies.get("platform_staff_token")?.value;
+  if (!token && !isPlatformAuth) return errorResponse(401, "UNAUTHORIZED", "Not signed in");
 
   let body: string | undefined;
   if (req.method !== "GET" && req.method !== "HEAD") {
@@ -62,6 +66,8 @@ async function handler(req: NextRequest, { params }: Ctx) {
     const value = upstream.headers.get(name);
     if (value) headers.set(name, value);
   }
+  const setCookie = upstream.headers.get("set-cookie");
+  if (setCookie) headers.set("set-cookie", setCookie);
   return new Response(upstream.status === 204 ? null : upstream.body, {
     status: upstream.status,
     headers,

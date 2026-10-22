@@ -30,6 +30,7 @@ import type { FileRecord } from "@/lib/api/types";
 import { formatBytes, formatDate } from "@/lib/format";
 
 import { getDownloadUrl } from "../api";
+import { triggerFileDownload } from "../download";
 import { FileStatusBadge } from "./file-status-badge";
 
 export interface FilePreviewDialogProps {
@@ -46,13 +47,17 @@ function openInNewTab(url: string) {
   link.click();
 }
 
-function triggerDownload(url: string, filename: string) {
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  link.target = "_blank";
-  link.rel = "noopener noreferrer";
-  link.click();
+async function triggerDownload(url: string, filename: string, fileId?: string) {
+  try {
+    if (fileId) {
+      const res = await getDownloadUrl(fileId, "attachment");
+      await triggerFileDownload(res.url, filename);
+      return;
+    }
+    await triggerFileDownload(url, filename);
+  } catch {
+    await triggerFileDownload(url, filename);
+  }
 }
 
 export function FilePreviewDialog({ file, open, onOpenChange }: FilePreviewDialogProps) {
@@ -61,6 +66,7 @@ export function FilePreviewDialog({ file, open, onOpenChange }: FilePreviewDialo
   const [textContent, setTextContent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<boolean>(false);
+  const [imageError, setImageError] = useState<boolean>(false);
 
   const filename = file?.filename ?? "";
   const contentType = file?.contentType ?? "";
@@ -79,8 +85,10 @@ export function FilePreviewDialog({ file, open, onOpenChange }: FilePreviewDialo
     if (!nextOpen) {
       setPreviewUrl(null);
       setTextContent(null);
+      setImageError(false);
       setError(null);
       setLoading(false);
+      setImageError(false);
     }
     onOpenChange(nextOpen);
   };
@@ -97,7 +105,7 @@ export function FilePreviewDialog({ file, open, onOpenChange }: FilePreviewDialo
       setTextContent(null);
 
       try {
-        const { url } = await getDownloadUrl(file.id);
+        const { url } = await getDownloadUrl(file.id, "inline");
         if (isCancelled) return;
         setPreviewUrl(url);
 
@@ -230,7 +238,7 @@ export function FilePreviewDialog({ file, open, onOpenChange }: FilePreviewDialo
                 <Button
                   size="sm"
                   className="h-8 gap-1.5 text-xs"
-                  onClick={() => triggerDownload(previewUrl, filename)}
+                  onClick={() => void triggerDownload(previewUrl, filename, file?.id)}
                 >
                   <DownloadIcon className="size-3.5" />
                   <span>Download</span>
@@ -270,12 +278,46 @@ export function FilePreviewDialog({ file, open, onOpenChange }: FilePreviewDialo
               {/* 1. Image Preview */}
               {isImage ? (
                 <div className="flex max-h-[70vh] w-full items-center justify-center overflow-hidden rounded-md">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={previewUrl}
-                    alt={filename}
-                    className="max-h-[68vh] w-auto max-w-full rounded object-contain shadow-sm"
-                  />
+                  {imageError ? (
+                    <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
+                      <div className="bg-destructive/10 text-destructive flex size-12 items-center justify-center rounded-full">
+                        <ImageIcon className="size-6" />
+                      </div>
+                      <div className="grid gap-1">
+                        <p className="text-sm font-medium">Failed to render image preview</p>
+                        <p className="text-muted-foreground text-xs">
+                          The image link may have expired or could not be loaded directly.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 pt-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openInNewTab(previewUrl)}
+                          className="text-xs"
+                        >
+                          <ExternalLinkIcon className="mr-1.5 size-3.5" />
+                          Open in new tab
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => void triggerDownload(previewUrl, filename, file?.id)}
+                          className="text-xs"
+                        >
+                          <DownloadIcon className="mr-1.5 size-3.5" />
+                          Download
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={previewUrl}
+                      alt={filename}
+                      className="max-h-[68vh] w-auto max-w-full rounded object-contain shadow-sm"
+                      onError={() => setImageError(true)}
+                    />
+                  )}
                 </div>
               ) : null}
 
@@ -339,7 +381,10 @@ export function FilePreviewDialog({ file, open, onOpenChange }: FilePreviewDialo
                     </p>
                   </div>
                   <div className="flex items-center gap-2 pt-2">
-                    <Button size="sm" onClick={() => triggerDownload(previewUrl, filename)}>
+                    <Button
+                      size="sm"
+                      onClick={() => void triggerDownload(previewUrl, filename, file?.id)}
+                    >
                       <DownloadIcon className="mr-1.5 size-3.5" />
                       Download to view
                     </Button>

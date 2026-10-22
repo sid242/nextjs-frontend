@@ -68,3 +68,13 @@ export type ChangePasswordValues = z.infer<typeof changePasswordSchema>;
 export type VerifyEmailValues = z.infer<typeof verifyEmailSchema>;
 export type RequestEmailVerificationValues = z.infer<typeof requestEmailVerificationSchema>;
 export type UserSession = z.infer<typeof userSessionSchema>;
+
+export const requestMagicLinkSchema = z.object({
+  email: z.string().trim().min(1, "Email is required").email("Enter a valid email").max(254),
+});
+export type RequestMagicLinkValues = z.infer<typeof requestMagicLinkSchema>;
+
+export const verifyMagicLinkSchema = z.object({
+  token: z.string().min(1, "Magic link token is required"),
+});
+export type VerifyMagicLinkValues = z.infer<typeof verifyMagicLinkSchema>;
