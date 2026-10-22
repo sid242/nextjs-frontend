@@ -16,7 +16,7 @@ import { usePlatformLogin } from "../queries";
 export function PlatformLoginForm() {
   const router = useRouter();
   const [email, setEmail] = useState("superadmin@platform.local");
-  const [password, setPassword] = useState("Platform@123456");
+  const [password, setPassword] = useState("Password@123456");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const { mutateAsync: login, isPending } = usePlatformLogin();
@@ -129,7 +129,7 @@ export function PlatformLoginForm() {
               Email: <span className="text-foreground">superadmin@platform.local</span>
             </div>
             <div className="text-muted-foreground text-[10px]">
-              Pass: <span className="text-foreground">Platform@123456</span>
+              Pass: <span className="text-foreground">Password@123456</span>
             </div>
           </div>
         </CardContent>
