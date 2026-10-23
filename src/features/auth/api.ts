@@ -67,7 +67,9 @@ export const getUserSessions = async (signal?: AbortSignal): Promise<UserSession
 
 export const revokeSession = (id: string) => authApi.delete(`/sessions/${id}`);
 
-export const impersonateUser = (userId: string) =>
-  authApi.post<{ ok: boolean }>("/impersonate", { userId });
+export const impersonateUser = (
+  userId: string,
+  reason = "Administrative support and investigation",
+) => authApi.post<{ ok: boolean }>("/impersonate", { targetUserId: userId, reason });
 
 export const stopImpersonation = () => authApi.post<{ ok: boolean }>("/stop-impersonate");

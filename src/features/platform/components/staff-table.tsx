@@ -15,8 +15,10 @@ import {
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 
+import { ColumnConfigDropdown } from "@/components/molecules/column-config-dropdown";
 import { ControlledInput, ControlledSelect, FormWrapper } from "@/components/molecules/forms";
 import { SubmitButton } from "@/components/molecules/submit-button";
+import { TablePagination } from "@/components/molecules/table-pagination";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -55,30 +57,99 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getErrorMessage } from "@/lib/api/errors";
+import {
+  useDebouncedCallback,
+  useSearchQueryParams,
+  useTableColumns,
+  type TableColumnDef,
+} from "@/lib/hooks";
 
 import { useCreateStaff, usePlatformRoles, useStaffList, useUpdateStaff } from "../queries";
 import { createStaffSchema, type CreateStaffInput, type StaffMember } from "../schemas";
 
+type StaffColumnId = "member" | "role" | "status" | "lastLogin" | "createdAt" | "actions";
+
+const STAFF_COLUMNS: TableColumnDef<StaffColumnId>[] = [
+  { id: "member", label: "Staff Member", canHide: false, defaultVisible: true },
+  { id: "role", label: "Platform Role", canHide: true, defaultVisible: true },
+  { id: "status", label: "Status", canHide: true, defaultVisible: true },
+  { id: "lastLogin", label: "Last Login", canHide: true, defaultVisible: true },
+  { id: "createdAt", label: "Created", canHide: true, defaultVisible: true },
+  { id: "actions", label: "Actions", canHide: false, defaultVisible: true },
+];
+
+const STAFF_COLUMN_LABELS: Record<StaffColumnId, string> = {
+  member: "Staff Member",
+  role: "Platform Role",
+  status: "Status",
+  lastLogin: "Last Login",
+  createdAt: "Created",
+  actions: "Actions",
+};
+
 export function StaffTable() {
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const { get, getNumber, setParam, setParams } = useSearchQueryParams();
+  const [searchInput, setSearchInput] = useState<string>(() => get("q") ?? "");
+
+  const syncSearchParam = useDebouncedCallback((val: string) => {
+    setParams({ q: val.trim() || null, page: null }, { mode: "replace", scroll: false });
+  }, 250);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e?.target?.value ?? "";
+    setSearchInput(val);
+    syncSearchParam.run(val);
+  };
+
+  const statusFilter = get("status") ?? "ALL";
+  const handleStatusChange = (val: string) => {
+    setParams(
+      { status: val === "ALL" ? null : val, page: null },
+      { mode: "replace", scroll: false },
+    );
+  };
+
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<StaffMember | null>(null);
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
+  const rawPage = getNumber("page", 1) ?? 1;
+  const page = Math.max(1, rawPage);
+  const rawLimit = getNumber("limit", 10) ?? 10;
+  const pageSize = [10, 20, 50].includes(rawLimit) ? rawLimit : 10;
 
-  const { data: staffData, isLoading, error } = useStaffList();
+  const handlePageSizeChange = (newSize: number) => {
+    setParams(
+      { limit: newSize === 10 ? null : newSize, page: null },
+      { mode: "replace", scroll: false },
+    );
+  };
+
+  const { data: staffData, isLoading, error } = useStaffList({ limit: 100 });
   const { data: roles = [] } = usePlatformRoles();
   const { mutateAsync: updateStaff } = useUpdateStaff();
 
   const filteredStaff = useMemo(() => {
+    const query = searchInput.toLowerCase();
     return (staffData?.items ?? []).filter((member) => {
       const matchesSearch =
-        (member?.displayName ?? "").toLowerCase().includes(search.toLowerCase()) ||
-        (member?.email ?? "").toLowerCase().includes(search.toLowerCase());
+        (member?.displayName ?? "").toLowerCase().includes(query) ||
+        (member?.email ?? "").toLowerCase().includes(query);
       const matchesStatus = statusFilter === "ALL" || member?.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
-  }, [staffData?.items, search, statusFilter]);
+  }, [staffData?.items, searchInput, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredStaff.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const paginatedStaff = useMemo(() => {
+    const start = (safePage - 1) * pageSize;
+    return filteredStaff.slice(start, start + pageSize);
+  }, [filteredStaff, safePage, pageSize]);
+
+  const tableColumns = useTableColumns<StaffColumnId>({
+    columns: STAFF_COLUMNS,
+    tableId: "platform_staff_table",
+  });
 
   const handleStatusToggle = async (member: StaffMember) => {
     const nextStatus = member?.status === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
@@ -91,6 +162,112 @@ export function StaffTable() {
       alert(getErrorMessage(err, "Failed to update status"));
     }
   };
+
+  function renderCell(colId: StaffColumnId, member: StaffMember) {
+    switch (colId) {
+      case "member":
+        return (
+          <TableCell key="member">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-red-500/20 bg-red-500/10 text-xs font-bold text-red-500">
+                {member.displayName?.charAt(0).toUpperCase() ?? "S"}
+              </div>
+              <div>
+                <div className="text-foreground font-semibold">{member.displayName}</div>
+                <div className="text-muted-foreground font-mono text-[11px]">{member.email}</div>
+              </div>
+            </div>
+          </TableCell>
+        );
+      case "role":
+        return (
+          <TableCell key="role">
+            <Badge
+              variant="outline"
+              className="border-amber-500/30 bg-amber-500/5 font-mono text-[10px] text-amber-500"
+            >
+              {member.roleName ?? member.roleKey ?? "Custom Role"}
+            </Badge>
+          </TableCell>
+        );
+      case "status":
+        return (
+          <TableCell key="status">
+            {member.status === "ACTIVE" && (
+              <Badge variant="success" className="gap-1 font-mono text-[10px]">
+                <CheckCircle2 className="h-3 w-3" />
+                ACTIVE
+              </Badge>
+            )}
+            {member.status === "SUSPENDED" && (
+              <Badge variant="warning" className="gap-1 font-mono text-[10px]">
+                <Clock className="h-3 w-3" />
+                SUSPENDED
+              </Badge>
+            )}
+            {member.status === "DEACTIVATED" && (
+              <Badge variant="destructive" className="gap-1 font-mono text-[10px]">
+                <XCircle className="h-3 w-3" />
+                DEACTIVATED
+              </Badge>
+            )}
+          </TableCell>
+        );
+      case "lastLogin":
+        return (
+          <TableCell key="lastLogin" className="text-muted-foreground font-mono text-[11px]">
+            {member.lastLoginAt ? new Date(member.lastLoginAt).toLocaleString() : "Never"}
+          </TableCell>
+        );
+      case "createdAt":
+        return (
+          <TableCell key="createdAt" className="text-muted-foreground font-mono text-[11px]">
+            {member.createdAt ? new Date(member.createdAt).toLocaleDateString() : "—"}
+          </TableCell>
+        );
+      case "actions":
+        return (
+          <TableCell key="actions" className="text-right">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 text-xs">
+                <DropdownMenuLabel>Staff Actions</DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setSelectedStaff(member);
+                    setRoleDialogOpen(true);
+                  }}
+                >
+                  <Shield className="mr-2 h-3.5 w-3.5" />
+                  Change Platform Role
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => handleStatusToggle(member)}
+                  className={member.status === "ACTIVE" ? "text-amber-500" : "text-emerald-500"}
+                >
+                  {member.status === "ACTIVE" ? (
+                    <>
+                      <Clock className="mr-2 h-3.5 w-3.5" />
+                      Suspend Account
+                    </>
+                  ) : (
+                    <>
+                      <UserCheck className="mr-2 h-3.5 w-3.5" />
+                      Reactivate Account
+                    </>
+                  )}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </TableCell>
+        );
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -157,13 +334,13 @@ export function StaffTable() {
               <Search className="text-muted-foreground absolute top-2.5 left-2.5 h-4 w-4" />
               <Input
                 placeholder="Search staff by name or email..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                value={searchInput}
+                onChange={handleSearchChange}
                 className="h-9 pl-9 text-xs"
               />
             </div>
             <div className="flex w-full items-center gap-2 md:w-auto">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select value={statusFilter} onValueChange={handleStatusChange}>
                 <SelectTrigger className="h-9 w-full text-xs md:w-36">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
@@ -174,6 +351,8 @@ export function StaffTable() {
                   <SelectItem value="DEACTIVATED">Deactivated</SelectItem>
                 </SelectContent>
               </Select>
+
+              <ColumnConfigDropdown tableColumns={tableColumns} />
             </div>
           </div>
         </CardHeader>
@@ -194,116 +373,41 @@ export function StaffTable() {
               No platform staff members found matching your search.
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="font-mono text-xs uppercase">
-                  <TableHead>Staff Member</TableHead>
-                  <TableHead>Platform Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Last Login</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredStaff.map((member) => (
-                  <TableRow key={member.id} className="text-xs">
-                    <TableCell>
-                      <div className="flex items-center gap-2.5">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-red-500/20 bg-red-500/10 text-xs font-bold text-red-500">
-                          {member.displayName?.charAt(0).toUpperCase() ?? "S"}
-                        </div>
-                        <div>
-                          <div className="text-foreground font-semibold">{member.displayName}</div>
-                          <div className="text-muted-foreground font-mono text-[11px]">
-                            {member.email}
-                          </div>
-                        </div>
-                      </div>
-                    </TableCell>
-
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className="border-amber-500/30 bg-amber-500/5 font-mono text-[10px] text-amber-500"
+            <div>
+              <Table>
+                <TableHeader>
+                  <TableRow className="font-mono text-xs uppercase">
+                    {tableColumns.orderedVisibleColumns.map((colId) => (
+                      <TableHead
+                        key={colId}
+                        className={colId === "actions" ? "text-right" : undefined}
                       >
-                        {member.roleName ?? member.roleKey ?? "Custom Role"}
-                      </Badge>
-                    </TableCell>
-
-                    <TableCell>
-                      {member.status === "ACTIVE" && (
-                        <Badge variant="success" className="gap-1 font-mono text-[10px]">
-                          <CheckCircle2 className="h-3 w-3" />
-                          ACTIVE
-                        </Badge>
-                      )}
-                      {member.status === "SUSPENDED" && (
-                        <Badge variant="warning" className="gap-1 font-mono text-[10px]">
-                          <Clock className="h-3 w-3" />
-                          SUSPENDED
-                        </Badge>
-                      )}
-                      {member.status === "DEACTIVATED" && (
-                        <Badge variant="destructive" className="gap-1 font-mono text-[10px]">
-                          <XCircle className="h-3 w-3" />
-                          DEACTIVATED
-                        </Badge>
-                      )}
-                    </TableCell>
-
-                    <TableCell className="text-muted-foreground font-mono text-[11px]">
-                      {member.lastLoginAt ? new Date(member.lastLoginAt).toLocaleString() : "Never"}
-                    </TableCell>
-
-                    <TableCell className="text-muted-foreground font-mono text-[11px]">
-                      {member.createdAt ? new Date(member.createdAt).toLocaleDateString() : "—"}
-                    </TableCell>
-
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-7 w-7">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48 text-xs">
-                          <DropdownMenuLabel>Staff Actions</DropdownMenuLabel>
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setSelectedStaff(member);
-                              setRoleDialogOpen(true);
-                            }}
-                          >
-                            <Shield className="mr-2 h-3.5 w-3.5" />
-                            Change Platform Role
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => handleStatusToggle(member)}
-                            className={
-                              member.status === "ACTIVE" ? "text-amber-500" : "text-emerald-500"
-                            }
-                          >
-                            {member.status === "ACTIVE" ? (
-                              <>
-                                <Clock className="mr-2 h-3.5 w-3.5" />
-                                Suspend Account
-                              </>
-                            ) : (
-                              <>
-                                <UserCheck className="mr-2 h-3.5 w-3.5" />
-                                Reactivate Account
-                              </>
-                            )}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
+                        {STAFF_COLUMN_LABELS[colId]}
+                      </TableHead>
+                    ))}
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {paginatedStaff.map((member) => (
+                    <TableRow key={member.id} className="text-xs">
+                      {tableColumns.orderedVisibleColumns.map((colId) => renderCell(colId, member))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <TablePagination
+                currentPage={safePage}
+                totalPages={totalPages}
+                totalItems={filteredStaff.length}
+                pageSize={pageSize}
+                pageSizeOptions={[10, 20, 50]}
+                onPageSizeChange={handlePageSizeChange}
+                onPageChange={(p) =>
+                  setParam("page", p <= 1 ? null : p, { mode: "replace", scroll: false })
+                }
+                itemLabel="staff members"
+              />
+            </div>
           )}
         </CardContent>
       </Card>

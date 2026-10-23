@@ -11,6 +11,7 @@ import {
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/molecules/page-header";
+import { TablePagination } from "@/components/molecules/table-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,12 +25,43 @@ import {
 } from "@/components/ui/select";
 import { useActiveTenant, useTenantAuditLogsSearch, type AuditLogEntry } from "@/features/tenants";
 import { formatDate } from "@/lib/format";
+import { useDebouncedCallback, useSearchQueryParams } from "@/lib/hooks";
 
 export default function AuditLogsPage() {
   const { activeTenant, activeTenantId } = useActiveTenant();
-  const [page] = useState(1);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("ALL");
+  const { get, getNumber, setParam, setParams } = useSearchQueryParams();
+
+  const [searchInput, setSearchInput] = useState<string>(() => get("q") ?? "");
+
+  const syncSearchParam = useDebouncedCallback((val: string) => {
+    setParams({ q: val.trim() || null, page: null }, { mode: "replace", scroll: false });
+  }, 250);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e?.target?.value ?? "";
+    setSearchInput(val);
+    syncSearchParam.run(val);
+  };
+
+  const statusFilter = get("status") ?? "ALL";
+  const handleStatusChange = (val: string) => {
+    setParams(
+      { status: val === "ALL" ? null : val, page: null },
+      { mode: "replace", scroll: false },
+    );
+  };
+
+  const rawPage = getNumber("page", 1) ?? 1;
+  const page = Math.max(1, rawPage);
+  const rawLimit = getNumber("limit", 10) ?? 10;
+  const pageSize = [10, 20, 50].includes(rawLimit) ? rawLimit : 10;
+
+  const handlePageSizeChange = (newSize: number) => {
+    setParams(
+      { limit: newSize === 10 ? null : newSize, page: null },
+      { mode: "replace", scroll: false },
+    );
+  };
 
   const {
     data: logs = [],
@@ -37,9 +69,10 @@ export default function AuditLogsPage() {
     refetch,
     isRefetching,
   } = useTenantAuditLogsSearch(activeTenantId, {
-    search: search.trim() || undefined,
+    search: (get("q") ?? searchInput).trim() || undefined,
     status: statusFilter === "ALL" ? undefined : (statusFilter as "SUCCESS" | "WARNING" | "FAILED"),
     page,
+    limit: pageSize,
   });
 
   const filteredLogs = logs;
@@ -112,13 +145,13 @@ export default function AuditLogsPage() {
               <SearchIcon className="text-muted-foreground absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
               <Input
                 placeholder="Search events, IPs…"
-                value={search}
-                onChange={(e) => setSearch(e?.target?.value ?? "")}
+                value={searchInput}
+                onChange={handleSearchChange}
                 className="h-9 pl-9 text-xs"
               />
             </div>
 
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={handleStatusChange}>
               <SelectTrigger className="h-9 w-32 text-xs">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
@@ -193,6 +226,20 @@ export default function AuditLogsPage() {
                 </div>
               ))}
             </div>
+          )}
+          {filteredLogs.length > 0 && (
+            <TablePagination
+              currentPage={page}
+              totalPages={Math.max(1, Math.ceil(filteredLogs.length / pageSize))}
+              totalItems={filteredLogs.length}
+              pageSize={pageSize}
+              pageSizeOptions={[10, 20, 50]}
+              onPageSizeChange={handlePageSizeChange}
+              onPageChange={(p) =>
+                setParam("page", p <= 1 ? null : p, { mode: "replace", scroll: false })
+              }
+              itemLabel="audit logs"
+            />
           )}
         </CardContent>
       </Card>

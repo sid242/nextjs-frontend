@@ -13,10 +13,12 @@ import {
   Palette,
   Power,
   PowerOff,
-  ShieldAlert,
   Users,
+  VenetianMask,
 } from "lucide-react";
+import { toast } from "sonner";
 
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,15 +33,29 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { TenantLogo } from "@/features/tenants";
+import { getErrorMessage } from "@/lib/api/errors";
+import { initials } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 import {
   useActivateTenant,
   usePlatformTenant,
+  usePlatformTenantMembers,
   useStartSupportSession,
   useSuspendTenant,
   useUpdatePlatformTenantSubscription,
 } from "../queries";
+import type { PlatformTenantMember } from "../schemas";
 
 interface TenantInspectorProps {
   tenantId: string;
@@ -47,6 +63,7 @@ interface TenantInspectorProps {
 
 export function TenantInspector({ tenantId }: TenantInspectorProps) {
   const { data: tenant, isLoading } = usePlatformTenant(tenantId);
+  const { data: members, isLoading: isLoadingMembers } = usePlatformTenantMembers(tenantId);
   const { mutateAsync: suspendTenant, isPending: isSuspending } = useSuspendTenant();
   const { mutateAsync: activateTenant, isPending: isActivating } = useActivateTenant();
   const { mutateAsync: updateSubscription, isPending: isUpdatingSub } =
@@ -58,6 +75,7 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
   const [suspendReason, setSuspendReason] = useState("");
   const [supportOpen, setSupportOpen] = useState(false);
   const [supportReason, setSupportReason] = useState("");
+  const [targetMember, setTargetMember] = useState<PlatformTenantMember | null>(null);
 
   const [editSeatsOpen, setEditSeatsOpen] = useState(false);
   const [newSeatCount, setNewSeatCount] = useState<number>(tenant?.subscription?.seatCount ?? 5);
@@ -112,18 +130,53 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
     }
   };
 
+  const handleOpenGeneralSupport = () => {
+    setTargetMember(null);
+    setSupportReason(`Troubleshooting tenant workspace for ${tenant.name}`);
+    setSupportOpen(true);
+  };
+
+  const handleOpenMemberSupport = (member: PlatformTenantMember) => {
+    setTargetMember(member);
+    setSupportReason(`Troubleshooting customer user session for ${member.name ?? member.email}`);
+    setSupportOpen(true);
+  };
+
   const handleStartSupport = async () => {
     if (!supportReason.trim()) return;
     try {
-      await startSupportSession({
+      const res = await startSupportSession({
         tenantId: tenant.id,
+        targetUserId: targetMember?.userId,
         reason: supportReason.trim(),
         durationMinutes: 30,
       });
-      setSupportOpen(false);
-      setSupportReason("");
-    } catch {
-      /* handled */
+
+      if (res?.sessionId) {
+        await fetch("/api/platform/support-session/enter", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sessionId: res.sessionId,
+            tenantId: res.tenantId,
+            accessToken: res.accessToken,
+          }),
+        });
+
+        toast.success(
+          `Entering ${tenant.name} as ${targetMember?.name ?? targetMember?.email ?? "tenant user"}…`,
+        );
+
+        setSupportOpen(false);
+        setSupportReason("");
+        setTargetMember(null);
+
+        // Full page navigation into the tenant dashboard with support banner active!
+        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+        window.location.assign("/dashboard");
+      }
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to start support session"));
     }
   };
 
@@ -173,11 +226,7 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setSupportOpen(true)}
-            className="gap-2 shadow-xs"
-          >
+          <Button variant="outline" onClick={handleOpenGeneralSupport} className="gap-2 shadow-xs">
             <LifeBuoy className="size-4 text-blue-500" />
             Support Session
           </Button>
@@ -334,6 +383,120 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
         </Card>
       </div>
 
+      {/* Tenant Members & Audited Impersonation Card */}
+      <Card className="shadow-xs">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-base font-semibold">
+              <Users className="text-primary size-4" /> Tenant Members & Impersonation
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Select any customer organization member to initiate an audited support session and
+              view their exact dashboard through their permissions.
+            </CardDescription>
+          </div>
+          <Badge variant="outline" className="font-mono text-xs">
+            {members?.length ?? 0} {members?.length === 1 ? "Member" : "Members"}
+          </Badge>
+        </CardHeader>
+        <CardContent>
+          {isLoadingMembers ? (
+            <div className="space-y-2 py-2">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          ) : (members?.length ?? 0) === 0 ? (
+            <div className="text-muted-foreground py-8 text-center text-xs">
+              No members found in this tenant workspace.
+            </div>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/30">
+                    <TableHead className="text-xs font-semibold">Member</TableHead>
+                    <TableHead className="text-xs font-semibold">Role</TableHead>
+                    <TableHead className="text-xs font-semibold">Status</TableHead>
+                    <TableHead className="text-xs font-semibold">Joined</TableHead>
+                    <TableHead className="text-right text-xs font-semibold">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {members?.map((member) => (
+                    <TableRow key={member.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2.5">
+                          <Avatar className="size-8">
+                            <AvatarFallback className="text-[11px] font-semibold">
+                              {initials(member.name ?? member.email)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex flex-col">
+                            <span className="text-xs font-medium">
+                              {member.name ?? "Unnamed Member"}
+                            </span>
+                            <span className="text-muted-foreground font-mono text-[11px]">
+                              {member.email}
+                            </span>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "font-mono text-[10px] font-semibold uppercase",
+                            member.roleName.toLowerCase() === "owner" &&
+                              "border-purple-500/30 bg-purple-500/10 text-purple-600 dark:text-purple-400",
+                            member.roleName.toLowerCase() === "admin" &&
+                              "border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400",
+                            member.roleName.toLowerCase() === "member" &&
+                              "border-slate-500/30 bg-slate-500/10 text-slate-600 dark:text-slate-400",
+                          )}
+                        >
+                          {member.roleName}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "text-[10px]",
+                            member.status === "ACTIVE" &&
+                              "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+                            member.status === "INVITED" &&
+                              "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+                            member.status === "SUSPENDED" &&
+                              "border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400",
+                          )}
+                        >
+                          {member.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-xs">
+                        {member.joinedAt ? new Date(member.joinedAt).toLocaleDateString() : "—"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleOpenMemberSupport(member)}
+                          className="hover:border-primary/50 h-8 gap-1.5 text-xs font-semibold shadow-2xs"
+                        >
+                          <VenetianMask className="text-primary size-3.5" />
+                          Impersonate User
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* White-Label Branding Card */}
       <Card className="shadow-xs">
         <CardHeader>
@@ -344,37 +507,71 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
             Visual tokens, logos, and custom accent colors configured by this organization.
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-3">
+        <CardContent className="grid gap-4 sm:grid-cols-4">
           <div className="rounded-lg border p-3">
             <span className="text-muted-foreground text-[11px] font-semibold uppercase">
-              Brand Display Name
-            </span>
-            <div className="mt-1 text-sm font-semibold">
-              {tenant.branding?.companyName ?? tenant.name}
-            </div>
-          </div>
-
-          <div className="rounded-lg border p-3">
-            <span className="text-muted-foreground text-[11px] font-semibold uppercase">
-              Primary Brand Color
+              Brand Identity & Logo
             </span>
             <div className="mt-1 flex items-center gap-2">
-              <div
-                className="size-4 rounded-full border"
-                style={{ backgroundColor: tenant.branding?.primaryColor ?? "#4F46E5" }}
+              <TenantLogo
+                variant="full"
+                branding={tenant.branding}
+                tenant={{
+                  id: tenant.id,
+                  name: tenant.name,
+                  slug: tenant.slug,
+                  plan: tenant.plan,
+                  status: tenant.status,
+                  createdAt: tenant.createdAt,
+                }}
+                showName
               />
-              <span className="font-mono text-xs">
-                {tenant.branding?.primaryColor ?? "#4F46E5"}
-              </span>
             </div>
           </div>
 
           <div className="rounded-lg border p-3">
             <span className="text-muted-foreground text-[11px] font-semibold uppercase">
-              Support Contact
+              Primary & Accent Colors
             </span>
-            <div className="mt-1 text-xs">
-              {tenant.branding?.supportEmail ?? "system@domain.com (Default)"}
+            <div className="mt-1 flex items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <div
+                  className="size-4 rounded-full border shadow-2xs"
+                  style={{ backgroundColor: tenant.branding?.primaryColor ?? "#4F46E5" }}
+                  title="Primary Color"
+                />
+                <span className="font-mono text-xs">
+                  {tenant.branding?.primaryColor ?? "#4F46E5"}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div
+                  className="size-4 rounded-full border shadow-2xs"
+                  style={{ backgroundColor: tenant.branding?.accentColor ?? "#06B6D4" }}
+                  title="Accent Color"
+                />
+                <span className="font-mono text-xs">
+                  {tenant.branding?.accentColor ?? "#06B6D4"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-lg border p-3">
+            <span className="text-muted-foreground text-[11px] font-semibold uppercase">
+              Border Radius Curvature
+            </span>
+            <div className="mt-1 font-mono text-xs">
+              {tenant.branding?.borderRadius ?? "0.5rem"}
+            </div>
+          </div>
+
+          <div className="rounded-lg border p-3">
+            <span className="text-muted-foreground text-[11px] font-semibold uppercase">
+              Support Communication Email
+            </span>
+            <div className="mt-1 font-mono text-xs">
+              {tenant.branding?.supportEmail ?? "system-default@platform.io"}
             </div>
           </div>
         </CardContent>
@@ -384,18 +581,18 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
       <Dialog open={suspendOpen} onOpenChange={setSuspendOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-red-600">
-              <ShieldAlert className="size-5" /> Suspend Tenant Organization
+            <DialogTitle className="text-destructive flex items-center gap-2">
+              <PowerOff className="size-5" /> Suspend Customer Workspace
             </DialogTitle>
             <DialogDescription>
-              Suspending <strong>{tenant.name}</strong> immediately revokes member sessions and
-              blocks HTTP and WebSocket traffic.
+              Disabling <strong>{tenant.name}</strong> immediately cuts off all user access and
+              tenant API operations.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-2 py-2">
             <Label htmlFor="suspend-reason" className="text-xs font-semibold">
-              Reason for Suspension (Recorded in Audit Trail)
+              Reason for Administrative Suspension
             </Label>
             <Textarea
               id="suspend-reason"
@@ -426,16 +623,29 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-blue-600">
-              <LifeBuoy className="size-5" /> Initiate Support Delegation
+              <LifeBuoy className="size-5" /> Initiate Audited Support Session
             </DialogTitle>
             <DialogDescription>
-              Start an audited 30-minute troubleshooting session for <strong>{tenant.name}</strong>.
+              {targetMember ? (
+                <span>
+                  Enter workspace <strong>{tenant.name}</strong> impersonating member{" "}
+                  <strong className="text-foreground">
+                    {targetMember.name ?? targetMember.email}
+                  </strong>{" "}
+                  ({targetMember.roleName}).
+                </span>
+              ) : (
+                <span>
+                  Start an audited 30-minute troubleshooting session for{" "}
+                  <strong>{tenant.name}</strong>.
+                </span>
+              )}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-2 py-2">
             <Label htmlFor="support-reason" className="text-xs font-semibold">
-              Delegation Reason
+              Delegation Reason (Compliance Audited)
             </Label>
             <Textarea
               id="support-reason"
@@ -454,7 +664,11 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
               onClick={handleStartSupport}
               disabled={!supportReason.trim() || isStartingSupport}
             >
-              {isStartingSupport ? "Starting Delegation…" : "Start Support Session"}
+              {isStartingSupport
+                ? "Starting Session…"
+                : targetMember
+                  ? "Impersonate & Enter Dashboard"
+                  : "Start Support Session"}
             </Button>
           </DialogFooter>
         </DialogContent>

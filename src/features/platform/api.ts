@@ -10,10 +10,12 @@ import type {
   PlatformSupportSession,
   PlatformTenant,
   PlatformTenantDetail,
+  PlatformTenantMember,
   ProvisionTenantInput,
   StaffAuthProfile,
   StaffMember,
   StartSupportSessionInput,
+  StartSupportSessionResponse,
   UpdatePlatformRoleInput,
   UpdatePlatformTenantInput,
   UpdatePlatformTenantSubscriptionInput,
@@ -105,12 +107,22 @@ export async function getSupportSessions(
 
 export async function startSupportSession(
   input: StartSupportSessionInput,
-): Promise<PlatformSupportSession> {
-  return api.post<PlatformSupportSession>(`/platform/tenants/${input.tenantId}/support-sessions`, {
-    reason: input.reason,
-    durationMinutes: input.durationMinutes,
-    targetUserId: input?.targetUserId ? input.targetUserId.trim() : undefined,
-  });
+): Promise<StartSupportSessionResponse> {
+  return api.post<StartSupportSessionResponse>(
+    `/platform/tenants/${input.tenantId}/support-sessions`,
+    {
+      reason: input.reason,
+      durationMinutes: input.durationMinutes,
+      targetUserId: input?.targetUserId ? input.targetUserId.trim() : undefined,
+    },
+  );
+}
+
+export async function getTenantMembers(
+  tenantId: string,
+  signal?: AbortSignal,
+): Promise<PlatformTenantMember[]> {
+  return api.get<PlatformTenantMember[]>(`/platform/tenants/${tenantId}/members`, { signal });
 }
 
 export async function endSupportSession(

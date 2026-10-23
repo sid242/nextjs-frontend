@@ -256,6 +256,62 @@ export async function verifyTenantCustomDomain(
   });
 }
 
+export interface PresignedBrandingUploadResponse {
+  uploadUrl: string;
+  fields: Record<string, string>;
+  key: string;
+  publicUrl: string;
+}
+
+export async function requestBrandingUploadUrl(
+  tenantId: string,
+  input: {
+    type: "logo" | "logo-dark" | "favicon";
+    filename: string;
+    contentType: string;
+  },
+): Promise<PresignedBrandingUploadResponse> {
+  return await api.post<PresignedBrandingUploadResponse>(
+    `/tenants/${tenantId}/branding/logo-presigned`,
+    input,
+  );
+}
+
+export async function uploadBrandingAsset(
+  uploadUrl: string,
+  fields: Record<string, string>,
+  file: File,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const form = new FormData();
+    for (const [key, value] of Object.entries(fields)) {
+      form.append(key, value);
+    }
+    form.append("file", file); // AWS S3 requires file to be the last field
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", uploadUrl);
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve();
+      } else {
+        let errorMsg = `Upload failed (HTTP ${xhr.status})`;
+        try {
+          const match = xhr.responseText.match(/<Message>(.*?)<\/Message>/);
+          if (match?.[1]) {
+            errorMsg = `Storage upload rejected: ${match[1]}`;
+          }
+        } catch {
+          // fallback to status code
+        }
+        reject(new Error(errorMsg));
+      }
+    };
+    xhr.onerror = () => reject(new Error("Network error during asset upload to storage"));
+    xhr.send(form);
+  });
+}
+
 export async function getTenantEmailConfig(
   tenantId: string,
   signal?: AbortSignal,

@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { Code2, Search } from "lucide-react";
 
+import { ColumnConfigDropdown } from "@/components/molecules/column-config-dropdown";
+import { TablePagination } from "@/components/molecules/table-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -31,29 +33,98 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getErrorMessage } from "@/lib/api/errors";
+import {
+  useDebouncedCallback,
+  useSearchQueryParams,
+  useTableColumns,
+  type TableColumnDef,
+} from "@/lib/hooks";
 
 import { usePlatformAuditLogs } from "../queries";
 import type { PlatformAuditLog } from "../schemas";
 
+type AuditLogColumnId = "timestamp" | "actor" | "action" | "target" | "origin" | "payload";
+
+const AUDIT_LOG_COLUMNS: TableColumnDef<AuditLogColumnId>[] = [
+  { id: "timestamp", label: "Timestamp", canHide: false, defaultVisible: true },
+  { id: "actor", label: "Staff Actor", canHide: true, defaultVisible: true },
+  { id: "action", label: "Action", canHide: false, defaultVisible: true },
+  { id: "target", label: "Target Scope", canHide: true, defaultVisible: true },
+  { id: "origin", label: "Client Origin", canHide: true, defaultVisible: true },
+  { id: "payload", label: "Payload", canHide: false, defaultVisible: true },
+];
+
+const AUDIT_LOG_COLUMN_LABELS: Record<AuditLogColumnId, string> = {
+  timestamp: "Timestamp",
+  actor: "Staff Actor",
+  action: "Action",
+  target: "Target Scope",
+  origin: "Client Origin",
+  payload: "Payload",
+};
+
 export function AuditLogsTable() {
-  const [search, setSearch] = useState("");
-  const [actionFilter, setActionFilter] = useState<string>("ALL");
+  const { get, getNumber, setParam, setParams } = useSearchQueryParams();
+  const [searchInput, setSearchInput] = useState<string>(() => get("q") ?? "");
+
+  const syncSearchParam = useDebouncedCallback((val: string) => {
+    setParams({ q: val.trim() || null, page: null }, { mode: "replace", scroll: false });
+  }, 250);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e?.target?.value ?? "";
+    setSearchInput(val);
+    syncSearchParam.run(val);
+  };
+
+  const actionFilter = get("action") ?? "ALL";
+  const handleActionChange = (val: string) => {
+    setParams(
+      { action: val === "ALL" ? null : val, page: null },
+      { mode: "replace", scroll: false },
+    );
+  };
+
   const [inspectLog, setInspectLog] = useState<PlatformAuditLog | null>(null);
+  const rawPage = getNumber("page", 1) ?? 1;
+  const page = Math.max(1, rawPage);
+  const rawLimit = getNumber("limit", 10) ?? 10;
+  const pageSize = [10, 20, 50].includes(rawLimit) ? rawLimit : 10;
+
+  const handlePageSizeChange = (newSize: number) => {
+    setParams(
+      { limit: newSize === 10 ? null : newSize, page: null },
+      { mode: "replace", scroll: false },
+    );
+  };
 
   const { data: auditData, isLoading, error } = usePlatformAuditLogs({ limit: 100 });
 
   const filteredLogs = useMemo(() => {
+    const query = searchInput.toLowerCase();
     return (auditData?.items ?? []).filter((log) => {
       const matchesSearch =
-        (log?.action ?? "").toLowerCase().includes(search.toLowerCase()) ||
-        (log?.staffEmail ?? "").toLowerCase().includes(search.toLowerCase()) ||
-        (log?.targetType ?? "").toLowerCase().includes(search.toLowerCase()) ||
-        (log?.tenantId ?? "").toLowerCase().includes(search.toLowerCase());
+        (log?.action ?? "").toLowerCase().includes(query) ||
+        (log?.staffEmail ?? "").toLowerCase().includes(query) ||
+        (log?.targetType ?? "").toLowerCase().includes(query) ||
+        (log?.tenantId ?? "").toLowerCase().includes(query);
 
       const matchesAction = actionFilter === "ALL" || log?.action === actionFilter;
       return matchesSearch && matchesAction;
     });
-  }, [auditData?.items, search, actionFilter]);
+  }, [auditData?.items, searchInput, actionFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredLogs.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const paginatedLogs = useMemo(() => {
+    const start = (safePage - 1) * pageSize;
+    return filteredLogs.slice(start, start + pageSize);
+  }, [filteredLogs, safePage, pageSize]);
+
+  const tableColumns = useTableColumns<AuditLogColumnId>({
+    columns: AUDIT_LOG_COLUMNS,
+    tableId: "platform_audit_logs_table",
+  });
 
   const uniqueActions = useMemo(() => {
     const set = new Set<string>();
@@ -101,6 +172,76 @@ export function AuditLogsTable() {
     );
   };
 
+  function renderCell(colId: AuditLogColumnId, log: PlatformAuditLog) {
+    switch (colId) {
+      case "timestamp":
+        return (
+          <TableCell
+            key="timestamp"
+            className="text-muted-foreground font-mono text-[11px] whitespace-nowrap"
+          >
+            {new Date(log.createdAt).toLocaleString()}
+          </TableCell>
+        );
+      case "actor":
+        return (
+          <TableCell key="actor">
+            <div className="flex flex-col">
+              <span className="text-foreground font-semibold">
+                {log.staffDisplayName ?? "System"}
+              </span>
+              <span className="text-muted-foreground font-mono text-[10px]">
+                {log.staffEmail ?? (log.actorStaffId ? log.actorStaffId.slice(0, 8) : "daemon")}
+              </span>
+            </div>
+          </TableCell>
+        );
+      case "action":
+        return <TableCell key="action">{getActionBadge(log.action)}</TableCell>;
+      case "target":
+        return (
+          <TableCell key="target">
+            <div className="flex flex-col gap-0.5">
+              {log.tenantId && (
+                <div className="font-mono text-[10px] text-emerald-500">
+                  tenant: {log.tenantId.slice(0, 8)}...
+                </div>
+              )}
+              {log.targetType && (
+                <div className="text-muted-foreground font-mono text-[10px]">
+                  {log.targetType}:{log.targetId ? log.targetId.slice(0, 8) : ""}
+                </div>
+              )}
+            </div>
+          </TableCell>
+        );
+      case "origin":
+        return (
+          <TableCell key="origin" className="text-muted-foreground font-mono text-[10px]">
+            {log.ipAddress ?? "—"}
+          </TableCell>
+        );
+      case "payload":
+        return (
+          <TableCell key="payload" className="text-right">
+            {log.metadata ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setInspectLog(log)}
+                className="text-muted-foreground hover:text-foreground h-7 gap-1 font-mono text-xs"
+              >
+                <Code2 className="h-3.5 w-3.5" />
+                Inspect
+              </Button>
+            ) : (
+              <span className="text-muted-foreground text-[11px]">—</span>
+            )}
+          </TableCell>
+        );
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -122,14 +263,14 @@ export function AuditLogsTable() {
               <Search className="text-muted-foreground absolute top-2.5 left-2.5 h-4 w-4" />
               <Input
                 placeholder="Search action, staff email, target ID..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                value={searchInput}
+                onChange={handleSearchChange}
                 className="h-9 pl-9 text-xs"
               />
             </div>
 
             <div className="flex w-full items-center gap-2 md:w-auto">
-              <Select value={actionFilter} onValueChange={setActionFilter}>
+              <Select value={actionFilter} onValueChange={handleActionChange}>
                 <SelectTrigger className="h-9 w-full text-xs md:w-56">
                   <SelectValue placeholder="Action Type" />
                 </SelectTrigger>
@@ -142,6 +283,8 @@ export function AuditLogsTable() {
                   ))}
                 </SelectContent>
               </Select>
+
+              <ColumnConfigDropdown tableColumns={tableColumns} />
             </div>
           </div>
         </CardHeader>
@@ -162,76 +305,41 @@ export function AuditLogsTable() {
               No platform audit events matching your filter.
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="font-mono text-xs uppercase">
-                  <TableHead>Timestamp</TableHead>
-                  <TableHead>Staff Actor</TableHead>
-                  <TableHead>Action</TableHead>
-                  <TableHead>Target Scope</TableHead>
-                  <TableHead>Client Origin</TableHead>
-                  <TableHead className="text-right">Payload</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredLogs.map((log) => (
-                  <TableRow key={log.id} className="text-xs">
-                    <TableCell className="text-muted-foreground font-mono text-[11px] whitespace-nowrap">
-                      {new Date(log.createdAt).toLocaleString()}
-                    </TableCell>
-
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="text-foreground font-semibold">
-                          {log.staffDisplayName ?? "System"}
-                        </span>
-                        <span className="text-muted-foreground font-mono text-[10px]">
-                          {log.staffEmail ??
-                            (log.actorStaffId ? log.actorStaffId.slice(0, 8) : "daemon")}
-                        </span>
-                      </div>
-                    </TableCell>
-
-                    <TableCell>{getActionBadge(log.action)}</TableCell>
-
-                    <TableCell>
-                      <div className="flex flex-col gap-0.5">
-                        {log.tenantId && (
-                          <div className="font-mono text-[10px] text-emerald-500">
-                            tenant: {log.tenantId.slice(0, 8)}...
-                          </div>
-                        )}
-                        {log.targetType && (
-                          <div className="text-muted-foreground font-mono text-[10px]">
-                            {log.targetType}:{log.targetId ? log.targetId.slice(0, 8) : ""}
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-
-                    <TableCell className="text-muted-foreground font-mono text-[10px]">
-                      {log.ipAddress ?? "—"}
-                    </TableCell>
-
-                    <TableCell className="text-right">
-                      {log.metadata ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setInspectLog(log)}
-                          className="text-muted-foreground hover:text-foreground h-7 gap-1 font-mono text-xs"
-                        >
-                          <Code2 className="h-3.5 w-3.5" />
-                          Inspect
-                        </Button>
-                      ) : (
-                        <span className="text-muted-foreground text-[11px]">—</span>
-                      )}
-                    </TableCell>
+            <div>
+              <Table>
+                <TableHeader>
+                  <TableRow className="font-mono text-xs uppercase">
+                    {tableColumns.orderedVisibleColumns.map((colId) => (
+                      <TableHead
+                        key={colId}
+                        className={colId === "payload" ? "text-right" : undefined}
+                      >
+                        {AUDIT_LOG_COLUMN_LABELS[colId]}
+                      </TableHead>
+                    ))}
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {paginatedLogs.map((log) => (
+                    <TableRow key={log.id} className="text-xs">
+                      {tableColumns.orderedVisibleColumns.map((colId) => renderCell(colId, log))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <TablePagination
+                currentPage={safePage}
+                totalPages={totalPages}
+                totalItems={filteredLogs.length}
+                pageSize={pageSize}
+                pageSizeOptions={[10, 20, 50]}
+                onPageSizeChange={handlePageSizeChange}
+                onPageChange={(p) =>
+                  setParam("page", p <= 1 ? null : p, { mode: "replace", scroll: false })
+                }
+                itemLabel="audit logs"
+              />
+            </div>
           )}
         </CardContent>
       </Card>

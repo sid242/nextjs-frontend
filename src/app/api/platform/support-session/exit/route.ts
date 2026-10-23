@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { PLATFORM_STAFF_COOKIE, SUPPORT_SESSION_COOKIE } from "@/lib/auth/constants";
+import { ACCESS_COOKIE, PLATFORM_STAFF_COOKIE, SUPPORT_SESSION_COOKIE } from "@/lib/auth/constants";
 import { backendFetch } from "@/lib/server/backend";
 import { assertSameOrigin, forwardedHeaders } from "@/lib/server/request";
 
@@ -25,10 +25,26 @@ export async function POST(req: NextRequest) {
   }
 
   const secure = process.env.NODE_ENV === "production" && process.env.COOKIE_SECURE !== "false";
-  const res = NextResponse.json({ ok: true, redirectUrl: "/platform/support-sessions" });
+  const res = NextResponse.json({ ok: true, redirectUrl: "/platform/tenants" });
 
   res.cookies.set(SUPPORT_SESSION_COOKIE, "", {
     httpOnly: true,
+    secure,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 0,
+  });
+
+  res.cookies.set(ACCESS_COOKIE, "", {
+    httpOnly: true,
+    secure,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 0,
+  });
+
+  res.cookies.set("active_tenant_id", "", {
+    httpOnly: false,
     secure,
     sameSite: "lax",
     path: "/",

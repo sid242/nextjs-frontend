@@ -15,3 +15,11 @@ export const adminUserSchema = z.object({
   createdAt: z.string(),
 });
 export type AdminUser = z.infer<typeof adminUserSchema>;
+
+export const paginatedAdminUsersSchema = z.object({
+  items: z.array(adminUserSchema),
+  total: z.number(),
+  page: z.number(),
+  limit: z.number(),
+});
+export type PaginatedAdminUsers = z.infer<typeof paginatedAdminUsersSchema>;

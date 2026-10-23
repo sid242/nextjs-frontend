@@ -8,6 +8,7 @@ export * from "./page-header";
 export * from "./responsive-overflow";
 export * from "./section-wrapper";
 export * from "./submit-button";
+export * from "./table-pagination";
 export * from "./theme-toggle";
 
 // Forms subsystem (FormWrapper, pure fields, and controlled RHF fields)

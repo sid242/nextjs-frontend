@@ -20,6 +20,7 @@ export const platformKeys = {
   tenants: () => [...platformKeys.all, "tenants"] as const,
   tenantsList: (params?: unknown) => [...platformKeys.tenants(), "list", params] as const,
   tenantDetail: (id: string) => [...platformKeys.tenants(), "detail", id] as const,
+  tenantMembers: (tenantId: string) => [...platformKeys.tenants(), tenantId, "members"] as const,
 
   me: () => [...platformKeys.all, "me"] as const,
 };

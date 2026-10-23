@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 
 import { ACCESS_COOKIE, PLATFORM_STAFF_COOKIE } from "@/lib/auth/constants";
 import { backendFetch } from "@/lib/server/backend";
+import { handleImpersonateRequest, handleStopImpersonateRequest } from "@/lib/server/impersonation";
 import { assertSameOrigin, forwardedHeaders } from "@/lib/server/request";
 import { errorResponse } from "@/lib/server/response";
 
@@ -20,15 +21,22 @@ const MAX_BODY_BYTES = 1_000_000; // matches the backend's 1mb JSON limit; uploa
 
 /**
  * Same-origin gateway from the browser to the backend API. It turns the httpOnly access cookie into a
- * Bearer token, forwards the client IP, and blocks the backend's /auth/* (handled by our own BFF routes).
+ * Bearer token, forwards the client IP, and routes authentication actions to dedicated BFF session handlers.
  */
 async function handler(req: NextRequest, { params }: Ctx) {
   const { path } = await params;
   const upstreamPath = `/${path.map(encodeURIComponent).join("/")}`;
 
+  if (upstreamPath === "/auth/impersonate") {
+    return handleImpersonateRequest(req);
+  }
+  if (upstreamPath === "/auth/stop-impersonate") {
+    return handleStopImpersonateRequest(req);
+  }
   if (upstreamPath === "/auth" || upstreamPath.startsWith("/auth/")) {
     return errorResponse(404, "NOT_FOUND", "Not found");
   }
+
   if (req.method !== "GET" && req.method !== "HEAD") {
     const blocked = assertSameOrigin(req);
     if (blocked) return blocked;

@@ -16,6 +16,8 @@ import {
   ShieldAlert,
 } from "lucide-react";
 
+import { ColumnConfigDropdown } from "@/components/molecules/column-config-dropdown";
+import { TablePagination } from "@/components/molecules/table-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,6 +56,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  useDebouncedCallback,
+  useSearchQueryParams,
+  useTableColumns,
+  type TableColumnDef,
+} from "@/lib/hooks";
 
 import {
   useActivateTenant,
@@ -64,11 +72,69 @@ import {
 import type { PlatformTenant } from "../schemas";
 import { ProvisionTenantDialog } from "./provision-tenant-dialog";
 
+type TenantColumnId =
+  "workspace" | "status" | "tier" | "owner" | "dbPool" | "createdAt" | "actions";
+
+const TENANT_COLUMNS: TableColumnDef<TenantColumnId>[] = [
+  { id: "workspace", label: "Workspace", canHide: false, defaultVisible: true },
+  { id: "status", label: "Status", canHide: true, defaultVisible: true },
+  { id: "tier", label: "Tier & Capacity", canHide: true, defaultVisible: true },
+  { id: "owner", label: "Primary Owner", canHide: true, defaultVisible: true },
+  { id: "dbPool", label: "Database Pool", canHide: true, defaultVisible: true },
+  { id: "createdAt", label: "Created", canHide: true, defaultVisible: true },
+  { id: "actions", label: "Actions", canHide: false, defaultVisible: true },
+];
+
+const TENANT_COLUMN_LABELS: Record<TenantColumnId, string> = {
+  workspace: "Workspace",
+  status: "Status",
+  tier: "Tier & Capacity",
+  owner: "Primary Owner",
+  dbPool: "Database Pool",
+  createdAt: "Created",
+  actions: "Actions",
+};
+
 export function TenantsTable() {
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("ALL");
-  const [planFilter, setPlanFilter] = useState("ALL");
+  const { get, getNumber, setParam, setParams } = useSearchQueryParams();
+  const [searchInput, setSearchInput] = useState<string>(() => get("q") ?? "");
+
+  const syncSearchParam = useDebouncedCallback((val: string) => {
+    setParams({ q: val.trim() || null, page: null }, { mode: "replace", scroll: false });
+  }, 250);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e?.target?.value ?? "";
+    setSearchInput(val);
+    syncSearchParam.run(val);
+  };
+
+  const statusFilter = get("status") ?? "ALL";
+  const planFilter = get("plan") ?? "ALL";
+
+  const handleStatusChange = (val: string) => {
+    setParams(
+      { status: val === "ALL" ? null : val, page: null },
+      { mode: "replace", scroll: false },
+    );
+  };
+
+  const handlePlanChange = (val: string) => {
+    setParams({ plan: val === "ALL" ? null : val, page: null }, { mode: "replace", scroll: false });
+  };
+
   const [provisionOpen, setProvisionOpen] = useState(false);
+  const rawPage = getNumber("page", 1) ?? 1;
+  const page = Math.max(1, rawPage);
+  const rawLimit = getNumber("limit", 10) ?? 10;
+  const pageSize = [10, 20, 50].includes(rawLimit) ? rawLimit : 10;
+
+  const handlePageSizeChange = (newSize: number) => {
+    setParams(
+      { limit: newSize === 10 ? null : newSize, page: null },
+      { mode: "replace", scroll: false },
+    );
+  };
 
   // Modals for tenant actions
   const [suspendTarget, setSuspendTarget] = useState<PlatformTenant | null>(null);
@@ -86,19 +152,32 @@ export function TenantsTable() {
   const tenants = useMemo(() => tenantsData?.items ?? [], [tenantsData?.items]);
 
   const filteredTenants = useMemo(() => {
+    const query = searchInput.toLowerCase();
     return tenants.filter((tenant) => {
       const matchesSearch =
-        search === "" ||
-        tenant?.name?.toLowerCase().includes(search.toLowerCase()) ||
-        tenant?.slug?.toLowerCase().includes(search.toLowerCase()) ||
-        tenant?.ownerEmail?.toLowerCase().includes(search.toLowerCase());
+        query === "" ||
+        tenant?.name?.toLowerCase().includes(query) ||
+        tenant?.slug?.toLowerCase().includes(query) ||
+        tenant?.ownerEmail?.toLowerCase().includes(query);
 
       const matchesStatus = statusFilter === "ALL" || tenant?.status === statusFilter;
       const matchesPlan = planFilter === "ALL" || tenant?.plan === planFilter;
 
       return matchesSearch && matchesStatus && matchesPlan;
     });
-  }, [tenants, search, statusFilter, planFilter]);
+  }, [tenants, searchInput, statusFilter, planFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredTenants.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const paginatedTenants = useMemo(() => {
+    const start = (safePage - 1) * pageSize;
+    return filteredTenants.slice(start, start + pageSize);
+  }, [filteredTenants, safePage, pageSize]);
+
+  const tableColumns = useTableColumns<TenantColumnId>({
+    columns: TENANT_COLUMNS,
+    tableId: "platform_tenants_table",
+  });
 
   const activeCount = tenants.filter((t) => t?.status === "ACTIVE").length;
   const suspendedCount = tenants.filter((t) => t?.status === "SUSPENDED").length;
@@ -128,17 +207,169 @@ export function TenantsTable() {
   const handleStartSupport = async () => {
     if (!supportTarget || !supportReason.trim()) return;
     try {
-      await startSupportSession({
+      const res = await startSupportSession({
         tenantId: supportTarget.id,
         reason: supportReason.trim(),
         durationMinutes: 30,
       });
-      setSupportTarget(null);
-      setSupportReason("");
+      if (res?.sessionId) {
+        await fetch("/api/platform/support-session/enter", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sessionId: res.sessionId,
+            tenantId: res.tenantId,
+            accessToken: res.accessToken,
+          }),
+        });
+        setSupportTarget(null);
+        setSupportReason("");
+        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+        window.location.assign("/dashboard");
+      }
     } catch {
       /* handled */
     }
   };
+
+  function renderCell(colId: TenantColumnId, t: PlatformTenant) {
+    switch (colId) {
+      case "workspace":
+        return (
+          <TableCell key="workspace" className="pl-6">
+            <div className="flex flex-col">
+              <Link
+                href={`/platform/tenants/${t.id}`}
+                className="hover:text-primary font-medium transition-colors"
+              >
+                {t.name}
+              </Link>
+              <span className="text-muted-foreground font-mono text-xs">slug: {t.slug}</span>
+            </div>
+          </TableCell>
+        );
+      case "status":
+        return (
+          <TableCell key="status">
+            {t.status === "ACTIVE" && (
+              <Badge
+                variant="outline"
+                className="border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+              >
+                Active
+              </Badge>
+            )}
+            {t.status === "SUSPENDED" && (
+              <Badge
+                variant="outline"
+                className="border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400"
+              >
+                Suspended
+              </Badge>
+            )}
+            {t.status === "TRIALING" && (
+              <Badge
+                variant="outline"
+                className="border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+              >
+                Trialing
+              </Badge>
+            )}
+            {t.status === "DEACTIVATED" && (
+              <Badge variant="outline" className="border-border text-muted-foreground">
+                Deactivated
+              </Badge>
+            )}
+          </TableCell>
+        );
+      case "tier":
+        return (
+          <TableCell key="tier">
+            <div className="flex items-center gap-1.5">
+              <Badge variant="secondary" className="font-mono text-[10px]">
+                {t.plan}
+              </Badge>
+              <span className="text-muted-foreground text-xs">
+                {t.memberCount} {t.memberCount === 1 ? "seat" : "seats"}
+              </span>
+            </div>
+          </TableCell>
+        );
+      case "owner":
+        return (
+          <TableCell key="owner">
+            <div className="flex flex-col">
+              <span className="text-xs">{t.ownerEmail ?? "—"}</span>
+              {t.ownerName && (
+                <span className="text-muted-foreground text-[10px]">{t.ownerName}</span>
+              )}
+            </div>
+          </TableCell>
+        );
+      case "dbPool":
+        return (
+          <TableCell key="dbPool">
+            <Badge
+              variant="outline"
+              className={
+                t.databaseMode === "dedicated"
+                  ? "border-indigo-500/30 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
+                  : "border-border text-muted-foreground"
+              }
+            >
+              {t.databaseMode === "dedicated" ? "Dedicated DB" : "Shared Pool"}
+            </Badge>
+          </TableCell>
+        );
+      case "createdAt":
+        return (
+          <TableCell key="createdAt" className="text-muted-foreground text-xs">
+            {new Date(t.createdAt).toLocaleDateString()}
+          </TableCell>
+        );
+      case "actions":
+        return (
+          <TableCell key="actions" className="pr-6 text-right">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="size-8">
+                  <MoreVertical className="size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel className="text-xs">Organization Actions</DropdownMenuLabel>
+                <DropdownMenuItem asChild>
+                  <Link href={`/platform/tenants/${t.id}`} className="gap-2">
+                    <ExternalLink className="size-3.5" /> View Inspector
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSupportTarget(t)} className="gap-2">
+                  <LifeBuoy className="size-3.5 text-blue-500" /> Start Support Session
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+
+                {t.status === "ACTIVE" ? (
+                  <DropdownMenuItem
+                    onClick={() => setSuspendTarget(t)}
+                    className="gap-2 text-red-600 dark:text-red-400"
+                  >
+                    <PowerOff className="size-3.5" /> Suspend Workspace
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem
+                    onClick={() => setActivateTarget(t)}
+                    className="gap-2 text-emerald-600 dark:text-emerald-400"
+                  >
+                    <Power className="size-3.5" /> Reactivate Workspace
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </TableCell>
+        );
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -219,13 +450,13 @@ export function TenantsTable() {
               <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
               <Input
                 placeholder="Search organizations by name, slug, or owner email…"
-                value={search}
-                onChange={(e) => setSearch(e?.target?.value ?? "")}
+                value={searchInput}
+                onChange={handleSearchChange}
                 className="pl-9"
               />
             </div>
 
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={handleStatusChange}>
               <SelectTrigger className="w-full sm:w-[150px]">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
@@ -238,7 +469,7 @@ export function TenantsTable() {
               </SelectContent>
             </Select>
 
-            <Select value={planFilter} onValueChange={setPlanFilter}>
+            <Select value={planFilter} onValueChange={handlePlanChange}>
               <SelectTrigger className="w-full sm:w-[140px]">
                 <SelectValue placeholder="Plan" />
               </SelectTrigger>
@@ -250,6 +481,8 @@ export function TenantsTable() {
                 <SelectItem value="ENTERPRISE">Enterprise</SelectItem>
               </SelectContent>
             </Select>
+
+            <ColumnConfigDropdown tableColumns={tableColumns} />
           </div>
         </CardHeader>
 
@@ -257,182 +490,73 @@ export function TenantsTable() {
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <TableHead className="pl-6">Workspace</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Tier & Capacity</TableHead>
-                <TableHead>Primary Owner</TableHead>
-                <TableHead>Database Pool</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead className="w-[50px] pr-6 text-right">Actions</TableHead>
+                {tableColumns.orderedVisibleColumns.map((colId) => (
+                  <TableHead
+                    key={colId}
+                    className={
+                      colId === "workspace"
+                        ? "pl-6"
+                        : colId === "actions"
+                          ? "w-[50px] pr-6 text-right"
+                          : undefined
+                    }
+                  >
+                    {TENANT_COLUMN_LABELS[colId]}
+                  </TableHead>
+                ))}
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 Array.from({ length: 4 }).map((_, i) => (
                   <TableRow key={i}>
-                    <TableCell className="pl-6">
-                      <Skeleton className="h-4 w-32" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-4 w-16" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-4 w-20" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-4 w-28" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-4 w-16" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-4 w-20" />
-                    </TableCell>
-                    <TableCell className="pr-6 text-right">
-                      <Skeleton className="ml-auto size-8" />
-                    </TableCell>
+                    {tableColumns.orderedVisibleColumns.map((colId) => (
+                      <TableCell
+                        key={colId}
+                        className={
+                          colId === "workspace"
+                            ? "pl-6"
+                            : colId === "actions"
+                              ? "pr-6 text-right"
+                              : undefined
+                        }
+                      >
+                        <Skeleton className={colId === "actions" ? "ml-auto size-8" : "h-4 w-24"} />
+                      </TableCell>
+                    ))}
                   </TableRow>
                 ))
               ) : filteredTenants?.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={7}
+                    colSpan={tableColumns.orderedVisibleColumns.length}
                     className="text-muted-foreground py-10 text-center text-sm"
                   >
                     No customer organizations match your search filters.
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredTenants.map((t) => (
+                paginatedTenants.map((t) => (
                   <TableRow key={t.id}>
-                    <TableCell className="pl-6">
-                      <div className="flex flex-col">
-                        <Link
-                          href={`/platform/tenants/${t.id}`}
-                          className="hover:text-primary font-medium transition-colors"
-                        >
-                          {t.name}
-                        </Link>
-                        <span className="text-muted-foreground font-mono text-xs">
-                          slug: {t.slug}
-                        </span>
-                      </div>
-                    </TableCell>
-
-                    <TableCell>
-                      {t.status === "ACTIVE" && (
-                        <Badge
-                          variant="outline"
-                          className="border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                        >
-                          Active
-                        </Badge>
-                      )}
-                      {t.status === "SUSPENDED" && (
-                        <Badge
-                          variant="outline"
-                          className="border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400"
-                        >
-                          Suspended
-                        </Badge>
-                      )}
-                      {t.status === "TRIALING" && (
-                        <Badge
-                          variant="outline"
-                          className="border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                        >
-                          Trialing
-                        </Badge>
-                      )}
-                      {t.status === "DEACTIVATED" && (
-                        <Badge variant="outline" className="border-border text-muted-foreground">
-                          Deactivated
-                        </Badge>
-                      )}
-                    </TableCell>
-
-                    <TableCell>
-                      <div className="flex items-center gap-1.5">
-                        <Badge variant="secondary" className="font-mono text-[10px]">
-                          {t.plan}
-                        </Badge>
-                        <span className="text-muted-foreground text-xs">
-                          {t.memberCount} {t.memberCount === 1 ? "seat" : "seats"}
-                        </span>
-                      </div>
-                    </TableCell>
-
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="text-xs">{t.ownerEmail ?? "—"}</span>
-                        {t.ownerName && (
-                          <span className="text-muted-foreground text-[10px]">{t.ownerName}</span>
-                        )}
-                      </div>
-                    </TableCell>
-
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={
-                          t.databaseMode === "dedicated"
-                            ? "border-indigo-500/30 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
-                            : "border-border text-muted-foreground"
-                        }
-                      >
-                        {t.databaseMode === "dedicated" ? "Dedicated DB" : "Shared Pool"}
-                      </Badge>
-                    </TableCell>
-
-                    <TableCell className="text-muted-foreground text-xs">
-                      {new Date(t.createdAt).toLocaleDateString()}
-                    </TableCell>
-
-                    <TableCell className="pr-6 text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="size-8">
-                            <MoreVertical className="size-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuLabel className="text-xs">
-                            Organization Actions
-                          </DropdownMenuLabel>
-                          <DropdownMenuItem asChild>
-                            <Link href={`/platform/tenants/${t.id}`} className="gap-2">
-                              <ExternalLink className="size-3.5" /> View Inspector
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setSupportTarget(t)} className="gap-2">
-                            <LifeBuoy className="size-3.5 text-blue-500" /> Start Support Session
-                          </DropdownMenuItem>
-
-                          <DropdownMenuSeparator />
-
-                          {t.status === "ACTIVE" ? (
-                            <DropdownMenuItem
-                              onClick={() => setSuspendTarget(t)}
-                              className="gap-2 text-red-600 dark:text-red-400"
-                            >
-                              <PowerOff className="size-3.5" /> Suspend Workspace
-                            </DropdownMenuItem>
-                          ) : (
-                            <DropdownMenuItem
-                              onClick={() => setActivateTarget(t)}
-                              className="gap-2 text-emerald-600 dark:text-emerald-400"
-                            >
-                              <Power className="size-3.5" /> Reactivate Workspace
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
+                    {tableColumns.orderedVisibleColumns.map((colId) => renderCell(colId, t))}
                   </TableRow>
                 ))
               )}
             </TableBody>
           </Table>
+
+          <TablePagination
+            currentPage={safePage}
+            totalPages={totalPages}
+            totalItems={filteredTenants.length}
+            pageSize={pageSize}
+            pageSizeOptions={[10, 20, 50]}
+            onPageSizeChange={handlePageSizeChange}
+            onPageChange={(p) =>
+              setParam("page", p <= 1 ? null : p, { mode: "replace", scroll: false })
+            }
+            itemLabel="organizations"
+          />
         </CardContent>
       </Card>
 

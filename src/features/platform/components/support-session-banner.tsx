@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { LogOut, ShieldAlert } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -12,7 +11,6 @@ interface SupportSessionBannerProps {
 }
 
 export function SupportSessionBanner({ sessionId, tenantSlug }: SupportSessionBannerProps) {
-  const router = useRouter();
   const [isPending, setIsPending] = useState(false);
 
   const handleEndSession = async () => {
@@ -21,8 +19,8 @@ export function SupportSessionBanner({ sessionId, tenantSlug }: SupportSessionBa
       await fetch("/api/platform/support-session/exit", {
         method: "POST",
       });
-      router?.push?.("/platform/support-sessions");
-      router?.refresh?.();
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- Full page navigation needed to clear application state
+      window.location.assign("/platform/tenants");
     } catch {
       setIsPending(false);
     }

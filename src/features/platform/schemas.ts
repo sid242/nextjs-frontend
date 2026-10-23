@@ -118,6 +118,26 @@ export const startSupportSessionSchema = z.object({
 
 export type StartSupportSessionInput = z.infer<typeof startSupportSessionSchema>;
 
+export interface StartSupportSessionResponse {
+  sessionId: string;
+  tenantId: string;
+  targetUserId?: string | null;
+  accessToken?: string;
+  reason: string;
+  expiresAt: string;
+  status: string;
+}
+
+export interface PlatformTenantMember {
+  id: string;
+  userId: string;
+  name: string | null;
+  email: string;
+  status: "ACTIVE" | "INVITED" | "SUSPENDED";
+  joinedAt: string;
+  roleName: string;
+}
+
 // ==========================================
 // 4. Platform Audit Trail
 // ==========================================
@@ -207,8 +227,11 @@ export const platformTenantDetailSchema = platformTenantSchema.extend({
     .object({
       companyName: z.string().nullable().optional(),
       logoUrl: z.string().nullable().optional(),
+      logoDarkUrl: z.string().nullable().optional(),
+      faviconUrl: z.string().nullable().optional(),
       primaryColor: z.string().nullable().optional(),
       accentColor: z.string().nullable().optional(),
+      borderRadius: z.string().nullable().optional(),
       customDomain: z.string().nullable().optional(),
       customDomainStatus: z.string().nullable().optional(),
       supportEmail: z.string().nullable().optional(),

@@ -23,6 +23,8 @@ export {
   usePlatformTenants,
   platformTenantDetailQueryOptions,
   usePlatformTenant,
+  platformTenantMembersQueryOptions,
+  usePlatformTenantMembers,
   useProvisionTenant,
   useUpdatePlatformTenant,
   useSuspendTenant,

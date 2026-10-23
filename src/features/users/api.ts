@@ -1,16 +1,33 @@
-import { api } from "@/lib/api/http";
+import { api, authApi } from "@/lib/api/http";
 import type { User } from "@/lib/api/types";
 
-import type { AdminUser, ProfileValues } from "./schemas";
+import type { AdminUser, PaginatedAdminUsers, ProfileValues } from "./schemas";
 
 export const updateMe = (values: ProfileValues) => api.patch<User>("/users/me", values);
 
-export async function listUsers(page = 1, limit = 20, signal?: AbortSignal): Promise<AdminUser[]> {
+export async function listUsers(
+  page = 1,
+  limit = 20,
+  signal?: AbortSignal,
+): Promise<PaginatedAdminUsers> {
   try {
-    const data = await api.get<AdminUser[]>(`/users?page=${page}&limit=${limit}`, { signal });
-    return data ?? [];
+    const data = await api.get<PaginatedAdminUsers | AdminUser[]>(
+      `/users?page=${page}&limit=${limit}`,
+      { signal },
+    );
+    if (Array.isArray(data)) {
+      return { items: data, total: data.length, page, limit };
+    }
+    if (
+      data &&
+      typeof data === "object" &&
+      Array.isArray((data as { items?: AdminUser[] })?.items)
+    ) {
+      return data as PaginatedAdminUsers;
+    }
+    return { items: [], total: 0, page, limit };
   } catch {
-    return [
+    const fallbackItems: AdminUser[] = [
       {
         id: "usr-admin",
         name: "Platform Administrator",
@@ -30,6 +47,7 @@ export async function listUsers(page = 1, limit = 20, signal?: AbortSignal): Pro
         createdAt: new Date().toISOString(),
       },
     ];
+    return { items: fallbackItems, total: fallbackItems.length, page, limit };
   }
 }
 
@@ -44,6 +62,9 @@ export async function updateUserStatus(
   await api.patch(`/users/${userId}/status`, { status });
 }
 
-export async function impersonateUser(userId: string): Promise<void> {
-  await api.post("/auth/impersonate", { userId });
+export async function impersonateUser(
+  userId: string,
+  reason = "Administrative support and investigation",
+): Promise<void> {
+  await authApi.post("/impersonate", { targetUserId: userId, reason });
 }

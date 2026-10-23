@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 
+import { ColumnConfigDropdown } from "@/components/molecules/column-config-dropdown";
 import {
   ControlledInput,
   ControlledSelect,
@@ -22,6 +23,7 @@ import {
   FormWrapper,
 } from "@/components/molecules/forms";
 import { SubmitButton } from "@/components/molecules/submit-button";
+import { TablePagination } from "@/components/molecules/table-pagination";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -44,6 +46,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getErrorMessage } from "@/lib/api/errors";
+import { useSearchQueryParams, useTableColumns, type TableColumnDef } from "@/lib/hooks";
 
 import { useEndSupportSession, useStartSupportSession, useSupportSessions } from "../queries";
 import {
@@ -86,14 +89,164 @@ function SessionCountdown({ expiresAt }: { expiresAt: string }) {
   );
 }
 
+type SupportSessionColumnId = "session" | "tenant" | "reason" | "status" | "started" | "actions";
+
+const SUPPORT_SESSION_COLUMNS: TableColumnDef<SupportSessionColumnId>[] = [
+  { id: "session", label: "Session ID / Operator", canHide: false, defaultVisible: true },
+  { id: "tenant", label: "Customer Tenant ID", canHide: true, defaultVisible: true },
+  { id: "reason", label: "Stated Justification", canHide: true, defaultVisible: true },
+  { id: "status", label: "Status & Window", canHide: true, defaultVisible: true },
+  { id: "started", label: "Started", canHide: true, defaultVisible: true },
+  { id: "actions", label: "Action", canHide: false, defaultVisible: true },
+];
+
+const SUPPORT_SESSION_COLUMN_LABELS: Record<SupportSessionColumnId, string> = {
+  session: "Session ID / Operator",
+  tenant: "Customer Tenant ID",
+  reason: "Stated Justification",
+  status: "Status & Window",
+  started: "Started",
+  actions: "Action",
+};
+
 export function SupportSessionsTable() {
   const router = useRouter();
   const [initiateDialogOpen, setInitiateDialogOpen] = useState(false);
   const [terminateSession, setTerminateSession] = useState<PlatformSupportSession | null>(null);
+  const { getNumber, setParam, setParams } = useSearchQueryParams();
+  const rawPage = getNumber("page", 1) ?? 1;
+  const page = Math.max(1, rawPage);
+  const rawLimit = getNumber("limit", 10) ?? 10;
+  const pageSize = [10, 20, 50].includes(rawLimit) ? rawLimit : 10;
+
+  const handlePageSizeChange = (newSize: number) => {
+    setParams(
+      { limit: newSize === 10 ? null : newSize, page: null },
+      { mode: "replace", scroll: false },
+    );
+  };
 
   const { data: sessionData, isLoading, error } = useSupportSessions();
 
-  const activeSessions = (sessionData?.items ?? []).filter((s) => s?.status === "ACTIVE");
+  const sessions = useMemo(() => sessionData?.items ?? [], [sessionData?.items]);
+  const activeSessions = useMemo(() => sessions.filter((s) => s?.status === "ACTIVE"), [sessions]);
+
+  const totalPages = Math.max(1, Math.ceil(sessions.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const paginatedSessions = useMemo(() => {
+    const start = (safePage - 1) * pageSize;
+    return sessions.slice(start, start + pageSize);
+  }, [sessions, safePage, pageSize]);
+
+  const tableColumns = useTableColumns<SupportSessionColumnId>({
+    columns: SUPPORT_SESSION_COLUMNS,
+    tableId: "platform_support_sessions_table",
+  });
+
+  function renderCell(colId: SupportSessionColumnId, session: PlatformSupportSession) {
+    const isActive = session.status === "ACTIVE";
+    switch (colId) {
+      case "session":
+        return (
+          <TableCell key="session">
+            <div className="flex flex-col">
+              <code className="text-foreground font-mono text-[10px] font-bold">
+                {session.id.slice(0, 8)}...
+              </code>
+              <span className="text-muted-foreground text-[11px]">
+                {session.staffDisplayName ?? session.staffEmail ?? session.staffId.slice(0, 8)}
+              </span>
+            </div>
+          </TableCell>
+        );
+      case "tenant":
+        return (
+          <TableCell key="tenant">
+            <code className="text-muted-foreground bg-muted/50 rounded px-1.5 py-0.5 font-mono text-[11px]">
+              {session.tenantId}
+            </code>
+          </TableCell>
+        );
+      case "reason":
+        return (
+          <TableCell key="reason" className="max-w-xs">
+            <p className="text-foreground line-clamp-2 text-xs">{session.reason}</p>
+          </TableCell>
+        );
+      case "status":
+        return (
+          <TableCell key="status">
+            {isActive ? (
+              <div className="space-y-1">
+                <Badge variant="success" className="gap-1 font-mono text-[10px]">
+                  <span className="h-1.5 w-1.5 animate-ping rounded-full bg-emerald-500" />
+                  ACTIVE
+                </Badge>
+                <SessionCountdown expiresAt={session.expiresAt} />
+              </div>
+            ) : session.status === "TERMINATED" ? (
+              <Badge
+                variant="outline"
+                className="border-muted text-muted-foreground font-mono text-[10px]"
+              >
+                TERMINATED
+              </Badge>
+            ) : (
+              <Badge
+                variant="outline"
+                className="border-destructive/30 text-destructive font-mono text-[10px]"
+              >
+                EXPIRED
+              </Badge>
+            )}
+          </TableCell>
+        );
+      case "started":
+        return (
+          <TableCell key="started" className="text-muted-foreground font-mono text-[11px]">
+            {new Date(session.startedAt).toLocaleString()}
+          </TableCell>
+        );
+      case "actions":
+        return (
+          <TableCell key="actions" className="text-right">
+            {isActive && (
+              <div className="flex items-center justify-end gap-1.5">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    await fetch("/api/platform/support-session/enter", {
+                      method: "POST",
+                      headers: { "content-type": "application/json" },
+                      body: JSON.stringify({
+                        sessionId: session.id,
+                        tenantId: session.tenantId,
+                      }),
+                    });
+                    router?.push?.("/dashboard");
+                    router?.refresh?.();
+                  }}
+                  className="h-7 gap-1 border-emerald-500/30 text-xs text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  Access Workspace
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setTerminateSession(session)}
+                  className="h-7 gap-1 text-xs"
+                >
+                  <StopCircle className="h-3.5 w-3.5" />
+                  Terminate
+                </Button>
+              </div>
+            )}
+          </TableCell>
+        );
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -172,11 +325,14 @@ export function SupportSessionsTable() {
 
       {/* Sessions Table */}
       <Card className="border-border/80">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold">Audit Records of Tenant Support</CardTitle>
-          <CardDescription className="text-xs">
-            Historical log of time-bound access tickets and operator justifications.
-          </CardDescription>
+        <CardHeader className="flex flex-col justify-between gap-3 pb-3 sm:flex-row sm:items-center">
+          <div>
+            <CardTitle className="text-sm font-semibold">Audit Records of Tenant Support</CardTitle>
+            <CardDescription className="text-xs">
+              Historical log of time-bound access tickets and operator justifications.
+            </CardDescription>
+          </div>
+          <ColumnConfigDropdown tableColumns={tableColumns} />
         </CardHeader>
 
         <CardContent className="p-0">
@@ -195,115 +351,43 @@ export function SupportSessionsTable() {
               No support sessions have been initiated yet.
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="font-mono text-xs uppercase">
-                  <TableHead>Session ID / Operator</TableHead>
-                  <TableHead>Customer Tenant ID</TableHead>
-                  <TableHead>Stated Justification</TableHead>
-                  <TableHead>Status &amp; Window</TableHead>
-                  <TableHead>Started</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(sessionData?.items ?? []).map((session) => {
-                  const isActive = session.status === "ACTIVE";
-                  return (
+            <div>
+              <Table>
+                <TableHeader>
+                  <TableRow className="font-mono text-xs uppercase">
+                    {tableColumns.orderedVisibleColumns.map((colId) => (
+                      <TableHead
+                        key={colId}
+                        className={colId === "actions" ? "text-right" : undefined}
+                      >
+                        {SUPPORT_SESSION_COLUMN_LABELS[colId]}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedSessions.map((session) => (
                     <TableRow key={session.id} className="text-xs">
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <code className="text-foreground font-mono text-[10px] font-bold">
-                            {session.id.slice(0, 8)}...
-                          </code>
-                          <span className="text-muted-foreground text-[11px]">
-                            {session.staffDisplayName ??
-                              session.staffEmail ??
-                              session.staffId.slice(0, 8)}
-                          </span>
-                        </div>
-                      </TableCell>
-
-                      <TableCell>
-                        <code className="text-muted-foreground bg-muted/50 rounded px-1.5 py-0.5 font-mono text-[11px]">
-                          {session.tenantId}
-                        </code>
-                      </TableCell>
-
-                      <TableCell className="max-w-xs">
-                        <p className="text-foreground line-clamp-2 text-xs">{session.reason}</p>
-                      </TableCell>
-
-                      <TableCell>
-                        {isActive ? (
-                          <div className="space-y-1">
-                            <Badge variant="success" className="gap-1 font-mono text-[10px]">
-                              <span className="h-1.5 w-1.5 animate-ping rounded-full bg-emerald-500" />
-                              ACTIVE
-                            </Badge>
-                            <SessionCountdown expiresAt={session.expiresAt} />
-                          </div>
-                        ) : session.status === "TERMINATED" ? (
-                          <Badge
-                            variant="outline"
-                            className="border-muted text-muted-foreground font-mono text-[10px]"
-                          >
-                            TERMINATED
-                          </Badge>
-                        ) : (
-                          <Badge
-                            variant="outline"
-                            className="border-destructive/30 text-destructive font-mono text-[10px]"
-                          >
-                            EXPIRED
-                          </Badge>
-                        )}
-                      </TableCell>
-
-                      <TableCell className="text-muted-foreground font-mono text-[11px]">
-                        {new Date(session.startedAt).toLocaleString()}
-                      </TableCell>
-
-                      <TableCell className="text-right">
-                        {isActive && (
-                          <div className="flex items-center justify-end gap-1.5">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={async () => {
-                                await fetch("/api/platform/support-session/enter", {
-                                  method: "POST",
-                                  headers: { "content-type": "application/json" },
-                                  body: JSON.stringify({
-                                    sessionId: session.id,
-                                    tenantId: session.tenantId,
-                                  }),
-                                });
-                                router?.push?.("/dashboard");
-                                router?.refresh?.();
-                              }}
-                              className="h-7 gap-1 border-emerald-500/30 text-xs text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400"
-                            >
-                              <ExternalLink className="h-3 w-3" />
-                              Access Workspace
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => setTerminateSession(session)}
-                              className="h-7 gap-1 text-xs"
-                            >
-                              <StopCircle className="h-3.5 w-3.5" />
-                              Terminate
-                            </Button>
-                          </div>
-                        )}
-                      </TableCell>
+                      {tableColumns.orderedVisibleColumns.map((colId) =>
+                        renderCell(colId, session),
+                      )}
                     </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                  ))}
+                </TableBody>
+              </Table>
+              <TablePagination
+                currentPage={safePage}
+                totalPages={totalPages}
+                totalItems={sessions.length}
+                pageSize={pageSize}
+                pageSizeOptions={[10, 20, 50]}
+                onPageSizeChange={handlePageSizeChange}
+                onPageChange={(p) =>
+                  setParam("page", p <= 1 ? null : p, { mode: "replace", scroll: false })
+                }
+                itemLabel="sessions"
+              />
+            </div>
           )}
         </CardContent>
       </Card>

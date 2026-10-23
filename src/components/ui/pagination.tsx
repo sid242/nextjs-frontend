@@ -1,0 +1,121 @@
+import type { ComponentProps } from "react";
+import type { VariantProps } from "class-variance-authority";
+import { ChevronLeftIcon, ChevronRightIcon, MoreHorizontalIcon } from "lucide-react";
+
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
+function Pagination({ className, ...props }: ComponentProps<"nav">) {
+  return (
+    <nav
+      role="navigation"
+      aria-label="pagination"
+      data-slot="pagination"
+      className={cn("flex items-center justify-center", className)}
+      {...props}
+    />
+  );
+}
+
+function PaginationContent({ className, ...props }: ComponentProps<"ul">) {
+  return (
+    <ul
+      data-slot="pagination-content"
+      className={cn("flex flex-row items-center gap-1", className)}
+      {...props}
+    />
+  );
+}
+
+function PaginationItem({ ...props }: ComponentProps<"li">) {
+  return <li data-slot="pagination-item" {...props} />;
+}
+
+type PaginationLinkProps = {
+  isActive?: boolean;
+} & Pick<
+  ComponentProps<"button">,
+  "className" | "disabled" | "onClick" | "children" | "aria-label" | "type"
+> &
+  VariantProps<typeof buttonVariants>;
+
+function PaginationLink({
+  className,
+  isActive,
+  size = "icon",
+  type = "button",
+  ...props
+}: PaginationLinkProps) {
+  return (
+    <button
+      type={type}
+      aria-current={isActive ? "page" : undefined}
+      data-slot="pagination-link"
+      data-active={isActive}
+      className={cn(
+        buttonVariants({
+          variant: isActive ? "outline" : "ghost",
+          size,
+        }),
+        "h-8 min-w-8 cursor-pointer px-2 font-mono text-xs font-medium disabled:cursor-not-allowed",
+        isActive && "border-primary/40 bg-accent text-accent-foreground font-bold shadow-2xs",
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+function PaginationPrevious({
+  className,
+  children,
+  ...props
+}: ComponentProps<typeof PaginationLink>) {
+  return (
+    <PaginationLink
+      aria-label="Go to previous page"
+      className={cn("h-8 gap-1 px-2.5 font-sans text-xs", className)}
+      {...props}
+    >
+      <ChevronLeftIcon className="size-4" />
+      {children ?? <span className="hidden sm:inline">Previous</span>}
+    </PaginationLink>
+  );
+}
+
+function PaginationNext({ className, children, ...props }: ComponentProps<typeof PaginationLink>) {
+  return (
+    <PaginationLink
+      aria-label="Go to next page"
+      className={cn("h-8 gap-1 px-2.5 font-sans text-xs", className)}
+      {...props}
+    >
+      {children ?? <span className="hidden sm:inline">Next</span>}
+      <ChevronRightIcon className="size-4" />
+    </PaginationLink>
+  );
+}
+
+function PaginationEllipsis({ className, ...props }: ComponentProps<"span">) {
+  return (
+    <span
+      aria-hidden
+      data-slot="pagination-ellipsis"
+      className={cn("text-muted-foreground flex size-8 items-center justify-center", className)}
+      {...props}
+    >
+      <MoreHorizontalIcon className="size-4" />
+      <span className="sr-only">More pages</span>
+    </span>
+  );
+}
+
+export {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+};

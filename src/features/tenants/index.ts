@@ -33,8 +33,18 @@ export {
 } from "./queries";
 export { TenantSwitcher } from "./components/tenant-switcher";
 export { TenantBrand } from "./components/tenant-brand";
+export { TenantLogo } from "./components/tenant-logo";
+export { TenantThemeProvider } from "./components/tenant-theme-provider";
 export { TenantSettingsCard } from "./components/tenant-settings-card";
+export { TenantBrandingCard } from "./components/tenant-branding-card";
 export { TenantSmtpCard } from "./components/tenant-smtp-card";
 export { TeamStatsCards } from "./components/team-stats-cards";
 export { TeamMembersList } from "./components/team-members-list";
 export { InviteMemberDialog } from "./components/invite-member-dialog";
+export {
+  computeTenantThemeTokens,
+  generateTenantThemeCss,
+  hexToRgb,
+  getLuminance,
+  getContrastRatio,
+} from "./theme";

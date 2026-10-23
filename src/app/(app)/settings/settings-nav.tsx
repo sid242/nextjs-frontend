@@ -6,6 +6,7 @@ import {
   Building2Icon,
   CreditCardIcon,
   MailIcon,
+  PaletteIcon,
   ShieldIcon,
   UserIcon,
   UsersIcon,
@@ -32,6 +33,12 @@ export function SettingsNav({ isAdmin }: SettingsNavProps) {
       label: "Workspace",
       icon: Building2Icon,
       active: pathname === "/settings/workspace",
+    },
+    {
+      href: "/settings/branding",
+      label: "Branding & Theme",
+      icon: PaletteIcon,
+      active: pathname === "/settings/branding",
     },
     {
       href: "/settings/billing",

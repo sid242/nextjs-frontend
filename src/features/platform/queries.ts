@@ -15,6 +15,7 @@ import {
   getPlatformTenants,
   getStaffMembers,
   getSupportSessions,
+  getTenantMembers,
   loginPlatformStaff,
   logoutPlatformStaff,
   provisionTenant,
@@ -276,6 +277,17 @@ export const platformTenantDetailQueryOptions = (id: string) =>
 
 export function usePlatformTenant(id: string) {
   return useQuery(platformTenantDetailQueryOptions(id));
+}
+
+export const platformTenantMembersQueryOptions = (tenantId: string) =>
+  queryOptions({
+    queryKey: platformKeys.tenantMembers(tenantId),
+    queryFn: ({ signal }) => getTenantMembers(tenantId, signal),
+    enabled: Boolean(tenantId),
+  });
+
+export function usePlatformTenantMembers(tenantId: string) {
+  return useQuery(platformTenantMembersQueryOptions(tenantId));
 }
 
 export function useProvisionTenant() {

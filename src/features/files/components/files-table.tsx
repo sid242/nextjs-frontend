@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { DownloadIcon, EyeIcon, FileIcon, SearchIcon, Trash2Icon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { ColumnConfigDropdown } from "@/components/molecules/column-config-dropdown";
 import { ConfirmDialog } from "@/components/molecules/confirm-dialog";
 import { EmptyState } from "@/components/molecules/empty-state";
+import { TablePagination } from "@/components/molecules/table-pagination";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +24,7 @@ import { getErrorMessage } from "@/lib/api/errors";
 import type { FileRecord } from "@/lib/api/types";
 import { formatBytes, formatDate } from "@/lib/format";
 import {
-  useDebouncedValue,
+  useDebouncedCallback,
   useSearchQueryParams,
   useTableColumns,
   type TableColumnDef,
@@ -69,25 +70,48 @@ export function FilesTable() {
   const [toDelete, setToDelete] = useState<FileRecord | null>(null);
   const [previewFile, setPreviewFile] = useState<FileRecord | null>(null);
 
-  const { get, setParam } = useSearchQueryParams();
-  const initialSearch = get("q") ?? "";
-  const [searchInput, setSearchInput] = useState<string>(initialSearch);
-  const debouncedSearch = useDebouncedValue(searchInput, 250);
+  const { get, getNumber, setParam, setParams } = useSearchQueryParams();
+  const [searchInput, setSearchInput] = useState<string>(() => get("q") ?? "");
 
-  // Synchronize debounced search to URL query parameter (?q=...)
-  useEffect(() => {
-    const currentQ = get("q") ?? "";
-    const nextQ = debouncedSearch.trim();
-    if (nextQ !== currentQ) {
-      setParam("q", nextQ || null, { mode: "replace", scroll: false });
-    }
-  }, [debouncedSearch, get, setParam]);
+  const syncSearchParam = useDebouncedCallback((val: string) => {
+    setParams({ q: val.trim() || null, page: null }, { mode: "replace", scroll: false });
+  }, 250);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e?.target?.value ?? "";
+    setSearchInput(val);
+    syncSearchParam.run(val);
+  };
+
+  const handleClearSearch = () => {
+    setSearchInput("");
+    syncSearchParam.run("");
+  };
+
+  const rawPage = getNumber("page", 1) ?? 1;
+  const page = Math.max(1, rawPage);
+  const rawLimit = getNumber("limit", 10) ?? 10;
+  const pageSize = [10, 20, 50].includes(rawLimit) ? rawLimit : 10;
+
+  const handlePageSizeChange = (newSize: number) => {
+    setParams(
+      { limit: newSize === 10 ? null : newSize, page: null },
+      { mode: "replace", scroll: false },
+    );
+  };
 
   const filteredFiles = useMemo(() => {
-    const term = debouncedSearch.trim().toLowerCase();
+    const term = searchInput.trim().toLowerCase();
     if (!term) return fileList;
     return fileList.filter((f) => f?.filename?.toLowerCase().includes(term));
-  }, [fileList, debouncedSearch]);
+  }, [fileList, searchInput]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredFiles.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const paginatedFiles = useMemo(() => {
+    const start = (safePage - 1) * pageSize;
+    return filteredFiles.slice(start, start + pageSize);
+  }, [filteredFiles, safePage, pageSize]);
 
   const tableColumns = useTableColumns<FileColumnId>({
     columns: FILE_COLUMNS,
@@ -210,13 +234,13 @@ export function FilesTable() {
           <Input
             placeholder="Filter files by name…"
             value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
+            onChange={handleSearchChange}
             className="h-8 pr-7 pl-8 text-xs"
           />
           {searchInput ? (
             <button
               type="button"
-              onClick={() => setSearchInput("")}
+              onClick={handleClearSearch}
               className="text-muted-foreground hover:text-foreground absolute top-2 right-2 p-0.5"
               aria-label="Clear search"
             >
@@ -228,7 +252,7 @@ export function FilesTable() {
         <div className="flex items-center justify-between gap-3 sm:justify-end">
           <p className="text-muted-foreground text-xs font-medium">
             {filteredFiles.length} {filteredFiles.length === 1 ? "file" : "files"}
-            {debouncedSearch ? ` (filtered from ${fileList.length})` : ""}
+            {searchInput ? ` (filtered from ${fileList.length})` : ""}
           </p>
           <ColumnConfigDropdown tableColumns={tableColumns} />
         </div>
@@ -236,7 +260,7 @@ export function FilesTable() {
 
       {filteredFiles.length === 0 ? (
         <div className="rounded-md border p-8 text-center">
-          <p className="text-sm font-medium">No files matching &ldquo;{debouncedSearch}&rdquo;</p>
+          <p className="text-sm font-medium">No files matching &ldquo;{searchInput}&rdquo;</p>
           <p className="text-muted-foreground pt-1 text-xs">
             Try adjusting your search terms or clear the filter.
           </p>
@@ -265,13 +289,25 @@ export function FilesTable() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredFiles.map((file) => (
+              {paginatedFiles.map((file) => (
                 <TableRow key={file?.id}>
                   {tableColumns.orderedVisibleColumns.map((colId) => renderCell(colId, file))}
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+          <TablePagination
+            currentPage={safePage}
+            totalPages={totalPages}
+            totalItems={filteredFiles.length}
+            pageSize={pageSize}
+            pageSizeOptions={[10, 20, 50]}
+            onPageSizeChange={handlePageSizeChange}
+            onPageChange={(p) =>
+              setParam("page", p <= 1 ? null : p, { mode: "replace", scroll: false })
+            }
+            itemLabel="files"
+          />
         </div>
       )}
 

@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { CreditCard, HardDrive, Layers, Plus, Users } from "lucide-react";
 
+import { ColumnConfigDropdown } from "@/components/molecules/column-config-dropdown";
+import { TablePagination } from "@/components/molecules/table-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,14 +18,151 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getErrorMessage } from "@/lib/api/errors";
+import { useSearchQueryParams, useTableColumns, type TableColumnDef } from "@/lib/hooks";
 
 import { usePlatformPlans } from "../queries";
 import type { Plan } from "../schemas";
 import { CreatePlanDialog } from "./create-plan-dialog";
 
+type PlanColumnId = "tier" | "pricing" | "capacity" | "quota" | "features" | "status";
+
+const PLAN_COLUMNS: TableColumnDef<PlanColumnId>[] = [
+  { id: "tier", label: "Tier Key / Name", canHide: false, defaultVisible: true },
+  { id: "pricing", label: "Pricing", canHide: true, defaultVisible: true },
+  { id: "capacity", label: "Seat Capacity", canHide: true, defaultVisible: true },
+  { id: "quota", label: "Storage Quota", canHide: true, defaultVisible: true },
+  { id: "features", label: "Features", canHide: true, defaultVisible: true },
+  { id: "status", label: "Status", canHide: false, defaultVisible: true },
+];
+
+const PLAN_COLUMN_LABELS: Record<PlanColumnId, string> = {
+  tier: "Tier Key / Name",
+  pricing: "Pricing",
+  capacity: "Seat Capacity",
+  quota: "Storage Quota",
+  features: "Features",
+  status: "Status",
+};
+
 export function PlatformPlansTable() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const { getNumber, setParam, setParams } = useSearchQueryParams();
+  const rawPage = getNumber("page", 1) ?? 1;
+  const page = Math.max(1, rawPage);
+  const rawLimit = getNumber("limit", 10) ?? 10;
+  const pageSize = [10, 20, 50].includes(rawLimit) ? rawLimit : 10;
+
+  const handlePageSizeChange = (newSize: number) => {
+    setParams(
+      { limit: newSize === 10 ? null : newSize, page: null },
+      { mode: "replace", scroll: false },
+    );
+  };
+
   const { data: plans = [], isLoading, error } = usePlatformPlans({ includeInactive: true });
+
+  const totalPages = Math.max(1, Math.ceil((plans?.length ?? 0) / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const paginatedPlans = useMemo(() => {
+    const start = (safePage - 1) * pageSize;
+    return (plans ?? []).slice(start, start + pageSize);
+  }, [plans, safePage, pageSize]);
+
+  const tableColumns = useTableColumns<PlanColumnId>({
+    columns: PLAN_COLUMNS,
+    tableId: "platform_plans_table",
+  });
+
+  function renderCell(colId: PlanColumnId, plan: Plan) {
+    switch (colId) {
+      case "tier":
+        return (
+          <TableCell key="tier">
+            <div className="text-foreground font-semibold">{plan?.name}</div>
+            <div className="text-muted-foreground font-mono text-[11px]">{plan?.key}</div>
+          </TableCell>
+        );
+      case "pricing":
+        return (
+          <TableCell key="pricing">
+            <div className="font-mono font-bold">
+              {plan?.priceCents === 0 ? "$0" : `$${((plan?.priceCents ?? 0) / 100).toFixed(0)}`}
+            </div>
+            <div className="text-muted-foreground text-[10px]">
+              {plan?.billingInterval?.toLowerCase()}
+            </div>
+          </TableCell>
+        );
+      case "capacity":
+        return (
+          <TableCell key="capacity">
+            <div className="flex items-center gap-1.5 font-medium">
+              <Users className="text-muted-foreground h-3.5 w-3.5" />
+              <span>{plan?.entitlements?.maxMembers ?? 5} members</span>
+            </div>
+          </TableCell>
+        );
+      case "quota":
+        return (
+          <TableCell key="quota">
+            <div className="flex items-center gap-1.5 font-mono text-[11px]">
+              <HardDrive className="text-muted-foreground h-3.5 w-3.5" />
+              <span>{((plan?.entitlements?.maxStorageMb ?? 1024) / 1024).toFixed(0)} GB</span>
+            </div>
+          </TableCell>
+        );
+      case "features":
+        return (
+          <TableCell key="features">
+            <div className="flex flex-wrap gap-1">
+              {plan?.entitlements?.hasCustomRoles ? (
+                <Badge
+                  variant="outline"
+                  className="border-emerald-500/40 text-[10px] text-emerald-500"
+                >
+                  Custom RBAC
+                </Badge>
+              ) : null}
+              {plan?.entitlements?.hasAdvancedAnalytics ? (
+                <Badge variant="outline" className="border-blue-500/40 text-[10px] text-blue-500">
+                  Analytics
+                </Badge>
+              ) : null}
+              {plan?.entitlements?.hasPrioritySupport ? (
+                <Badge variant="outline" className="border-amber-500/40 text-[10px] text-amber-500">
+                  Priority SLA
+                </Badge>
+              ) : null}
+              {!plan?.entitlements?.hasCustomRoles &&
+              !plan?.entitlements?.hasAdvancedAnalytics &&
+              !plan?.entitlements?.hasPrioritySupport ? (
+                <span className="text-muted-foreground text-[11px]">Standard Core</span>
+              ) : null}
+            </div>
+          </TableCell>
+        );
+      case "status":
+        return (
+          <TableCell key="status" className="text-right">
+            {plan?.isActive ? (
+              <Badge
+                variant="outline"
+                className="border-emerald-500/30 font-mono text-[10px] text-emerald-500"
+              >
+                ACTIVE
+              </Badge>
+            ) : (
+              <Badge
+                variant="outline"
+                className="border-muted text-muted-foreground font-mono text-[10px]"
+              >
+                INACTIVE
+              </Badge>
+            )}
+          </TableCell>
+        );
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -79,14 +218,17 @@ export function PlatformPlansTable() {
                 platform-wide.
               </CardDescription>
             </div>
-            <Button
-              size="sm"
-              onClick={() => setCreateDialogOpen(true)}
-              className="gap-1.5 text-xs shadow-sm"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Provision New Tier
-            </Button>
+            <div className="flex items-center gap-2">
+              <ColumnConfigDropdown tableColumns={tableColumns} />
+              <Button
+                size="sm"
+                onClick={() => setCreateDialogOpen(true)}
+                className="gap-1.5 text-xs shadow-sm"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Provision New Tier
+              </Button>
+            </div>
           </div>
         </CardHeader>
 
@@ -106,107 +248,41 @@ export function PlatformPlansTable() {
               No plans configured yet. Click &quot;Provision New Tier&quot; to seed initial models.
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="font-mono text-xs uppercase">
-                  <TableHead>Tier Key / Name</TableHead>
-                  <TableHead>Pricing</TableHead>
-                  <TableHead>Seat Capacity</TableHead>
-                  <TableHead>Storage Quota</TableHead>
-                  <TableHead>Features</TableHead>
-                  <TableHead className="text-right">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(plans ?? []).map((plan: Plan) => (
-                  <TableRow key={plan?.id} className="text-xs">
-                    <TableCell>
-                      <div className="text-foreground font-semibold">{plan?.name}</div>
-                      <div className="text-muted-foreground font-mono text-[11px]">{plan?.key}</div>
-                    </TableCell>
-
-                    <TableCell>
-                      <div className="font-mono font-bold">
-                        {plan?.priceCents === 0
-                          ? "$0"
-                          : `$${((plan?.priceCents ?? 0) / 100).toFixed(0)}`}
-                      </div>
-                      <div className="text-muted-foreground text-[10px]">
-                        {plan?.billingInterval?.toLowerCase()}
-                      </div>
-                    </TableCell>
-
-                    <TableCell>
-                      <div className="flex items-center gap-1.5 font-medium">
-                        <Users className="text-muted-foreground h-3.5 w-3.5" />
-                        <span>{plan?.entitlements?.maxMembers ?? 5} members</span>
-                      </div>
-                    </TableCell>
-
-                    <TableCell>
-                      <div className="flex items-center gap-1.5 font-mono text-[11px]">
-                        <HardDrive className="text-muted-foreground h-3.5 w-3.5" />
-                        <span>
-                          {((plan?.entitlements?.maxStorageMb ?? 1024) / 1024).toFixed(0)} GB
-                        </span>
-                      </div>
-                    </TableCell>
-
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {plan?.entitlements?.hasCustomRoles ? (
-                          <Badge
-                            variant="outline"
-                            className="border-emerald-500/40 text-[10px] text-emerald-500"
-                          >
-                            Custom RBAC
-                          </Badge>
-                        ) : null}
-                        {plan?.entitlements?.hasAdvancedAnalytics ? (
-                          <Badge
-                            variant="outline"
-                            className="border-blue-500/40 text-[10px] text-blue-500"
-                          >
-                            Analytics
-                          </Badge>
-                        ) : null}
-                        {plan?.entitlements?.hasPrioritySupport ? (
-                          <Badge
-                            variant="outline"
-                            className="border-amber-500/40 text-[10px] text-amber-500"
-                          >
-                            Priority SLA
-                          </Badge>
-                        ) : null}
-                        {!plan?.entitlements?.hasCustomRoles &&
-                        !plan?.entitlements?.hasAdvancedAnalytics &&
-                        !plan?.entitlements?.hasPrioritySupport ? (
-                          <span className="text-muted-foreground text-[11px]">Standard Core</span>
-                        ) : null}
-                      </div>
-                    </TableCell>
-
-                    <TableCell className="text-right">
-                      {plan?.isActive ? (
-                        <Badge
-                          variant="outline"
-                          className="border-emerald-500/30 font-mono text-[10px] text-emerald-500"
-                        >
-                          ACTIVE
-                        </Badge>
-                      ) : (
-                        <Badge
-                          variant="outline"
-                          className="border-muted text-muted-foreground font-mono text-[10px]"
-                        >
-                          INACTIVE
-                        </Badge>
-                      )}
-                    </TableCell>
+            <div>
+              <Table>
+                <TableHeader>
+                  <TableRow className="font-mono text-xs uppercase">
+                    {tableColumns.orderedVisibleColumns.map((colId) => (
+                      <TableHead
+                        key={colId}
+                        className={colId === "status" ? "text-right" : undefined}
+                      >
+                        {PLAN_COLUMN_LABELS[colId]}
+                      </TableHead>
+                    ))}
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {paginatedPlans.map((plan: Plan) => (
+                    <TableRow key={plan?.id} className="text-xs">
+                      {tableColumns.orderedVisibleColumns.map((colId) => renderCell(colId, plan))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <TablePagination
+                currentPage={safePage}
+                totalPages={totalPages}
+                totalItems={plans?.length ?? 0}
+                pageSize={pageSize}
+                pageSizeOptions={[10, 20, 50]}
+                onPageSizeChange={handlePageSizeChange}
+                onPageChange={(p) =>
+                  setParam("page", p <= 1 ? null : p, { mode: "replace", scroll: false })
+                }
+                itemLabel="pricing tiers"
+              />
+            </div>
           )}
         </CardContent>
       </Card>

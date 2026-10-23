@@ -12,17 +12,17 @@ import {
 
 import { impersonateUser, listUsers, updateMe, updateUserRole, updateUserStatus } from "./api";
 import { userKeys } from "./keys";
-import type { AdminUser, ProfileValues } from "./schemas";
+import type { PaginatedAdminUsers, ProfileValues } from "./schemas";
 
-export const adminUsersQueryOptions = (page = 1) =>
+export const adminUsersQueryOptions = (page = 1, limit = 10) =>
   queryOptions({
-    queryKey: userKeys.adminList(page),
-    queryFn: ({ signal }) => listUsers(page, 20, signal),
+    queryKey: userKeys.adminList(page, limit),
+    queryFn: ({ signal }) => listUsers(page, limit, signal),
     staleTime: 60 * 1000,
   });
 
-export function useAdminUsers(page = 1, options?: QueryOverrides<AdminUser[]>) {
-  return useAppQuery<AdminUser[]>(adminUsersQueryOptions(page), options);
+export function useAdminUsers(page = 1, limit = 10, options?: QueryOverrides<PaginatedAdminUsers>) {
+  return useAppQuery<PaginatedAdminUsers>(adminUsersQueryOptions(page, limit), options);
 }
 
 /**
@@ -48,11 +48,8 @@ export function useUpdateUserRole(
     {
       mutationFn: ({ userId, role }: { userId: string; role: "USER" | "ADMIN" }) =>
         updateUserRole(userId, role),
-      onSuccess: (_: void, { userId, role }: { userId: string; role: "USER" | "ADMIN" }) => {
-        queryClient.setQueriesData<AdminUser[]>(
-          { queryKey: userKeys.all },
-          (old = []) => old?.map((u) => (u?.id === userId ? { ...u, role } : u)) ?? [],
-        );
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: userKeys.all });
       },
     },
     options,
@@ -79,20 +76,8 @@ export function useUpdateUserStatus(
         userId: string;
         status: "PENDING_VERIFICATION" | "ACTIVE" | "SUSPENDED" | "DEACTIVATED";
       }) => updateUserStatus(userId, status),
-      onSuccess: (
-        _: void,
-        {
-          userId,
-          status,
-        }: {
-          userId: string;
-          status: "PENDING_VERIFICATION" | "ACTIVE" | "SUSPENDED" | "DEACTIVATED";
-        },
-      ) => {
-        queryClient.setQueriesData<AdminUser[]>(
-          { queryKey: userKeys.all },
-          (old = []) => old?.map((u) => (u?.id === userId ? { ...u, status } : u)) ?? [],
-        );
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: userKeys.all });
       },
     },
     options,

@@ -1,24 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { Building2Icon } from "lucide-react";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import { useActiveTenant, useTenantBranding } from "../queries";
+import { TenantLogo } from "./tenant-logo";
 
 interface TenantBrandProps {
   className?: string;
   showIconOnly?: boolean;
 }
 
+/**
+ * Clickable brand header linking to /dashboard, displaying the active tenant's dynamic logo.
+ */
 export function TenantBrand({ className, showIconOnly = false }: TenantBrandProps) {
   const { activeTenant } = useActiveTenant();
   const { data: branding } = useTenantBranding(activeTenant?.id);
-
-  const displayName = branding?.companyName || activeTenant?.name || "Foundation";
 
   return (
     <Link
@@ -27,20 +26,14 @@ export function TenantBrand({ className, showIconOnly = false }: TenantBrandProp
         "flex items-center gap-2.5 font-semibold tracking-tight transition-opacity hover:opacity-85",
         className,
       )}
+      aria-label={`${branding?.companyName || activeTenant?.name || "Workspace"} Home`}
     >
-      <Avatar className="bg-primary text-primary-foreground size-7 shrink-0 rounded-md shadow-xs">
-        <AvatarFallback className="rounded-md text-xs font-bold">
-          {displayName ? initials(displayName) : <Building2Icon className="size-3.5" />}
-        </AvatarFallback>
-      </Avatar>
-
-      {!showIconOnly && (
-        <div className="flex items-center gap-2">
-          <span className="text-foreground truncate text-sm font-bold tracking-tight sm:text-base">
-            {displayName}
-          </span>
-        </div>
-      )}
+      <TenantLogo
+        variant={showIconOnly ? "icon" : "full"}
+        showName={!showIconOnly}
+        tenant={activeTenant}
+        branding={branding}
+      />
     </Link>
   );
 }

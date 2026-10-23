@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Building2Icon, CheckIcon, ChevronsUpDownIcon, PlusIcon } from "lucide-react";
+import { CheckIcon, ChevronsUpDownIcon, PlusIcon } from "lucide-react";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,11 +25,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useSidebar } from "@/lib/context/sidebar-context";
-import { initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import { useActiveTenant, useCreateTenant } from "../queries";
 import type { Tenant, TenantPlan } from "../schemas";
+import { TenantLogo } from "./tenant-logo";
 
 interface TenantSwitcherProps {
   collapsed?: boolean;
@@ -76,11 +75,7 @@ export function TenantSwitcher({ collapsed: propCollapsed }: TenantSwitcherProps
       )}
       aria-label="Switch organization"
     >
-      <Avatar className="bg-primary/10 text-primary size-8 shrink-0 rounded-md">
-        <AvatarFallback className="rounded-md text-xs font-bold">
-          {activeTenant?.name ? initials(activeTenant.name) : <Building2Icon className="size-4" />}
-        </AvatarFallback>
-      </Avatar>
+      <TenantLogo variant="icon" tenant={activeTenant} showName={false} className="shrink-0" />
 
       {!collapsed && (
         <>
@@ -139,11 +134,12 @@ export function TenantSwitcher({ collapsed: propCollapsed }: TenantSwitcherProps
                 className="flex items-center justify-between gap-2 py-2"
               >
                 <div className="flex items-center gap-2.5 overflow-hidden">
-                  <Avatar className="bg-muted text-foreground size-6 shrink-0 rounded-sm">
-                    <AvatarFallback className="rounded-sm text-[10px] font-semibold">
-                      {initials(tenant.name)}
-                    </AvatarFallback>
-                  </Avatar>
+                  <TenantLogo
+                    variant="icon"
+                    tenant={tenant}
+                    showName={false}
+                    className="size-6 shrink-0"
+                  />
                   <div className="flex flex-col overflow-hidden">
                     <span className="truncate text-sm font-medium">{tenant.name}</span>
                     <span className="text-muted-foreground truncate text-xs">{tenant.slug}</span>
