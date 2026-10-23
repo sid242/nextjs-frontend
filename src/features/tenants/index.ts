@@ -28,6 +28,8 @@ export {
   useSaveTenantEmailConfig,
   useTestTenantEmailConfig,
   useToggleTenantModule,
+  useTransferTenantOwnership,
+  useVerifyTenantCustomDomain,
 } from "./queries";
 export { TenantSwitcher } from "./components/tenant-switcher";
 export { TenantBrand } from "./components/tenant-brand";

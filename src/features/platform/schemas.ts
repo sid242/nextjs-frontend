@@ -160,3 +160,106 @@ export interface StaffAuthProfile {
   roleName: string;
   permissions: string[];
 }
+
+// ==========================================
+// 6. Platform Tenant Oversight & Provisioning
+// ==========================================
+
+export const platformTenantSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  slug: z.string(),
+  status: z.enum(["ACTIVE", "SUSPENDED", "TRIALING", "DEACTIVATED"]),
+  plan: z.string(),
+  databaseMode: z.string().default("shared"),
+  memberCount: z.number().default(0),
+  ownerEmail: z.string().nullable().optional(),
+  ownerName: z.string().nullable().optional(),
+  subscriptionId: z.string().nullable().optional(),
+  subscriptionStatus: z.string().nullable().optional(),
+  seatCount: z.number().nullable().optional(),
+  trialEndsAt: z.string().nullable().optional(),
+  createdAt: z.string(),
+  updatedAt: z.string().optional(),
+});
+
+export type PlatformTenant = z.infer<typeof platformTenantSchema>;
+
+export const platformTenantDetailSchema = platformTenantSchema.extend({
+  schemaVersion: z.string().optional(),
+  metadata: z.record(z.unknown()).nullable().optional(),
+  subscription: z
+    .object({
+      id: z.string().uuid(),
+      planId: z.string().uuid(),
+      planName: z.string().nullable().optional(),
+      planCode: z.string().nullable().optional(),
+      status: z.string(),
+      seatCount: z.number(),
+      currentPeriodStart: z.string().optional(),
+      currentPeriodEnd: z.string().nullable().optional(),
+      cancelAtPeriodEnd: z.boolean().optional(),
+      trialEndsAt: z.string().nullable().optional(),
+    })
+    .nullable()
+    .optional(),
+  branding: z
+    .object({
+      companyName: z.string().nullable().optional(),
+      logoUrl: z.string().nullable().optional(),
+      primaryColor: z.string().nullable().optional(),
+      accentColor: z.string().nullable().optional(),
+      customDomain: z.string().nullable().optional(),
+      customDomainStatus: z.string().nullable().optional(),
+      supportEmail: z.string().nullable().optional(),
+    })
+    .nullable()
+    .optional(),
+});
+
+export type PlatformTenantDetail = z.infer<typeof platformTenantDetailSchema>;
+
+export const provisionTenantSchema = z.object({
+  name: z.string().trim().min(2, "Workspace name must be at least 2 characters"),
+  slug: z
+    .string()
+    .trim()
+    .min(2, "Slug must be at least 2 characters")
+    .max(50)
+    .regex(/^[a-z0-9-]+$/, "Slug must only contain lowercase alphanumeric characters and hyphens"),
+  ownerEmail: z.string().trim().email("Enter a valid owner email address"),
+  plan: z.string().trim().min(1, "Subscription tier is required"),
+  country: z.string().trim().optional(),
+  timezone: z.string().trim().min(1, "Timezone is required"),
+  databaseMode: z.enum(["shared", "dedicated"]),
+  notes: z.string().trim().max(500).optional(),
+});
+
+export type ProvisionTenantInput = z.infer<typeof provisionTenantSchema>;
+
+export const updatePlatformTenantSchema = z.object({
+  name: z.string().trim().min(2).optional(),
+  plan: z.string().trim().optional(),
+  databaseMode: z.enum(["shared", "dedicated"]).optional(),
+  notes: z.string().trim().max(500).optional(),
+});
+
+export type UpdatePlatformTenantInput = z.infer<typeof updatePlatformTenantSchema>;
+
+export const suspendTenantSchema = z.object({
+  reason: z.string().trim().min(3, "Reason must be at least 3 characters"),
+});
+
+export type SuspendTenantInput = z.infer<typeof suspendTenantSchema>;
+
+export const updatePlatformTenantSubscriptionSchema = z.object({
+  planId: z.string().uuid().optional(),
+  seatCount: z.number().int().min(1).optional(),
+  status: z.enum(["ACTIVE", "TRIALING", "PAST_DUE", "CANCELED", "EXPIRED"]).optional(),
+  cancelAtPeriodEnd: z.boolean().optional(),
+  currentPeriodEnd: z.string().optional(),
+});
+
+export type UpdatePlatformTenantSubscriptionInput = z.infer<
+  typeof updatePlatformTenantSubscriptionSchema
+>;

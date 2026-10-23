@@ -28,8 +28,8 @@ export const requestMagicLink = (values: RequestMagicLinkValues) =>
 export const verifyMagicLink = (values: VerifyMagicLinkValues) =>
   authApi.post<{ user: User }>("/magic-link/verify", values);
 
-export const acceptWorkspaceInvite = (token: string) =>
-  authApi.post<{ user: User; activeTenantId?: string }>("/invitation/accept", { token });
+export const acceptWorkspaceInvite = (values: { token: string; tenantId?: string }) =>
+  authApi.post<{ user: User; activeTenantId?: string }>("/invitation/accept", values);
 
 export const forgotPassword = (values: ForgotPasswordValues) =>
   authApi.post<{ message: string }>("/forgot-password", values);

@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Building2,
   ExternalLink,
   FileText,
   Layers,
@@ -38,6 +39,12 @@ interface PlatformShellProps {
 }
 
 const NAV_ITEMS = [
+  {
+    href: "/platform/tenants",
+    label: "Workspaces",
+    description: "Customer organizations, databases & status",
+    icon: Building2,
+  },
   {
     href: "/platform/staff",
     label: "Platform Staff",

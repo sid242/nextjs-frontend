@@ -32,7 +32,10 @@ function AcceptInviteContent() {
 
     async function executeAcceptance() {
       try {
-        const result = await acceptMutation.mutateAsync(token!);
+        const result = await acceptMutation.mutateAsync({
+          token: token!,
+          tenantId: tenantId ?? undefined,
+        });
         if (!isMounted) return;
         resetAllStores();
 

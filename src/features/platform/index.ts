@@ -17,6 +17,15 @@ export {
   useEndSupportSession,
   platformAuditLogsQueryOptions,
   usePlatformAuditLogs,
+  platformTenantsQueryOptions,
+  usePlatformTenants,
+  platformTenantDetailQueryOptions,
+  usePlatformTenant,
+  useProvisionTenant,
+  useUpdatePlatformTenant,
+  useSuspendTenant,
+  useActivateTenant,
+  useUpdatePlatformTenantSubscription,
   platformMeQueryOptions,
   usePlatformMe,
   usePlatformLogin,
@@ -30,3 +39,6 @@ export { SupportSessionsTable } from "./components/support-sessions-table";
 export { AuditLogsTable } from "./components/audit-logs-table";
 export { PlatformLoginForm } from "./components/platform-login-form";
 export { SupportSessionBanner } from "./components/support-session-banner";
+export { TenantsTable } from "./components/tenants-table";
+export { ProvisionTenantDialog } from "./components/provision-tenant-dialog";
+export { TenantInspector } from "./components/tenant-inspector";

@@ -88,6 +88,6 @@ export function useVerifyMagicLink() {
 
 export function useAcceptWorkspaceInvite() {
   return useMutation({
-    mutationFn: (token: string) => acceptWorkspaceInvite(token),
+    mutationFn: (values: { token: string; tenantId?: string }) => acceptWorkspaceInvite(values),
   });
 }

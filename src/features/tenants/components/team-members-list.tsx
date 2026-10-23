@@ -1,4 +1,4 @@
-import { MailIcon, MoreVerticalIcon, SearchIcon, Trash2Icon } from "lucide-react";
+import { MailIcon, MoreVerticalIcon, SearchIcon, ShieldAlert, Trash2Icon } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +32,8 @@ interface TeamMembersListProps {
   onSearchChange: (query: string) => void;
   onRoleChange: (memberId: string, newRole: string) => void;
   onRemoveMember: (memberId: string, memberName: string) => void;
+  onTransferOwnership?: (memberId: string, memberName: string) => void;
+  isCurrentUserOwner?: boolean;
 }
 
 export function TeamMembersList({
@@ -41,6 +43,8 @@ export function TeamMembersList({
   onSearchChange,
   onRoleChange,
   onRemoveMember,
+  onTransferOwnership,
+  isCurrentUserOwner = false,
 }: TeamMembersListProps) {
   const filteredMembers = members.filter(
     (m: TenantMember) =>
@@ -140,6 +144,17 @@ export function TeamMembersList({
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel className="text-xs">Member Actions</DropdownMenuLabel>
                       <DropdownMenuSeparator />
+                      {isCurrentUserOwner &&
+                        member?.role !== "OWNER" &&
+                        member?.status === "ACTIVE" &&
+                        onTransferOwnership && (
+                          <DropdownMenuItem
+                            className="gap-2 text-xs text-amber-600 focus:text-amber-600 dark:text-amber-400"
+                            onClick={() => onTransferOwnership(member.id, member.name)}
+                          >
+                            <ShieldAlert className="size-3.5" /> Transfer Ownership
+                          </DropdownMenuItem>
+                        )}
                       <DropdownMenuItem
                         className="text-destructive focus:text-destructive gap-2 text-xs"
                         onClick={() => onRemoveMember(member.id, member.name)}

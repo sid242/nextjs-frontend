@@ -24,9 +24,11 @@ import {
   searchTenantAuditLogs,
   testTenantEmailConfig,
   toggleTenantModule,
+  transferTenantOwnership,
   updateTenant,
   updateTenantBranding,
   updateTenantMemberRole,
+  verifyTenantCustomDomain,
 } from "./api";
 import { tenantKeys } from "./keys";
 import type {
@@ -292,6 +294,24 @@ export function useUpdateTenantBranding(
   );
 }
 
+export function useVerifyTenantCustomDomain(
+  tenantId: string,
+  options?: MutationOverrides<TenantBranding, { bypassVerification?: boolean } | void>,
+) {
+  const queryClient = useQueryClient();
+
+  return useAppMutation(
+    {
+      mutationFn: (variables?: { bypassVerification?: boolean } | void) =>
+        verifyTenantCustomDomain(tenantId, variables?.bypassVerification),
+      onSuccess: (updated: TenantBranding) => {
+        queryClient.setQueryData(tenantKeys.branding(tenantId), updated);
+      },
+    },
+    options,
+  );
+}
+
 export function useSaveTenantEmailConfig(
   tenantId: string,
   options?: MutationOverrides<void, TenantEmailConfig>,
@@ -374,6 +394,33 @@ export function useToggleTenantModule(
           tenantKeys.modules(tenantId),
           (old = []) => old?.map((m) => (m?.id === moduleId ? { ...m, isEnabled } : m)) ?? [],
         );
+      },
+    },
+    options,
+  );
+}
+
+export function useTransferTenantOwnership(
+  tenantId: string,
+  options?: MutationOverrides<
+    { newOwnerId: string; formerOwnerRole: string; message: string },
+    { memberId: string; newRoleForFormerOwner?: string }
+  >,
+) {
+  const queryClient = useQueryClient();
+
+  return useAppMutation(
+    {
+      mutationFn: ({
+        memberId,
+        newRoleForFormerOwner,
+      }: {
+        memberId: string;
+        newRoleForFormerOwner?: string;
+      }) => transferTenantOwnership(tenantId, memberId, newRoleForFormerOwner),
+      onSuccess: () => {
+        void queryClient.invalidateQueries({ queryKey: tenantKeys.members(tenantId) });
+        void queryClient.invalidateQueries({ queryKey: tenantKeys.all });
       },
     },
     options,

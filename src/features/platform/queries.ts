@@ -3,6 +3,7 @@
 import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
+  activateTenant,
   createPlatformRole,
   createStaffMember,
   endSupportSession,
@@ -10,12 +11,18 @@ import {
   getPlatformMe,
   getPlatformPermissions,
   getPlatformRoles,
+  getPlatformTenant,
+  getPlatformTenants,
   getStaffMembers,
   getSupportSessions,
   loginPlatformStaff,
   logoutPlatformStaff,
+  provisionTenant,
   startSupportSession,
+  suspendTenant,
   updatePlatformRole,
+  updatePlatformTenant,
+  updatePlatformTenantSubscription,
   updateStaffMember,
 } from "./api";
 import { platformKeys } from "./keys";
@@ -23,8 +30,11 @@ import type {
   CreatePlatformRoleInput,
   CreateStaffInput,
   PlatformLoginInput,
+  ProvisionTenantInput,
   StartSupportSessionInput,
   UpdatePlatformRoleInput,
+  UpdatePlatformTenantInput,
+  UpdatePlatformTenantSubscriptionInput,
   UpdateStaffInput,
 } from "./schemas";
 
@@ -225,6 +235,100 @@ export function usePlatformLogout() {
         // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- Hard navigation needed to clear platform session state
         window.location.assign("/platform/login");
       }
+    },
+  });
+}
+
+// ==========================================
+// 6. Platform Tenant Oversight & Provisioning Hooks
+// ==========================================
+
+export const platformTenantsQueryOptions = (params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+  plan?: string;
+  databaseMode?: string;
+}) =>
+  queryOptions({
+    queryKey: platformKeys.tenantsList(params),
+    queryFn: ({ signal }) => getPlatformTenants(params, signal),
+  });
+
+export function usePlatformTenants(params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+  plan?: string;
+  databaseMode?: string;
+}) {
+  return useQuery(platformTenantsQueryOptions(params));
+}
+
+export const platformTenantDetailQueryOptions = (id: string) =>
+  queryOptions({
+    queryKey: platformKeys.tenantDetail(id),
+    queryFn: ({ signal }) => getPlatformTenant(id, signal),
+    enabled: Boolean(id),
+  });
+
+export function usePlatformTenant(id: string) {
+  return useQuery(platformTenantDetailQueryOptions(id));
+}
+
+export function useProvisionTenant() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: ProvisionTenantInput) => provisionTenant(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: platformKeys.tenants() });
+    },
+  });
+}
+
+export function useUpdatePlatformTenant(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: UpdatePlatformTenantInput) => updatePlatformTenant(id, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: platformKeys.tenantDetail(id) });
+      queryClient.invalidateQueries({ queryKey: platformKeys.tenants() });
+    },
+  });
+}
+
+export function useSuspendTenant() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => suspendTenant(id, reason),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: platformKeys.tenantDetail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: platformKeys.tenants() });
+    },
+  });
+}
+
+export function useActivateTenant() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) => activateTenant(id, reason),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: platformKeys.tenantDetail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: platformKeys.tenants() });
+    },
+  });
+}
+
+export function useUpdatePlatformTenantSubscription(tenantId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: UpdatePlatformTenantSubscriptionInput) =>
+      updatePlatformTenantSubscription(tenantId, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: platformKeys.tenantDetail(tenantId) });
+      queryClient.invalidateQueries({ queryKey: platformKeys.tenants() });
     },
   });
 }

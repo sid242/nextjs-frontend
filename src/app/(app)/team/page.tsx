@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { PlusIcon } from "lucide-react";
 import { toast } from "sonner";
 
+import { ConfirmDialog } from "@/components/molecules/confirm-dialog";
 import { PageHeader } from "@/components/molecules/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +15,7 @@ import {
   useAddTenantMember,
   useRemoveTenantMember,
   useTenantMembers,
+  useTransferTenantOwnership,
   useUpdateMemberRole,
 } from "@/features/tenants";
 
@@ -24,9 +26,11 @@ export default function TeamPage() {
   const addMemberMutation = useAddTenantMember(activeTenantId ?? "");
   const removeMemberMutation = useRemoveTenantMember(activeTenantId ?? "");
   const updateRoleMutation = useUpdateMemberRole(activeTenantId ?? "");
+  const transferOwnershipMutation = useTransferTenantOwnership(activeTenantId ?? "");
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [transferTarget, setTransferTarget] = useState<{ id: string; name: string } | null>(null);
 
   const handleInvite = async (email: string, role: string) => {
     if (!email || !activeTenantId) return;
@@ -76,6 +80,20 @@ export default function TeamPage() {
     }
   };
 
+  const handleTransferOwnership = async () => {
+    if (!transferTarget || !activeTenantId) return;
+    try {
+      await transferOwnershipMutation.mutateAsync({
+        memberId: transferTarget.id,
+        newRoleForFormerOwner: "ADMIN",
+      });
+      toast.success(`Organization ownership successfully transferred to ${transferTarget.name}.`);
+      setTransferTarget(null);
+    } catch {
+      toast.error("Failed to transfer organization ownership.");
+    }
+  };
+
   const activeCount = useMemo(() => {
     return members.filter((m) => m?.status === "ACTIVE").length;
   }, [members]);
@@ -101,6 +119,8 @@ export default function TeamPage() {
         onSearchChange={setSearchQuery}
         onRoleChange={handleRoleChange}
         onRemoveMember={handleRemove}
+        onTransferOwnership={(id, name) => setTransferTarget({ id, name })}
+        isCurrentUserOwner={true}
       />
 
       <InviteMemberDialog
@@ -109,6 +129,17 @@ export default function TeamPage() {
         activeTenantName={activeTenant?.name}
         onInvite={handleInvite}
         isInviting={addMemberMutation.isPending}
+      />
+
+      <ConfirmDialog
+        open={Boolean(transferTarget)}
+        onOpenChange={(open) => !open && setTransferTarget(null)}
+        title="Transfer Workspace Ownership"
+        description={`Are you sure you want to transfer primary ownership of ${activeTenant?.name ?? "this organization"} to ${transferTarget?.name}? You will be reassigned to the Admin role and will no longer be the primary owner.`}
+        confirmLabel="Transfer Ownership"
+        destructive
+        pending={transferOwnershipMutation.isPending}
+        onConfirm={handleTransferOwnership}
       />
     </div>
   );

@@ -17,5 +17,9 @@ export const platformKeys = {
   auditLogs: () => [...platformKeys.all, "audit-logs"] as const,
   auditLogsList: (params?: unknown) => [...platformKeys.auditLogs(), "list", params] as const,
 
+  tenants: () => [...platformKeys.all, "tenants"] as const,
+  tenantsList: (params?: unknown) => [...platformKeys.tenants(), "list", params] as const,
+  tenantDetail: (id: string) => [...platformKeys.tenants(), "detail", id] as const,
+
   me: () => [...platformKeys.all, "me"] as const,
 };

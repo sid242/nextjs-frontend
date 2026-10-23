@@ -15,6 +15,9 @@ export type Tenant = z.infer<typeof tenantSchema>;
 
 export const hexColorRegex = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 
+export const customDomainStatusSchema = z.enum(["PENDING", "ACTIVE", "FAILED"]);
+export type CustomDomainStatus = z.infer<typeof customDomainStatusSchema>;
+
 export const tenantBrandingSchema = z.object({
   tenantId: z.string().optional(),
   companyName: z.string().min(1).default("Acme Corporation"),
@@ -25,6 +28,7 @@ export const tenantBrandingSchema = z.object({
   accentColor: z.string().regex(hexColorRegex, "Invalid hex color").default("#38bdf8"),
   borderRadius: z.string().optional(),
   customDomain: z.string().nullable().optional(),
+  customDomainStatus: customDomainStatusSchema.nullable().optional(),
   supportEmail: z.string().email().optional().or(z.literal("")),
 });
 export type TenantBranding = z.infer<typeof tenantBrandingSchema>;

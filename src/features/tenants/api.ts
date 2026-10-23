@@ -247,6 +247,15 @@ export async function updateTenantBranding(
   }
 }
 
+export async function verifyTenantCustomDomain(
+  tenantId: string,
+  bypassVerification?: boolean,
+): Promise<TenantBranding> {
+  return api.post<TenantBranding>(`/tenants/${tenantId}/branding/domain/verify`, {
+    bypassVerification,
+  });
+}
+
 export async function getTenantEmailConfig(
   tenantId: string,
   signal?: AbortSignal,
@@ -419,4 +428,22 @@ export async function toggleTenantModule(
   isEnabled: boolean,
 ): Promise<void> {
   await api.patch(`/rbac/tenants/${tenantId}/modules/${moduleId}`, { isEnabled });
+}
+
+export async function transferTenantOwnership(
+  tenantId: string,
+  memberId: string,
+  newRoleForFormerOwner = "ADMIN",
+): Promise<{
+  newOwnerId: string;
+  formerOwnerRole: string;
+  message: string;
+}> {
+  return api.post<{
+    newOwnerId: string;
+    formerOwnerRole: string;
+    message: string;
+  }>(`/tenants/${tenantId}/members/${memberId}/transfer-ownership`, {
+    newRoleForFormerOwner,
+  });
 }
