@@ -5,22 +5,82 @@ import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/r
 import {
   acceptWorkspaceInvite,
   changePassword,
+  disableTwoFactor,
+  enableTwoFactor,
+  getTwoFactorStatus,
   getUserSessions,
   requestEmailVerification,
   requestMagicLink,
   revokeSession,
+  setupTwoFactor,
   stopImpersonation,
   verifyEmail,
   verifyMagicLink,
+  verifyTwoFactorChallenge,
 } from "./api";
 import { authKeys } from "./keys";
 import type {
   ChangePasswordValues,
   RequestEmailVerificationValues,
   RequestMagicLinkValues,
+  TwoFactorChallengeValues,
+  TwoFactorCodeValues,
+  TwoFactorDisableValues,
+  TwoFactorStatus,
   UserSession,
   VerifyMagicLinkValues,
 } from "./schemas";
+
+export const twoFactorStatusQueryOptions = () =>
+  queryOptions({
+    queryKey: authKeys.twoFactorStatus(),
+    queryFn: ({ signal }) => getTwoFactorStatus(signal),
+    staleTime: 60 * 1000,
+  });
+
+export function useTwoFactorStatus() {
+  return useQuery(twoFactorStatusQueryOptions());
+}
+
+export function useSetupTwoFactor() {
+  return useMutation({
+    mutationFn: () => setupTwoFactor(),
+  });
+}
+
+export function useEnableTwoFactor() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (values: TwoFactorCodeValues) => enableTwoFactor(values),
+    onSuccess: () => {
+      queryClient.setQueryData<TwoFactorStatus>(authKeys.twoFactorStatus(), {
+        enabled: true,
+        enabledAt: new Date().toISOString(),
+      });
+    },
+  });
+}
+
+export function useDisableTwoFactor() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (values: TwoFactorDisableValues) => disableTwoFactor(values),
+    onSuccess: () => {
+      queryClient.setQueryData<TwoFactorStatus>(authKeys.twoFactorStatus(), {
+        enabled: false,
+        enabledAt: null,
+      });
+    },
+  });
+}
+
+export function useVerifyTwoFactorChallenge() {
+  return useMutation({
+    mutationFn: (values: TwoFactorChallengeValues) => verifyTwoFactorChallenge(values),
+  });
+}
 
 export const sessionsQueryOptions = () =>
   queryOptions({

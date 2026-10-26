@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { forgotPasswordSchema, loginSchema, registerSchema, resetPasswordSchema } from "./schemas";
+import {
+  forgotPasswordSchema,
+  loginSchema,
+  registerSchema,
+  resetPasswordSchema,
+  twoFactorChallengeSchema,
+  twoFactorCodeSchema,
+  twoFactorDisableSchema,
+} from "./schemas";
 
 describe("auth schemas", () => {
   it("accepts valid credentials and trims email", () => {
@@ -31,6 +39,54 @@ describe("auth schemas", () => {
         token: "xyz",
         newPassword: "password123",
         confirmPassword: "mismatch",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("validates two-factor schemas correctly", () => {
+    // twoFactorCodeSchema
+    expect(twoFactorCodeSchema.safeParse({ code: "123456" }).success).toBe(true);
+    expect(twoFactorCodeSchema.safeParse({ code: "12345" }).success).toBe(false);
+    expect(twoFactorCodeSchema.safeParse({ code: "1234567" }).success).toBe(false);
+    expect(twoFactorCodeSchema.safeParse({ code: "abcdef" }).success).toBe(false);
+
+    // twoFactorDisableSchema
+    expect(
+      twoFactorDisableSchema.safeParse({
+        password: "SecretPassword123",
+        code: "654321",
+      }).success,
+    ).toBe(true);
+    expect(
+      twoFactorDisableSchema.safeParse({
+        password: "",
+        code: "654321",
+      }).success,
+    ).toBe(false);
+    expect(
+      twoFactorDisableSchema.safeParse({
+        password: "SecretPassword123",
+        code: "bad",
+      }).success,
+    ).toBe(false);
+
+    // twoFactorChallengeSchema
+    expect(
+      twoFactorChallengeSchema.safeParse({
+        challengeToken: "challenge-token-abc",
+        code: "123456",
+      }).success,
+    ).toBe(true);
+    expect(
+      twoFactorChallengeSchema.safeParse({
+        challengeToken: "challenge-token-abc",
+        code: "RECOVERY01",
+      }).success,
+    ).toBe(true);
+    expect(
+      twoFactorChallengeSchema.safeParse({
+        challengeToken: "",
+        code: "123456",
       }).success,
     ).toBe(false);
   });

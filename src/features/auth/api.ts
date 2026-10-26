@@ -9,15 +9,41 @@ import type {
   RequestEmailVerificationValues,
   RequestMagicLinkValues,
   ResetPasswordValues,
+  TwoFactorChallengeValues,
+  TwoFactorCodeValues,
+  TwoFactorDisableValues,
+  TwoFactorEnableData,
+  TwoFactorSetupData,
+  TwoFactorStatus,
   UserSession,
   VerifyMagicLinkValues,
 } from "./schemas";
 
+export type LoginResult =
+  | { user: User; twoFactorRequired?: false }
+  | { user?: never; twoFactorRequired: true; challengeToken: string; method: "totp" };
+
 // These hit our own Next.js BFF routes (/api/auth/*), which keep tokens in httpOnly cookies.
-export const login = (values: LoginValues) => authApi.post<{ user: User }>("/login", values);
+export const login = (values: LoginValues) => authApi.post<LoginResult>("/login", values);
 export const register = (values: RegisterValues) =>
   authApi.post<{ user: User }>("/register", values);
 export const logout = () => authApi.post("/logout");
+
+// ─── Two-Factor Authentication (2FA) ────────────────────────────────────────────
+
+export const setupTwoFactor = () => authApi.post<TwoFactorSetupData>("/2fa/setup");
+
+export const enableTwoFactor = (values: TwoFactorCodeValues) =>
+  authApi.post<TwoFactorEnableData>("/2fa/enable", values);
+
+export const disableTwoFactor = (values: TwoFactorDisableValues) =>
+  authApi.post<{ message: string }>("/2fa/disable", values);
+
+export const verifyTwoFactorChallenge = (values: TwoFactorChallengeValues) =>
+  authApi.post<{ user: User }>("/2fa/verify", values);
+
+export const getTwoFactorStatus = (signal?: AbortSignal) =>
+  authApi.get<TwoFactorStatus>("/2fa/status", { signal });
 
 export const requestMagicLink = (values: RequestMagicLinkValues) =>
   authApi.post<{ message: string; email?: string; token?: string; magicLinkUrl?: string }>(

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,6 +17,7 @@ import { resetAllStores } from "@/lib/stores/reset";
 
 import { login } from "../api";
 import { loginSchema, type LoginValues } from "../schemas";
+import { TwoFactorChallengeForm } from "./two-factor-challenge-form";
 
 export function LoginForm({
   next,
@@ -26,6 +28,7 @@ export function LoginForm({
 }) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const [challengeToken, setChallengeToken] = useState<string | null>(null);
 
   const methods = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
@@ -35,7 +38,12 @@ export function LoginForm({
   const loginMutation = useMutation({
     mutationFn: login,
     meta: { silent: true },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      if (data?.twoFactorRequired && data?.challengeToken) {
+        setChallengeToken(data.challengeToken);
+        return;
+      }
+
       queryClient?.clear?.();
       resetAllStores();
       if (targetTenant?.id) {
@@ -45,6 +53,20 @@ export function LoginForm({
       router?.refresh?.();
     },
   });
+
+  if (challengeToken) {
+    return (
+      <TwoFactorChallengeForm
+        challengeToken={challengeToken}
+        next={next}
+        targetTenant={targetTenant}
+        onCancel={() => {
+          setChallengeToken(null);
+          loginMutation.reset();
+        }}
+      />
+    );
+  }
 
   return (
     <div className="grid gap-5">

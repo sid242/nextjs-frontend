@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { ActiveSessionsCard, ChangePasswordCard } from "@/features/auth";
+import { ActiveSessionsCard, ChangePasswordCard, TwoFactorSettingsCard } from "@/features/auth";
 
 export const metadata: Metadata = {
   title: "Security & Sessions Settings",
@@ -9,6 +9,7 @@ export const metadata: Metadata = {
 export default function SecuritySettingsPage() {
   return (
     <div className="space-y-6">
+      <TwoFactorSettingsCard />
       <ChangePasswordCard />
       <ActiveSessionsCard />
     </div>

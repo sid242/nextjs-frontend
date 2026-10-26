@@ -12,6 +12,10 @@ export { ActiveSessionsCard } from "./components/active-sessions-card";
 export { ChangePasswordCard } from "./components/change-password-card";
 export { ImpersonationBanner } from "./components/impersonation-banner";
 export { VerifyEmailView } from "./components/verify-email-view";
+export { TwoFactorChallengeForm } from "./components/two-factor-challenge-form";
+export { TwoFactorSettingsCard } from "./components/two-factor-settings-card";
+export { TwoFactorSetupDialog } from "./components/two-factor-setup-dialog";
+export { TwoFactorDisableDialog } from "./components/two-factor-disable-dialog";
 export {
   useChangePassword,
   useRevokeSession,
@@ -22,4 +26,9 @@ export {
   useRequestMagicLink,
   useVerifyMagicLink,
   useAcceptWorkspaceInvite,
+  useTwoFactorStatus,
+  useSetupTwoFactor,
+  useEnableTwoFactor,
+  useDisableTwoFactor,
+  useVerifyTwoFactorChallenge,
 } from "./queries";

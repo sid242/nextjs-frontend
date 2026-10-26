@@ -78,3 +78,47 @@ export const verifyMagicLinkSchema = z.object({
   token: z.string().min(1, "Magic link token is required"),
 });
 export type VerifyMagicLinkValues = z.infer<typeof verifyMagicLinkSchema>;
+
+// ─── Two-Factor Authentication ──────────────────────────────────────────────────
+
+export const twoFactorCodeSchema = z.object({
+  code: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, "Enter a valid 6-digit authentication code"),
+});
+export type TwoFactorCodeValues = z.infer<typeof twoFactorCodeSchema>;
+
+export const twoFactorDisableSchema = z.object({
+  password: z.string().min(1, "Password is required"),
+  code: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, "Enter a valid 6-digit authentication code"),
+});
+export type TwoFactorDisableValues = z.infer<typeof twoFactorDisableSchema>;
+
+export const twoFactorChallengeSchema = z.object({
+  challengeToken: z.string().min(1, "Challenge token is required"),
+  code: z
+    .string()
+    .trim()
+    .min(6, "Enter a valid 6-digit code or 10-character recovery code")
+    .max(10, "Code must not exceed 10 characters"),
+});
+export type TwoFactorChallengeValues = z.infer<typeof twoFactorChallengeSchema>;
+
+export interface TwoFactorStatus {
+  enabled: boolean;
+  enabledAt: string | null;
+}
+
+export interface TwoFactorSetupData {
+  secret: string;
+  otpauthUri: string;
+}
+
+export interface TwoFactorEnableData {
+  message: string;
+  recoveryCodes: string[];
+}

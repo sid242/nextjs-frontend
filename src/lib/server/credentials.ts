@@ -15,6 +15,7 @@ export async function handleCredentials(
     | "/auth/login"
     | "/auth/register"
     | "/auth/magic-link/verify"
+    | "/auth/2fa/verify"
     | "/tenants/invitations/accept"
     | string,
 ) {
@@ -40,11 +41,36 @@ export async function handleCredentials(
     user?: unknown;
     accessToken?: string;
     refreshToken?: string;
+    twoFactorRequired?: boolean;
+    challengeToken?: string;
+    method?: string;
     error?: unknown;
-    data?: { user?: unknown; accessToken?: string; refreshToken?: string };
+    data?: {
+      user?: unknown;
+      accessToken?: string;
+      refreshToken?: string;
+      twoFactorRequired?: boolean;
+      challengeToken?: string;
+      method?: string;
+    };
   } | null;
 
   const authData = data?.data ?? data;
+
+  // Intercept 2FA challenge response
+  if (upstream.ok && authData?.twoFactorRequired) {
+    return NextResponse.json(
+      {
+        twoFactorRequired: true,
+        challengeToken: authData?.challengeToken,
+        method: authData?.method ?? "totp",
+      },
+      {
+        status: 200,
+        headers: { "Cache-Control": "no-store" },
+      },
+    );
+  }
 
   if (!upstream.ok || !authData?.accessToken || !authData?.refreshToken) {
     const headers: Record<string, string> = { "Cache-Control": "no-store" };
