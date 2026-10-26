@@ -10,6 +10,9 @@ export interface EmailTemplate {
   category: EmailTemplateCategory;
   status: EmailTemplateStatus;
   description: string | null;
+  senderName: string | null;
+  fromEmail: string | null;
+  replyTo: string | null;
   htmlContent: string;
   designJson: Record<string, unknown> | null;
   variables: string[];
@@ -32,6 +35,9 @@ export interface CreateEmailTemplateInput {
   category: EmailTemplateCategory;
   status: EmailTemplateStatus;
   description?: string;
+  senderName?: string;
+  fromEmail?: string;
+  replyTo?: string;
   htmlContent: string;
   designJson?: Record<string, unknown>;
   variables?: string[];

@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ChangeEvent } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArchiveIcon,
   CheckCircleIcon,
@@ -19,7 +21,6 @@ import { ColumnConfigDropdown } from "@/components/molecules/column-config-dropd
 import { TablePagination } from "@/components/molecules/table-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -54,8 +55,6 @@ import {
 import { CATEGORY_LABELS, STATUS_COLORS } from "../constants";
 import { useDeleteEmailTemplate, useEmailTemplates } from "../queries";
 import type { EmailTemplate, EmailTemplateCategory, EmailTemplateStatus } from "../types";
-import { DevicePreview } from "./device-preview";
-import { TemplateEditorDialog } from "./template-editor-dialog";
 import { TestSendDialog } from "./test-send-dialog";
 
 type TemplateColumnId =
@@ -82,6 +81,7 @@ const TEMPLATE_COLUMN_LABELS: Record<TemplateColumnId, string> = {
 };
 
 export function TemplatesTable() {
+  const router = useRouter();
   const { get, getNumber, setParam, setParams } = useSearchQueryParams();
   const [searchInput, setSearchInput] = useState<string>(() => get("q") ?? "");
 
@@ -89,7 +89,7 @@ export function TemplatesTable() {
     setParams({ q: val.trim() || null, page: null }, { mode: "replace", scroll: false });
   }, 250);
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
     const val = e?.target?.value ?? "";
     setSearchInput(val);
     syncSearchParam.run(val);
@@ -112,14 +112,8 @@ export function TemplatesTable() {
     );
   };
 
-  const [editorOpen, setEditorOpen] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
-
   const [testSendOpen, setTestSendOpen] = useState(false);
   const [testSendTemplate, setTestSendTemplate] = useState<EmailTemplate | null>(null);
-
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewTemplate, setPreviewTemplate] = useState<EmailTemplate | null>(null);
 
   const tableColumns = useTableColumns({
     columns: TEMPLATE_COLUMNS,
@@ -134,24 +128,9 @@ export function TemplatesTable() {
 
   const deleteMutation = useDeleteEmailTemplate();
 
-  const handleEdit = (tpl: EmailTemplate) => {
-    setEditingTemplate(tpl);
-    setEditorOpen(true);
-  };
-
-  const handleCreateNew = () => {
-    setEditingTemplate(null);
-    setEditorOpen(true);
-  };
-
   const handleTestSend = (tpl: EmailTemplate) => {
     setTestSendTemplate(tpl);
     setTestSendOpen(true);
-  };
-
-  const handlePreview = (tpl: EmailTemplate) => {
-    setPreviewTemplate(tpl);
-    setPreviewOpen(true);
   };
 
   const handleDelete = async (id: string, name: string) => {
@@ -185,17 +164,17 @@ export function TemplatesTable() {
   const getHeaderClass = (id: TemplateColumnId) => {
     switch (id) {
       case "name":
-        return "w-[260px]";
+        return "w-[240px] min-w-[200px]";
       case "subject":
-        return "";
+        return "min-w-[220px]";
       case "category":
-        return "w-[120px]";
+        return "w-[120px] min-w-[110px]";
       case "status":
-        return "w-[110px]";
+        return "w-[110px] min-w-[100px]";
       case "variables":
-        return "w-[130px]";
+        return "w-[130px] min-w-[120px]";
       case "updatedAt":
-        return "w-[110px]";
+        return "w-[110px] min-w-[100px]";
       case "actions":
         return "w-[80px] text-right";
     }
@@ -206,10 +185,15 @@ export function TemplatesTable() {
       case "name":
         return (
           <TableCell key={colId} className="font-medium">
-            <div className="flex flex-col">
-              <span className="text-foreground text-sm font-semibold">{tpl?.name}</span>
+            <Link
+              href={`/email-templates/${tpl?.id}`}
+              className="group flex flex-col focus:outline-none"
+            >
+              <span className="text-foreground group-hover:text-primary text-sm font-semibold transition-colors">
+                {tpl?.name}
+              </span>
               <span className="text-muted-foreground font-mono text-[11px]">/{tpl?.slug}</span>
-            </div>
+            </Link>
           </TableCell>
         );
 
@@ -268,7 +252,7 @@ export function TemplatesTable() {
                   ))}
                 </>
               ) : (
-                <span className="text-muted-foreground font-italic text-xs">None</span>
+                <span className="text-muted-foreground text-xs italic">None</span>
               )}
             </div>
           </TableCell>
@@ -290,18 +274,24 @@ export function TemplatesTable() {
                   <MoreVerticalIcon className="size-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-40 text-xs">
-                <DropdownMenuItem onClick={() => handlePreview(tpl)} className="gap-2">
+              <DropdownMenuContent align="end" className="w-44 text-xs">
+                <DropdownMenuItem
+                  onClick={() => router.push(`/email-templates/${tpl.id}`)}
+                  className="gap-2"
+                >
                   <EyeIcon className="text-muted-foreground size-3.5" />
-                  <span>Preview</span>
+                  <span>View &amp; Preview</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleTestSend(tpl)} className="gap-2">
                   <SendIcon className="text-primary size-3.5" />
                   <span>Test Send</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleEdit(tpl)} className="gap-2">
+                <DropdownMenuItem
+                  onClick={() => router.push(`/email-templates/${tpl.id}/edit`)}
+                  className="gap-2"
+                >
                   <EditIcon className="text-muted-foreground size-3.5" />
-                  <span>Edit Template</span>
+                  <span>Edit in Studio</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -325,17 +315,19 @@ export function TemplatesTable() {
         <div>
           <h2 className="text-xl font-bold tracking-tight">Email Templates</h2>
           <p className="text-muted-foreground text-xs">
-            Create, manage, and dispatch customized email templates with dynamic merge variables
+            Create, manage, and dispatch responsive email templates with dynamic merge variables
           </p>
         </div>
-        <Button onClick={handleCreateNew} className="gap-1.5 shadow-sm">
-          <PlusIcon className="size-4" />
-          <span>New Email Template</span>
+        <Button asChild className="gap-1.5 shadow-sm">
+          <Link href="/email-templates/new">
+            <PlusIcon className="size-4" />
+            <span>New Email Template</span>
+          </Link>
         </Button>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="border-border bg-card flex flex-wrap items-center gap-2.5 rounded-lg border p-3">
+      {/* Filter and Search Bar (Fully Responsive) */}
+      <div className="border-border bg-card flex flex-col gap-2.5 rounded-lg border p-3 sm:flex-row sm:items-center">
         <div className="relative min-w-[200px] flex-1">
           <SearchIcon className="text-muted-foreground absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
           <Input
@@ -346,35 +338,37 @@ export function TemplatesTable() {
           />
         </div>
 
-        <Select value={categoryFilter} onValueChange={handleCategoryChange}>
-          <SelectTrigger className="h-9 w-[150px] text-xs">
-            <SelectValue placeholder="All Categories" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">All Categories</SelectItem>
-            <SelectItem value="MARKETING">Marketing</SelectItem>
-            <SelectItem value="TRANSACTIONAL">Transactional</SelectItem>
-            <SelectItem value="NOTIFICATION">Notification</SelectItem>
-            <SelectItem value="CUSTOM">Custom</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={categoryFilter} onValueChange={handleCategoryChange}>
+            <SelectTrigger className="h-9 w-full text-xs sm:w-[150px]">
+              <SelectValue placeholder="All Categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Categories</SelectItem>
+              <SelectItem value="MARKETING">Marketing</SelectItem>
+              <SelectItem value="TRANSACTIONAL">Transactional</SelectItem>
+              <SelectItem value="NOTIFICATION">Notification</SelectItem>
+              <SelectItem value="CUSTOM">Custom</SelectItem>
+            </SelectContent>
+          </Select>
 
-        <Select value={statusFilter} onValueChange={handleStatusChange}>
-          <SelectTrigger className="h-9 w-[130px] text-xs">
-            <SelectValue placeholder="All Statuses" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">All Statuses</SelectItem>
-            <SelectItem value="PUBLISHED">Published</SelectItem>
-            <SelectItem value="DRAFT">Draft</SelectItem>
-            <SelectItem value="ARCHIVED">Archived</SelectItem>
-          </SelectContent>
-        </Select>
+          <Select value={statusFilter} onValueChange={handleStatusChange}>
+            <SelectTrigger className="h-9 w-full text-xs sm:w-[130px]">
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Statuses</SelectItem>
+              <SelectItem value="PUBLISHED">Published</SelectItem>
+              <SelectItem value="DRAFT">Draft</SelectItem>
+              <SelectItem value="ARCHIVED">Archived</SelectItem>
+            </SelectContent>
+          </Select>
 
-        <ColumnConfigDropdown tableColumns={tableColumns} />
+          <ColumnConfigDropdown tableColumns={tableColumns} />
+        </div>
       </div>
 
-      {/* Table Container */}
+      {/* Table Container with Horizontal Scroll Container */}
       <div className="border-border bg-card overflow-hidden rounded-lg border shadow-xs">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center space-y-2 p-12">
@@ -394,31 +388,35 @@ export function TemplatesTable() {
                   : "Get started by creating your first personalized email template"}
               </p>
             </div>
-            <Button onClick={handleCreateNew} variant="outline" size="sm" className="mt-2 gap-1.5">
-              <PlusIcon className="size-3.5" />
-              <span>Create Template</span>
+            <Button asChild variant="outline" size="sm" className="mt-2 gap-1.5">
+              <Link href="/email-templates/new">
+                <PlusIcon className="size-3.5" />
+                <span>Create Template</span>
+              </Link>
             </Button>
           </div>
         ) : (
           <>
-            <Table>
-              <TableHeader className="bg-muted/40">
-                <TableRow>
-                  {tableColumns.orderedVisibleColumns?.map((colId) => (
-                    <TableHead key={colId} className={getHeaderClass(colId)}>
-                      {TEMPLATE_COLUMN_LABELS[colId]}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedTemplates?.map((tpl) => (
-                  <TableRow key={tpl?.id} className="hover:bg-muted/30 transition-colors">
-                    {tableColumns.orderedVisibleColumns?.map((colId) => renderCell(colId, tpl))}
+            <div className="w-full overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-muted/40">
+                  <TableRow>
+                    {tableColumns.orderedVisibleColumns?.map((colId) => (
+                      <TableHead key={colId} className={getHeaderClass(colId)}>
+                        {TEMPLATE_COLUMN_LABELS[colId]}
+                      </TableHead>
+                    ))}
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {paginatedTemplates?.map((tpl) => (
+                    <TableRow key={tpl?.id} className="hover:bg-muted/30 transition-colors">
+                      {tableColumns.orderedVisibleColumns?.map((colId) => renderCell(colId, tpl))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
 
             <TablePagination
               currentPage={safePage}
@@ -436,38 +434,12 @@ export function TemplatesTable() {
         )}
       </div>
 
-      {/* Editor Dialog */}
-      <TemplateEditorDialog
-        template={editingTemplate}
-        open={editorOpen}
-        onOpenChange={setEditorOpen}
-      />
-
       {/* Test Send Dialog */}
       <TestSendDialog
         template={testSendTemplate}
         open={testSendOpen}
         onOpenChange={setTestSendOpen}
       />
-
-      {/* Quick Preview Dialog */}
-      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-h-[90vh] max-w-3xl overflow-hidden p-0">
-          <DialogHeader className="border-border bg-muted/20 border-b px-6 py-3">
-            <DialogTitle className="text-base">
-              Template Preview: {previewTemplate?.name}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="overflow-y-auto p-6">
-            {previewTemplate && (
-              <DevicePreview
-                htmlContent={previewTemplate.htmlContent}
-                subject={previewTemplate.subject}
-              />
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

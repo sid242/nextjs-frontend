@@ -6,5 +6,6 @@ export * from "./queries";
 export * from "./components/variable-helper";
 export * from "./components/device-preview";
 export * from "./components/template-editor-dialog";
+export * from "./components/template-studio";
 export * from "./components/test-send-dialog";
 export * from "./components/templates-table";

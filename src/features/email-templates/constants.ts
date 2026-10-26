@@ -96,3 +96,55 @@ export const STATUS_COLORS: Record<string, { bg: string; text: string; border: s
     border: "border-neutral-500/20",
   },
 };
+
+export const DEFAULT_STARTER_HTML = `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; border: 1px solid #e5e7eb;">
+  <!-- Header -->
+  <div style="background-color: #0f172a; padding: 24px; text-align: center;">
+    <h1 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: bold;">{{org_name}}</h1>
+    <p style="color: #94a3b8; margin: 6px 0 0 0; font-size: 14px;">Exclusive Property Update</p>
+  </div>
+
+  <!-- Body -->
+  <div style="padding: 24px;">
+    <h2 style="color: #1e293b; font-size: 18px; margin-top: 0;">Hello {{customer_name}},</h2>
+    <p style="color: #475569; font-size: 14px; line-height: 1.6;">
+      Thank you for your interest in <strong>{{project_name}}</strong> located at {{project_location}}.
+    </p>
+
+    <!-- Key Info Box -->
+    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 16px; margin: 20px 0;">
+      <h3 style="color: #0f172a; font-size: 14px; margin-top: 0; margin-bottom: 12px; font-weight: bold;">Property Details</h3>
+      <table style="width: 100%; border-collapse: collapse; font-size: 13px; color: #334155;">
+        <tr>
+          <td style="padding: 6px 0; font-weight: bold; width: 40%;">Property Type:</td>
+          <td style="padding: 6px 0;">{{property_type}}</td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 0; font-weight: bold;">Possession:</td>
+          <td style="padding: 6px 0;">{{possession_date}}</td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 0; font-weight: bold;">Unit Assigned:</td>
+          <td style="padding: 6px 0;">{{unit_number}}</td>
+        </tr>
+      </table>
+    </div>
+
+    <p style="color: #475569; font-size: 14px; line-height: 1.6;">
+      Your dedicated property advisor is <strong>{{sales_member_name}}</strong>. Feel free to contact at {{sales_member_phone}} or {{sales_member_email}}.
+    </p>
+
+    <!-- CTA Button -->
+    <div style="text-align: center; margin: 28px 0;">
+      <a href="https://savitara.com" style="background-color: #2563eb; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 14px;">
+        View Brochure & Floor Plans
+      </a>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style="background-color: #f1f5f9; padding: 16px 24px; text-align: center; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b;">
+    <p style="margin: 0;">{{org_name}} • Phone: {{org_phone}} • Email: {{org_email}}</p>
+    <p style="margin: 4px 0 0 0;">This email was sent to {{customer_email}}.</p>
+  </div>
+</div>`;

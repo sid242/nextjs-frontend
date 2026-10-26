@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { EyeIcon, LaptopIcon, SmartphoneIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -10,15 +10,23 @@ import { STANDARD_VARIABLES } from "../constants";
 interface DevicePreviewProps {
   htmlContent: string;
   subject?: string;
+  senderName?: string;
+  fromEmail?: string;
+  replyTo?: string;
   customVariables?: Record<string, string>;
   className?: string;
+  bodyMaxHeight?: string;
 }
 
 export function DevicePreview({
   htmlContent,
   subject = "",
+  senderName,
+  fromEmail,
+  replyTo,
   customVariables = {},
   className = "",
+  bodyMaxHeight,
 }: DevicePreviewProps) {
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
 
@@ -90,27 +98,42 @@ export function DevicePreview({
       {/* Simulated Email Client Envelope */}
       <div className="border-border/60 bg-muted/20 text-muted-foreground space-y-1 border-b px-4 py-2.5 text-xs">
         <div className="flex items-center gap-2">
-          <span className="text-foreground/80 w-12 font-semibold">From:</span>
-          <span>Savitara Realty &lt;info@savitara.com&gt;</span>
+          <span className="text-foreground/80 w-14 shrink-0 font-semibold">From:</span>
+          <span className="truncate">
+            {senderName ? `${senderName} ` : "Savitara Realty "}
+            &lt;{fromEmail || "info@savitara.com"}&gt;
+          </span>
         </div>
+        {replyTo && (
+          <div className="flex items-center gap-2">
+            <span className="text-foreground/80 w-14 shrink-0 font-semibold">Reply-To:</span>
+            <span className="truncate">&lt;{replyTo}&gt;</span>
+          </div>
+        )}
         <div className="flex items-center gap-2">
-          <span className="text-foreground/80 w-12 font-semibold">To:</span>
-          <span>
+          <span className="text-foreground/80 w-14 shrink-0 font-semibold">To:</span>
+          <span className="truncate">
             {sampleMap["customer_name"] || "Customer"} &lt;
             {sampleMap["customer_email"] || "recipient@example.com"}&gt;
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-foreground/80 w-12 font-semibold">Subject:</span>
-          <span className="text-foreground font-medium">{renderedSubject || "(No subject)"}</span>
+          <span className="text-foreground/80 w-14 shrink-0 font-semibold">Subject:</span>
+          <span className="text-foreground truncate font-medium">
+            {renderedSubject || "(No subject)"}
+          </span>
         </div>
       </div>
 
       {/* Email Body Frame */}
-      <div className="flex max-h-[550px] min-h-[380px] flex-1 items-start justify-center overflow-y-auto bg-neutral-100 p-4 dark:bg-neutral-900/50">
+      <div
+        className={`flex flex-1 items-start justify-center overflow-y-auto bg-neutral-100 p-2 sm:p-4 dark:bg-neutral-900/50 ${
+          bodyMaxHeight || "max-h-[550px] min-h-[380px]"
+        }`}
+      >
         <div
-          className={`overflow-hidden rounded-md border border-neutral-200 bg-white text-neutral-900 shadow-sm transition-all duration-300 ${
-            device === "desktop" ? "w-full max-w-[620px]" : "w-[360px]"
+          className={`w-full overflow-hidden rounded-md border border-neutral-200 bg-white text-neutral-900 shadow-sm transition-all duration-300 ${
+            device === "desktop" ? "max-w-[620px]" : "max-w-[360px]"
           }`}
         >
           <div

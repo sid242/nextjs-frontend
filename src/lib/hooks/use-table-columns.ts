@@ -1,5 +1,7 @@
 import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 
+import { clientStorage } from "@/lib/storage";
+
 export interface TableColumnDef<TId extends string = string> {
   /** Unique identifier for the column */
   id: TId;
@@ -199,12 +201,8 @@ export function useTableColumns<TId extends string = string>({
   );
 
   const getSnapshot = useCallback(() => {
-    if (!storageKey || typeof window === "undefined") return null;
-    try {
-      return window.localStorage.getItem(storageKey);
-    } catch {
-      return null;
-    }
+    if (!storageKey) return null;
+    return clientStorage.getItem(storageKey);
   }, [storageKey]);
 
   const getServerSnapshot = useCallback(() => null, []);
@@ -243,21 +241,14 @@ export function useTableColumns<TId extends string = string>({
 
   const persistState = useCallback(
     (order: TId[], visible: Record<TId, boolean>) => {
-      if (storageKey && typeof window !== "undefined") {
-        try {
-          window.localStorage.setItem(storageKey, JSON.stringify({ order, visible }));
-          notifyStorageListeners();
-        } catch (err) {
-          console.warn(
-            `[useTableColumns] Failed to persist preferences for table "${tableId}":`,
-            err,
-          );
-        }
+      if (storageKey) {
+        clientStorage.setJSON(storageKey, { order, visible });
+        notifyStorageListeners();
       } else {
         setInMemoryState({ order, visible });
       }
     },
-    [storageKey, tableId],
+    [storageKey],
   );
 
   const toggleColumn = useCallback(
@@ -340,27 +331,16 @@ export function useTableColumns<TId extends string = string>({
   );
 
   const resetColumns = useCallback(() => {
-    if (storageKey && typeof window !== "undefined") {
-      try {
-        window.localStorage.removeItem(storageKey);
-        notifyStorageListeners();
-      } catch (err) {
-        console.warn(`[useTableColumns] Failed to clear preferences for table "${tableId}":`, err);
-      }
+    if (storageKey) {
+      clientStorage.removeItem(storageKey);
+      notifyStorageListeners();
     } else {
       setInMemoryState({ order: defaultOrder, visible: defaultVisibility });
     }
 
     onColumnOrderChange?.(defaultOrder);
     onColumnVisibilityChange?.(defaultVisibility);
-  }, [
-    storageKey,
-    tableId,
-    defaultOrder,
-    defaultVisibility,
-    onColumnOrderChange,
-    onColumnVisibilityChange,
-  ]);
+  }, [storageKey, defaultOrder, defaultVisibility, onColumnOrderChange, onColumnVisibilityChange]);
 
   const isCustomized = useMemo(() => {
     const isOrderChanged = (currentState.order ?? []).some((id, idx) => id !== defaultOrder?.[idx]);

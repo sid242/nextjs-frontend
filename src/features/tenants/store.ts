@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
+import { tenantStorage } from "@/lib/storage";
 import { registerStoreReset } from "@/lib/stores/reset";
 
 interface TenantState {
@@ -8,16 +9,12 @@ interface TenantState {
   setActiveTenantId: (tenantId: string) => void;
 }
 
-const DEFAULT_TENANT_ID = "tenant-acme";
-
 export const useTenantStore = create<TenantState>()(
   persist(
     (set) => ({
-      activeTenantId: DEFAULT_TENANT_ID,
+      activeTenantId: tenantStorage.get(),
       setActiveTenantId: (activeTenantId) => {
-        if (typeof window !== "undefined") {
-          window.localStorage.setItem("active-tenant-id", activeTenantId);
-        }
+        tenantStorage.set(activeTenantId);
         set({ activeTenantId });
       },
     }),
@@ -26,15 +23,12 @@ export const useTenantStore = create<TenantState>()(
       version: 1,
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({ activeTenantId: state.activeTenantId }),
-      skipHydration: true,
     },
   ),
 );
 
 // Wipe tenant selection on user sign out
 registerStoreReset(() => {
-  useTenantStore.setState({ activeTenantId: DEFAULT_TENANT_ID });
-  if (typeof window !== "undefined") {
-    window.localStorage.removeItem("active-tenant-id");
-  }
+  useTenantStore.setState({ activeTenantId: null });
+  tenantStorage.clear();
 });

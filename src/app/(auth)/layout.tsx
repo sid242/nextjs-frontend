@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ThemeToggle } from "@/components/molecules/theme-toggle";
 import { siteConfig } from "@/config/site";
 import { TenantLogo, TenantThemeProvider } from "@/features/tenants";
+import { matchTenantAuthPath } from "@/lib/auth/paths";
 import { resolvePublicTenant } from "@/lib/server/tenant-resolver";
 
 export default async function AuthLayout({ children }: { children: React.ReactNode }) {
@@ -15,6 +16,10 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
   try {
     const parsedUrl = new URL(`http://localhost${xPathname}`);
     querySlug = parsedUrl.searchParams.get("tenant") ?? undefined;
+    if (!querySlug) {
+      const match = matchTenantAuthPath(parsedUrl.pathname);
+      if (match) querySlug = match.tenantSlug;
+    }
   } catch {
     querySlug = undefined;
   }

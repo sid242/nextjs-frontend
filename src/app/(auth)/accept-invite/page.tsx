@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAcceptWorkspaceInvite } from "@/features/auth";
 import { getErrorMessage } from "@/lib/api/errors";
+import { tenantStorage } from "@/lib/storage";
 import { resetAllStores } from "@/lib/stores/reset";
 
 function AcceptInviteContent() {
@@ -40,8 +41,8 @@ function AcceptInviteContent() {
         resetAllStores();
 
         const activeId = result?.activeTenantId || tenantId;
-        if (activeId && typeof window !== "undefined") {
-          window.localStorage.setItem("active-tenant-id", activeId);
+        if (activeId) {
+          tenantStorage.set(activeId);
         }
 
         setTimeout(() => {

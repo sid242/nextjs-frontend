@@ -10,12 +10,17 @@ import { ControlledInput, FormWrapper } from "@/components/molecules/forms";
 import { SubmitButton } from "@/components/molecules/submit-button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { getErrorMessage } from "@/lib/api/errors";
+import { tenantStorage } from "@/lib/storage";
 import { resetAllStores } from "@/lib/stores/reset";
 
 import { register } from "../api";
 import { registerSchema, type RegisterValues } from "../schemas";
 
-export function RegisterForm() {
+export function RegisterForm({
+  targetTenant,
+}: {
+  targetTenant?: { id: string; name: string; slug: string };
+} = {}) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const methods = useForm<RegisterValues>({
@@ -29,6 +34,9 @@ export function RegisterForm() {
     onSuccess: () => {
       queryClient?.clear?.();
       resetAllStores();
+      if (targetTenant?.id) {
+        tenantStorage.set(targetTenant.id);
+      }
       router?.replace?.("/dashboard");
       router?.refresh?.();
     },
@@ -75,7 +83,7 @@ export function RegisterForm() {
       <p className="text-muted-foreground text-center text-sm">
         Already registered?{" "}
         <Link
-          href="/login"
+          href={targetTenant?.slug ? `/${targetTenant.slug}/login` : "/login"}
           className="text-foreground font-medium underline-offset-4 hover:underline"
         >
           Sign in

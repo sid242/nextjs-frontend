@@ -33,7 +33,7 @@ export default async function RegisterPage({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <RegisterForm />
+        <RegisterForm targetTenant={resolved?.tenant} />
       </CardContent>
     </Card>
   );

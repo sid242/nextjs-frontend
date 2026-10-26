@@ -54,18 +54,13 @@ export function AppShell({
 
         {/* Global Navbar / Header */}
         <header className="bg-background/80 sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b px-4 backdrop-blur-md">
-          {/* Left section: Mobile hamburger + Tenant Brand + Breadcrumbs */}
+          {/* Left section: Mobile hamburger + Breadcrumbs */}
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <MobileSidebar
               tenantBrand={tenantBrand}
               tenantSwitcher={tenantSwitcher}
               userProfile={userProfile}
             />
-
-            <div className="hidden items-center gap-3 md:flex">
-              {tenantBrand}
-              <span className="text-muted-foreground/30 font-light select-none">/</span>
-            </div>
 
             <Breadcrumbs />
           </div>

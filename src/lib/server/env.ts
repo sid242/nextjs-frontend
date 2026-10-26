@@ -6,6 +6,7 @@ const schema = z.object({
   API_URL: z.string().url(),
   SOCKET_URL: z.string().url(),
   CSP_CONNECT_EXTRA: z.string().default(""),
+  CSP_FRAME_EXTRA: z.string().default(""),
 });
 
 export type ServerEnv = z.infer<typeof schema>;

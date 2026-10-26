@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { queryOptions, useQueryClient } from "@tanstack/react-query";
 
 import {
@@ -153,6 +153,15 @@ export function useActiveTenant() {
 
   const activeTenant: Tenant | undefined =
     tenants?.find((t) => t?.id === activeTenantId) ?? tenants?.[0];
+
+  useEffect(() => {
+    if (!isLoading && tenants && tenants.length > 0) {
+      const isValidActive = tenants.some((t) => t?.id === activeTenantId);
+      if (!isValidActive && activeTenant?.id) {
+        storeSetActiveTenantId(activeTenant.id);
+      }
+    }
+  }, [isLoading, tenants, activeTenantId, activeTenant?.id, storeSetActiveTenantId]);
 
   const setActiveTenantId = useCallback(
     (nextTenantId: string) => {

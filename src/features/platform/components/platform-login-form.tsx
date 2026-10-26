@@ -26,7 +26,7 @@ export function PlatformLoginForm({ next }: { next?: string }) {
   const methods = useForm<PlatformLoginInput>({
     resolver: zodResolver(platformLoginSchema),
     defaultValues: {
-      email: "superadmin@platform.local",
+      email: "sid.superadmin@yopmail.com",
       password: "Password@123456",
     },
   });
@@ -121,7 +121,7 @@ export function PlatformLoginForm({ next }: { next?: string }) {
               Default Super Administrator:
             </div>
             <div className="text-muted-foreground text-[10px]">
-              Email: <span className="text-foreground">superadmin@platform.local</span>
+              Email: <span className="text-foreground">sid.superadmin@yopmail.com</span>
             </div>
             <div className="text-muted-foreground text-[10px]">
               Pass: <span className="text-foreground">Password@123456</span>

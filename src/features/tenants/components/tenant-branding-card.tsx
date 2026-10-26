@@ -169,16 +169,42 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
 
       await uploadBrandingAsset(presigned.uploadUrl, presigned.fields, uploadFile);
 
-      if (type === "logo") setLogoUrl(presigned.publicUrl);
-      if (type === "logo-dark") setLogoDarkUrl(presigned.publicUrl);
-      if (type === "favicon") setFaviconUrl(presigned.publicUrl);
+      if (type === "logo") {
+        setLogoUrl(presigned.publicUrl);
+        await updateBrandingMutation.mutateAsync({ logoUrl: presigned.publicUrl });
+      } else if (type === "logo-dark") {
+        setLogoDarkUrl(presigned.publicUrl);
+        await updateBrandingMutation.mutateAsync({ logoDarkUrl: presigned.publicUrl });
+      } else if (type === "favicon") {
+        setFaviconUrl(presigned.publicUrl);
+        await updateBrandingMutation.mutateAsync({ faviconUrl: presigned.publicUrl });
+      }
 
-      toast.success(`${type.toUpperCase()} uploaded successfully!`);
+      toast.success(`${type.toUpperCase()} uploaded and saved successfully!`);
     } catch (err: unknown) {
       toast.error(getErrorMessage(err, `Failed to upload ${type}. Ensure file format is valid.`));
     } finally {
       setUploadingType(null);
-      if (e.target) e.target.value = "";
+      if (e?.target) e.target.value = "";
+    }
+  };
+
+  const handleRemoveAsset = async (type: "logo" | "logo-dark" | "favicon") => {
+    if (!activeTenantId) return;
+    try {
+      if (type === "logo") {
+        setLogoUrl(null);
+        await updateBrandingMutation.mutateAsync({ logoUrl: null });
+      } else if (type === "logo-dark") {
+        setLogoDarkUrl(null);
+        await updateBrandingMutation.mutateAsync({ logoDarkUrl: null });
+      } else if (type === "favicon") {
+        setFaviconUrl(null);
+        await updateBrandingMutation.mutateAsync({ faviconUrl: null });
+      }
+      toast.success(`${type.toUpperCase()} removed successfully`);
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, `Failed to remove ${type}`));
     }
   };
 
@@ -264,7 +290,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                         <Button
                           variant="destructive"
                           size="icon"
-                          onClick={() => setLogoUrl(null)}
+                          onClick={() => handleRemoveAsset("logo")}
                           className="absolute -top-1 -right-1 size-5 rounded-full"
                           aria-label="Remove light logo"
                         >
@@ -311,7 +337,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                         <Button
                           variant="destructive"
                           size="icon"
-                          onClick={() => setLogoDarkUrl(null)}
+                          onClick={() => handleRemoveAsset("logo-dark")}
                           className="absolute -top-1 -right-1 size-5 rounded-full"
                           aria-label="Remove dark logo"
                         >
@@ -358,7 +384,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                         <Button
                           variant="destructive"
                           size="icon"
-                          onClick={() => setFaviconUrl(null)}
+                          onClick={() => handleRemoveAsset("favicon")}
                           className="absolute -top-1 -right-1 size-5 rounded-full"
                           aria-label="Remove favicon"
                         >
@@ -642,7 +668,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
               <div
                 className={cn(
                   "overflow-hidden rounded-xl border p-4 transition-colors",
-                  previewDark ? "bg-zinc-950 text-white" : "bg-white text-zinc-900",
+                  previewDark ? "dark bg-zinc-950 text-white" : "bg-white text-zinc-900",
                 )}
                 style={{
                   ["--primary" as string]: previewTokens.primary,
@@ -795,7 +821,7 @@ export function TenantBrandingCard() {
 
   return (
     <TenantBrandingForm
-      key={`${branding?.tenantId ?? "default"}-${activeTenantId}`}
+      key={activeTenantId}
       branding={branding}
       activeTenant={activeTenant}
       activeTenantId={activeTenantId}

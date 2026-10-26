@@ -63,11 +63,6 @@ export const navSections: NavSection[] = [
         href: "/email-templates",
         icon: "mail",
       },
-      {
-        title: "White-Label Branding",
-        href: "/branding",
-        icon: "palette",
-      },
     ],
   },
   {
@@ -96,7 +91,6 @@ export const siteConfig = {
     { title: "Dashboard", href: "/dashboard", icon: "layout-dashboard" as const },
     { title: "Team", href: "/team", icon: "users" as const },
     { title: "Roles & Permissions", href: "/roles", icon: "shield-check" as const },
-    { title: "White-Label Branding", href: "/branding", icon: "palette" as const },
     { title: "Files", href: "/files", icon: "folder" as const },
     { title: "Email Templates", href: "/email-templates", icon: "mail" as const },
     { title: "Audit Logs", href: "/audit-logs", icon: "scroll-text" as const },

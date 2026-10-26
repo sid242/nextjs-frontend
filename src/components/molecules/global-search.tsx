@@ -52,7 +52,7 @@ const SEARCH_ITEMS: SearchItem[] = [
   },
   {
     title: "White-Label Branding",
-    href: "/branding",
+    href: "/settings/branding",
     category: "Settings",
     icon: PaletteIcon,
     description: "Customize company logo, theme colors, and domain",

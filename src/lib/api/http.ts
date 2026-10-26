@@ -3,6 +3,7 @@ import "client-only"; // build error if a server component imports this: server 
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from "axios";
 
 import { createId } from "@/lib/id";
+import { tenantStorage } from "@/lib/storage";
 
 import { toApiError } from "./errors";
 import { refreshSession } from "./refresh";
@@ -30,11 +31,9 @@ function createInstance(baseURL: string): AxiosInstance {
   // End-to-end tracing: the BFF forwards this id to the backend, so one id spans browser -> Next -> API logs.
   instance.interceptors.request.use((config) => {
     if (!config.headers.has("x-request-id")) config.headers.set("x-request-id", createId());
-    if (typeof window !== "undefined") {
-      const tenantId = window.localStorage.getItem("active-tenant-id");
-      if (tenantId && !config.headers.has("x-tenant-id")) {
-        config.headers.set("x-tenant-id", tenantId);
-      }
+    const tenantId = tenantStorage.get();
+    if (tenantId && !config.headers.has("x-tenant-id")) {
+      config.headers.set("x-tenant-id", tenantId);
     }
     return config;
   });

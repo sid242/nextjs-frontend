@@ -45,8 +45,13 @@ export function MobileSidebar({ tenantSwitcher, userProfile, tenantBrand }: Mobi
               <SheetDescription className="sr-only">
                 Navigation menu and organization selector
               </SheetDescription>
-              <div className="flex items-center justify-between pb-2">{tenantBrand}</div>
-              {tenantSwitcher && <div className="pt-1">{tenantSwitcher}</div>}
+              {tenantSwitcher ? (
+                <div className="pt-1">{tenantSwitcher}</div>
+              ) : (
+                tenantBrand && (
+                  <div className="flex items-center justify-between pb-2">{tenantBrand}</div>
+                )
+              )}
             </SheetHeader>
 
             <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto py-1 pr-1">

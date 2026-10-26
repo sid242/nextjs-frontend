@@ -139,6 +139,9 @@ function TemplateEditorDialogContent({
   const [category, setCategory] = useState<EmailTemplateCategory>(template?.category ?? "CUSTOM");
   const [status, setStatus] = useState<EmailTemplateStatus>(template?.status ?? "DRAFT");
   const [description, setDescription] = useState(template?.description ?? "");
+  const [senderName, setSenderName] = useState(template?.senderName ?? "");
+  const [fromEmail, setFromEmail] = useState(template?.fromEmail ?? "");
+  const [replyTo, setReplyTo] = useState(template?.replyTo ?? "");
   const [htmlContent, setHtmlContent] = useState(template?.htmlContent ?? DEFAULT_STARTER_HTML);
 
   const emailEditorRef = useRef<EditorRef | null>(null);
@@ -202,6 +205,9 @@ function TemplateEditorDialogContent({
           category,
           status,
           description: description || undefined,
+          senderName: senderName || undefined,
+          fromEmail: fromEmail || undefined,
+          replyTo: replyTo || undefined,
           htmlContent: data.html,
           designJson: data.design,
         };
@@ -220,6 +226,9 @@ function TemplateEditorDialogContent({
         category,
         status,
         description: description || undefined,
+        senderName: senderName || undefined,
+        fromEmail: fromEmail || undefined,
+        replyTo: replyTo || undefined,
         htmlContent,
         designJson: undefined,
       };
@@ -345,6 +354,46 @@ function TemplateEditorDialogContent({
               </Select>
             </div>
           </div>
+          <div className="mt-2 grid grid-cols-12 gap-3">
+            <div className="col-span-4 space-y-1">
+              <Label htmlFor="tpl-sender-name" className="text-xs">
+                Sender Name
+              </Label>
+              <Input
+                id="tpl-sender-name"
+                className="h-8 text-xs"
+                placeholder="e.g. Savitara Support"
+                value={senderName}
+                onChange={(e) => setSenderName(e.target.value)}
+              />
+            </div>
+            <div className="col-span-4 space-y-1">
+              <Label htmlFor="tpl-from-email" className="text-xs">
+                From Email
+              </Label>
+              <Input
+                id="tpl-from-email"
+                type="email"
+                className="h-8 font-mono text-xs"
+                placeholder="e.g. alerts@savitara.com"
+                value={fromEmail}
+                onChange={(e) => setFromEmail(e.target.value)}
+              />
+            </div>
+            <div className="col-span-4 space-y-1">
+              <Label htmlFor="tpl-reply-to" className="text-xs">
+                Reply-To
+              </Label>
+              <Input
+                id="tpl-reply-to"
+                type="email"
+                className="h-8 font-mono text-xs"
+                placeholder="e.g. billing@savitara.com"
+                value={replyTo}
+                onChange={(e) => setReplyTo(e.target.value)}
+              />
+            </div>
+          </div>
           <div className="mt-2">
             <Input
               id="tpl-desc"
@@ -386,7 +435,14 @@ function TemplateEditorDialogContent({
 
               {/* Right Column: Live Responsive Preview */}
               <div className="bg-muted/10 col-span-5 flex flex-col overflow-y-auto p-4">
-                <DevicePreview htmlContent={htmlContent} subject={subject} className="flex-1" />
+                <DevicePreview
+                  htmlContent={htmlContent}
+                  subject={subject}
+                  senderName={senderName}
+                  fromEmail={fromEmail}
+                  replyTo={replyTo}
+                  className="flex-1"
+                />
               </div>
             </div>
           ) : (

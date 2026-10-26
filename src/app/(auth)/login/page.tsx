@@ -33,7 +33,10 @@ export default async function LoginPage({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <LoginForm next={typeof next === "string" ? next : undefined} />
+        <LoginForm
+          next={typeof next === "string" ? next : undefined}
+          targetTenant={resolved?.tenant}
+        />
       </CardContent>
     </Card>
   );

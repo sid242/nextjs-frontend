@@ -11,12 +11,19 @@ import { SubmitButton } from "@/components/molecules/submit-button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { getErrorMessage } from "@/lib/api/errors";
 import { safeNextPath } from "@/lib/auth/paths";
+import { tenantStorage } from "@/lib/storage";
 import { resetAllStores } from "@/lib/stores/reset";
 
 import { login } from "../api";
 import { loginSchema, type LoginValues } from "../schemas";
 
-export function LoginForm({ next }: { next?: string }) {
+export function LoginForm({
+  next,
+  targetTenant,
+}: {
+  next?: string;
+  targetTenant?: { id: string; name: string; slug: string };
+}) {
   const router = useRouter();
   const queryClient = useQueryClient();
 
@@ -31,6 +38,9 @@ export function LoginForm({ next }: { next?: string }) {
     onSuccess: () => {
       queryClient?.clear?.();
       resetAllStores();
+      if (targetTenant?.id) {
+        tenantStorage.set(targetTenant.id);
+      }
       router?.replace?.(safeNextPath(next));
       router?.refresh?.();
     },
@@ -86,7 +96,7 @@ export function LoginForm({ next }: { next?: string }) {
       <p className="text-muted-foreground text-center text-sm">
         No account?{" "}
         <Link
-          href="/register"
+          href={targetTenant?.slug ? `/${targetTenant.slug}/register` : "/register"}
           className="text-foreground font-medium underline-offset-4 hover:underline"
         >
           Create one

@@ -1,7 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { ACCESS_COOKIE, PLATFORM_STAFF_COOKIE, REFRESH_COOKIE } from "@/lib/auth/constants";
-import { isAuthPage, isPlatformLogin, isPlatformPath, isProtectedPath } from "@/lib/auth/paths";
+import {
+  isAuthPage,
+  isPlatformLogin,
+  isPlatformPath,
+  isProtectedPath,
+  matchTenantAuthPath,
+} from "@/lib/auth/paths";
 
 const isDev = process.env.NODE_ENV !== "production";
 
@@ -32,22 +38,38 @@ function buildCsp(nonce: string): string {
       ...parseOrigins(process.env.CSP_CONNECT_EXTRA),
       ...parseOrigins(process.env.CSP_STORAGE_EXTRA),
       ...parseOrigins(process.env.CSP_IMG_EXTRA),
+      ...parseOrigins(process.env.CSP_FRAME_EXTRA),
     ]),
   );
 
-  const connect = ["'self'", ...socketOrigins(), ...extraOrigins];
+  const unlayerDomains = [
+    "https://editor.unlayer.com",
+    "https://*.unlayer.com",
+    "https://api.unlayer.com",
+    "https://cdn.tools.unlayer.com",
+  ];
 
-  const storageMedia = ["'self'", "blob:", "data:", ...extraOrigins];
+  const connect = ["'self'", ...socketOrigins(), ...unlayerDomains, ...extraOrigins];
+
+  const storageMedia = [
+    "'self'",
+    "blob:",
+    "data:",
+    ...unlayerDomains,
+    "https://s3.amazonaws.com",
+    ...extraOrigins,
+  ];
 
   return [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
-    "style-src 'self' 'unsafe-inline'",
+    `script-src 'self' https://editor.unlayer.com https://*.unlayer.com 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
+    "style-src 'self' 'unsafe-inline' https://editor.unlayer.com https://*.unlayer.com",
     `img-src ${storageMedia.join(" ")}`,
-    "font-src 'self' data:",
+    "font-src 'self' data: https://editor.unlayer.com https://*.unlayer.com https://fonts.gstatic.com",
     `connect-src ${connect.join(" ")}`,
     `media-src ${storageMedia.join(" ")}`,
-    `frame-src 'self' ${extraOrigins.join(" ")}`,
+    `frame-src 'self' https://editor.unlayer.com https://*.unlayer.com ${extraOrigins.join(" ")}`,
+    "worker-src 'self' blob:",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
@@ -83,6 +105,29 @@ export function proxy(req: NextRequest) {
         );
       }
     }
+  }
+
+  // Clean path slug auth: e.g. /acme-realty/login or /acme-realty/register
+  const tenantAuth = matchTenantAuthPath(pathname);
+  if (tenantAuth) {
+    if (hasAccess) {
+      return NextResponse.redirect(new URL("/dashboard", req.url));
+    }
+    const url = req.nextUrl.clone();
+    url.pathname = `/${tenantAuth.action}`;
+    url.searchParams.set("tenant", tenantAuth.tenantSlug);
+
+    const nonce = btoa(crypto.randomUUID());
+    const csp = buildCsp(nonce);
+
+    const headers = new Headers(req.headers);
+    headers.set("x-nonce", nonce);
+    headers.set("x-pathname", `${pathname}${search}`);
+    headers.set("content-security-policy", csp);
+
+    const res = NextResponse.rewrite(url, { request: { headers } });
+    res.headers.set("Content-Security-Policy", csp);
+    return res;
   }
 
   if (isProtectedPath(pathname) && !hasAccess) {

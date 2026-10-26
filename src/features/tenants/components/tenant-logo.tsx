@@ -53,7 +53,7 @@ export function TenantLogo({
   branding: overrideBranding,
   showName = true,
 }: TenantLogoProps) {
-  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const [failedUrls, setFailedUrls] = useState<Record<string, boolean>>({});
 
   const { activeTenant } = useActiveTenant();
   const currentTenant = overrideTenant !== undefined ? overrideTenant : activeTenant;
@@ -66,15 +66,14 @@ export function TenantLogo({
   const favicon = activeBranding?.faviconUrl?.trim() || null;
 
   const lightSrc = variant === "icon" ? favicon || lightLogo : lightLogo;
-  const darkSrc = variant === "icon" ? favicon || darkLogo || lightLogo : darkLogo || lightLogo;
 
   const displayName = activeBranding?.companyName || currentTenant?.name || "Workspace";
   const tokens = computeTenantThemeTokens(activeBranding);
 
-  const isLightFailed = lightSrc ? failedSrc === lightSrc : true;
-  const isDarkFailed = darkSrc ? failedSrc === darkSrc : true;
+  const isLightFailed = lightSrc ? Boolean(failedUrls[lightSrc]) : true;
+  const isDarkFailed = darkLogo ? Boolean(failedUrls[darkLogo]) : true;
 
-  const hasAnyValidImage = (!isLightFailed && !!lightSrc) || (!isDarkFailed && !!darkSrc);
+  const hasAnyValidImage = (!isLightFailed && !!lightSrc) || (!isDarkFailed && !!darkLogo);
 
   const renderFallback = () => (
     <Avatar
@@ -112,7 +111,7 @@ export function TenantLogo({
               key={`light-${lightSrc}`}
               src={lightSrc}
               alt={displayName}
-              onError={() => setFailedSrc(lightSrc)}
+              onError={() => setFailedUrls((prev) => ({ ...prev, [lightSrc]: true }))}
               className={cn(
                 "object-contain",
                 darkLogo && darkLogo !== lightLogo && "dark:hidden",
@@ -128,7 +127,7 @@ export function TenantLogo({
               key={`dark-${darkLogo}`}
               src={darkLogo}
               alt={displayName}
-              onError={() => setFailedSrc(darkLogo)}
+              onError={() => setFailedUrls((prev) => ({ ...prev, [darkLogo]: true }))}
               className={cn(
                 "hidden object-contain dark:block",
                 variant === "icon" ? "size-full rounded-md" : "h-7 w-auto max-w-[140px]",

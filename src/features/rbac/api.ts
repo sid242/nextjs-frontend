@@ -170,7 +170,7 @@ export async function deletePlatformRole(roleId: string): Promise<void> {
 
 export async function getPlatformPermissions(signal?: AbortSignal): Promise<Permission[]> {
   try {
-    const data = await api.get<Permission[]>("/platform/permissions", { signal });
+    const data = await api.get<Permission[]>("/rbac/permissions", { signal });
     return data?.length ? data : DEFAULT_PERMISSIONS;
   } catch {
     return DEFAULT_PERMISSIONS;

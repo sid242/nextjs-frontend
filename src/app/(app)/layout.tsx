@@ -6,7 +6,7 @@ import { ImpersonationBanner, UserMenu, UserProfileFooter } from "@/features/aut
 import { NotificationBell } from "@/features/notifications";
 import { SupportSessionBanner } from "@/features/platform";
 import { ConnectionStatus, SocketProvider } from "@/features/realtime";
-import { TenantBrand, TenantSwitcher, TenantThemeProvider } from "@/features/tenants";
+import { TenantSwitcher, TenantThemeProvider } from "@/features/tenants";
 import { SUPPORT_SESSION_COOKIE } from "@/lib/auth/constants";
 import { isImpersonating, requireUser } from "@/lib/auth/session";
 
@@ -29,7 +29,6 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           userMenu={<UserMenu user={user} />}
           userProfile={<UserProfileFooter user={user} />}
           tenantSwitcher={<TenantSwitcher />}
-          tenantBrand={<TenantBrand />}
           notifications={<NotificationBell />}
           headerSlot={<ConnectionStatus />}
           topBanner={topBanner}
