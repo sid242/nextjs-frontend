@@ -43,11 +43,13 @@ function createInstance(baseURL: string): AxiosInstance {
 let redirecting = false;
 function redirectToLogin() {
   if (typeof window === "undefined" || redirecting) return;
-  if (window.location.pathname === "/login") return;
+  const isPlatform = window.location.pathname.startsWith("/platform");
+  const loginPath = isPlatform ? "/platform/login" : "/login";
+  if (window.location.pathname === loginPath) return;
   redirecting = true;
   const next = encodeURIComponent(window.location.pathname + window.location.search);
   // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- Full page navigation needed outside React lifecycle to clear application state
-  window.location.assign(`/login?next=${next}`);
+  window.location.assign(`${loginPath}?next=${next}`);
 }
 
 export const http = createInstance("/api/proxy");
@@ -63,6 +65,15 @@ http.interceptors.response.use(
       config &&
       !config.headers.has(RETRY_HEADER)
     ) {
+      const isPlatformReq =
+        typeof window !== "undefined" && window.location.pathname.startsWith("/platform");
+
+      // Platform staff sessions do not use tenant /api/auth/refresh tokens
+      if (isPlatformReq) {
+        redirectToLogin();
+        throw toApiError(error);
+      }
+
       const outcome = await refreshSession();
       if (outcome === "ok") {
         config.headers.set(RETRY_HEADER, "1"); // retry at most once: a second 401 is a real 401

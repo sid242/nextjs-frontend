@@ -63,9 +63,13 @@ async function handler(req: NextRequest, { params }: Ctx) {
   }
 
   // Finding 2 Fix: Route-aware credential selection.
-  // /platform/* routes strictly require the platform staff cookie, preventing a customer tenant
-  // session cookie from mistakenly masking or replacing staff credentials when both are logged in.
-  const isPlatformRoute = upstreamPath === "/platform" || upstreamPath.startsWith("/platform/");
+  // /platform/* and /plans/platform routes strictly require the platform staff cookie, preventing
+  // a customer tenant session cookie from mistakenly masking or replacing staff credentials.
+  const isPlatformRoute =
+    upstreamPath === "/platform" ||
+    upstreamPath.startsWith("/platform/") ||
+    upstreamPath === "/plans/platform" ||
+    upstreamPath.startsWith("/plans/platform/");
 
   const token = isPlatformRoute
     ? req.cookies.get(PLATFORM_STAFF_COOKIE)?.value
