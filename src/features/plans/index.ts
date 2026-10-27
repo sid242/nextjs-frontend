@@ -15,5 +15,6 @@ export {
 export { PlanCard } from "./components/plan-card";
 export { ChangePlanDialog } from "./components/change-plan-dialog";
 export { CreatePlanDialog } from "./components/create-plan-dialog";
+export { EditPlanDialog } from "./components/edit-plan-dialog";
 export { TenantBillingCard } from "./components/tenant-billing-card";
 export { PlatformPlansTable } from "./components/platform-plans-table";

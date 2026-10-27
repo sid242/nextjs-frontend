@@ -126,6 +126,13 @@ src/features/<feature-name>/
     - Write `h-80` instead of `h-[320px]` (`80 * 4px = 320px`).
   - Reserve arbitrary bracket syntax (`[...]`) strictly for values that are not divisible by 4px or for dynamic CSS functions (`calc(...)`).
   - Modern v4 features: leverage `@theme` design tokens, OKLCH colors, native `@container` queries, and `text-wrap: balance/pretty`.
+- **Platform Control Plane & Dashboards**:
+  - The central platform command center is mounted at `/platform/dashboard` via `PlatformDashboard`, displaying key workspace aggregates, active staff counters, subscription tiers, infrastructure health indicators, and live operator audit actions.
+  - The customer tenant dashboard combines `DashboardWidgets` (real-time team capacity progress bar, subscription tier status) and `DashboardQuickActions` (immediate shortcuts to invite members, upload assets, brand styling, and audit logs).
+- **Seat Quotas & Member Invitation UX**:
+  - Member invitation workflows (`InviteMemberDialog`) must strictly enforce seat limits. When `remainingSeats <= 0`, disable invitations and display an upgrade warning banner directing to `/settings/billing`.
+  - Display non-blocking capacity warnings when remaining seats are low (`<= 2`).
+  - Team members list (`TeamMembersList`) supports multi-tab status filtering (**All**, **Active**, **Pending Invites**, **Suspended**) and resend invite actions.
 
 ---
 

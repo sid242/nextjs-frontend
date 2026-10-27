@@ -1,6 +1,12 @@
 import { api } from "@/lib/api/http";
 
-import type { ChangeSubscriptionInput, CreatePlanInput, Plan, TenantSubscription } from "./schemas";
+import type {
+  ChangeSubscriptionInput,
+  CreatePlanInput,
+  Plan,
+  TenantSubscription,
+  UpdatePlanInput,
+} from "./schemas";
 
 export async function getPublicPlans(signal?: AbortSignal): Promise<Plan[]> {
   return api.get<Plan[]>("/plans", { signal });
@@ -20,7 +26,7 @@ export async function createPlan(input: CreatePlanInput): Promise<Plan> {
   return api.post<Plan>("/plans/platform", input);
 }
 
-export async function updatePlan(id: string, input: Partial<CreatePlanInput>): Promise<Plan> {
+export async function updatePlan(id: string, input: UpdatePlanInput): Promise<Plan> {
   return api.patch<Plan>(`/plans/platform/${id}`, input);
 }
 

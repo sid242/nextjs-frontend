@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/molecules/confirm-dialog";
 import { PageHeader } from "@/components/molecules/page-header";
 import { Button } from "@/components/ui/button";
+import { useTenantSubscription } from "@/features/plans";
 import {
   hasTenantPermission,
   InviteMemberDialog,
@@ -35,6 +36,7 @@ export default function TeamPage() {
   ]);
   const canRemoveMembers = hasTenantPermission(permissions, TENANT_PERMISSIONS.MEMBERS_DELETE);
   const { data: members = [], isLoading } = useTenantMembers(activeTenantId);
+  const { data: subscription } = useTenantSubscription();
 
   const addMemberMutation = useAddTenantMember(activeTenantId ?? "");
   const removeMemberMutation = useRemoveTenantMember(activeTenantId ?? "");
@@ -139,6 +141,7 @@ export default function TeamPage() {
           onRoleChange={handleRoleChange}
           onRemoveMember={handleRemove}
           onTransferOwnership={(id, name) => setTransferTarget({ id, name })}
+          onResendInvite={handleInvite}
           isCurrentUserOwner={isCurrentUserOwner}
           canManageRoles={canManageRoles}
           canRemoveMembers={canRemoveMembers}
@@ -150,6 +153,10 @@ export default function TeamPage() {
           activeTenantName={activeTenant?.name}
           onInvite={handleInvite}
           isInviting={addMemberMutation.isPending}
+          remainingSeats={subscription?.usage?.remainingSeats}
+          maxMembers={subscription?.usage?.maxMembers}
+          activeMembers={subscription?.usage?.activeMembers}
+          planName={subscription?.plan?.name}
         />
 
         <ConfirmDialog

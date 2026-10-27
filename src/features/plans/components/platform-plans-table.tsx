@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CreditCard, HardDrive, Layers, Plus, Users } from "lucide-react";
+import { CreditCard, HardDrive, Layers, Pencil, Plus, Users } from "lucide-react";
 
 import { ColumnConfigDropdown } from "@/components/molecules/column-config-dropdown";
 import { TablePagination } from "@/components/molecules/table-pagination";
@@ -24,8 +24,9 @@ import { useSearchQueryParams, useTableColumns, type TableColumnDef } from "@/li
 import { usePlatformPlans } from "../queries";
 import type { Plan } from "../schemas";
 import { CreatePlanDialog } from "./create-plan-dialog";
+import { EditPlanDialog } from "./edit-plan-dialog";
 
-type PlanColumnId = "tier" | "pricing" | "capacity" | "quota" | "features" | "status";
+type PlanColumnId = "tier" | "pricing" | "capacity" | "quota" | "features" | "status" | "actions";
 
 const PLAN_COLUMNS: TableColumnDef<PlanColumnId>[] = [
   { id: "tier", label: "Tier Key / Name", canHide: false, defaultVisible: true },
@@ -34,6 +35,7 @@ const PLAN_COLUMNS: TableColumnDef<PlanColumnId>[] = [
   { id: "quota", label: "Storage Quota", canHide: true, defaultVisible: true },
   { id: "features", label: "Features", canHide: true, defaultVisible: true },
   { id: "status", label: "Status", canHide: false, defaultVisible: true },
+  { id: "actions", label: "Actions", canHide: false, defaultVisible: true },
 ];
 
 const PLAN_COLUMN_LABELS: Record<PlanColumnId, string> = {
@@ -43,10 +45,13 @@ const PLAN_COLUMN_LABELS: Record<PlanColumnId, string> = {
   quota: "Storage Quota",
   features: "Features",
   status: "Status",
+  actions: "Actions",
 };
 
 export function PlatformPlansTable() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedPlanForEdit, setSelectedPlanForEdit] = useState<Plan | null>(null);
   const { getNumber, setParam, setParams } = useSearchQueryParams();
   const rawPage = getNumber("page", 1) ?? 1;
   const page = Math.max(1, rawPage);
@@ -144,7 +149,7 @@ export function PlatformPlansTable() {
         );
       case "status":
         return (
-          <TableCell key="status" className="text-right">
+          <TableCell key="status">
             {plan?.isActive ? (
               <Badge
                 variant="outline"
@@ -160,6 +165,28 @@ export function PlatformPlansTable() {
                 INACTIVE
               </Badge>
             )}
+          </TableCell>
+        );
+      case "actions":
+        return (
+          <TableCell key="actions" className="text-right">
+            <PlatformPermissionGate
+              permission={PLATFORM_PERMISSION_KEYS.BILLING_MANAGE}
+              hideInsteadOfBanner
+            >
+              <Button
+                variant="ghost"
+                size="sm"
+                className="hover:bg-accent h-7 gap-1.5 px-2 text-xs font-medium"
+                onClick={() => {
+                  setSelectedPlanForEdit(plan);
+                  setEditDialogOpen(true);
+                }}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                <span>Edit</span>
+              </Button>
+            </PlatformPermissionGate>
           </TableCell>
         );
     }
@@ -294,6 +321,11 @@ export function PlatformPlansTable() {
       </Card>
 
       <CreatePlanDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
+      <EditPlanDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        plan={selectedPlanForEdit}
+      />
     </div>
   );
 }

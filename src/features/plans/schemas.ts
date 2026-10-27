@@ -77,3 +77,16 @@ export const changeSubscriptionSchema = z.object({
 });
 
 export type ChangeSubscriptionInput = z.infer<typeof changeSubscriptionSchema>;
+
+export const updatePlanSchema = z.object({
+  name: z.string().trim().min(2, "Plan name must be at least 2 characters").max(100),
+  description: z.string().trim().max(500).optional(),
+  priceCents: z.coerce.number().int().min(0, "Price cannot be negative"),
+  currency: z.string().trim().length(3),
+  billingInterval: z.enum(["MONTHLY", "ANNUAL", "LIFETIME"]),
+  isActive: z.boolean(),
+  isPublic: z.boolean(),
+  entitlements: planEntitlementsSchema.optional(),
+});
+
+export type UpdatePlanInput = z.infer<typeof updatePlanSchema>;

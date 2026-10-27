@@ -41,6 +41,7 @@ export {
 } from "./queries";
 
 export { PlatformShell } from "./components/platform-shell";
+export { PlatformDashboard } from "./components/platform-dashboard";
 export { StaffTable } from "./components/staff-table";
 export { RolesMatrix } from "./components/roles-matrix";
 export { SupportSessionsTable } from "./components/support-sessions-table";

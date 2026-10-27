@@ -11,7 +11,7 @@ import {
   updatePlan,
 } from "./api";
 import { planKeys } from "./keys";
-import type { ChangeSubscriptionInput, CreatePlanInput } from "./schemas";
+import type { ChangeSubscriptionInput, CreatePlanInput, UpdatePlanInput } from "./schemas";
 
 export const publicPlansQueryOptions = () =>
   queryOptions({
@@ -57,8 +57,7 @@ export function useCreatePlan() {
 export function useUpdatePlan() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<CreatePlanInput> }) =>
-      updatePlan(id, data),
+    mutationFn: ({ id, data }: { id: string; data: UpdatePlanInput }) => updatePlan(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: planKeys.all });
     },

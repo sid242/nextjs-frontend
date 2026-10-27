@@ -8,6 +8,8 @@ import { FilesSummary, prefetchFiles, RecentFilesCard } from "@/features/files";
 import { requireUser } from "@/lib/auth/session";
 import { getServerQueryClient } from "@/lib/query/server";
 
+import { DashboardQuickActions, DashboardWidgets } from "./dashboard-widgets";
+
 export const metadata: Metadata = { title: "Dashboard" };
 
 export default async function DashboardPage() {
@@ -20,19 +22,25 @@ export default async function DashboardPage() {
       <div className="grid gap-6">
         <PageHeader
           title={`Welcome back, ${user.name.split(" ")[0] ?? user.name}`}
-          description="Here's a quick overview."
+          description="Here's a quick overview of your workspace and activity."
         />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <FilesSummary />
-          <Card>
-            <CardHeader>
-              <CardDescription>Your role</CardDescription>
-              <CardTitle>
-                <Badge variant="secondary">{user.role}</Badge>
+          <DashboardWidgets />
+          <Card className="border-border/60 shadow-xs">
+            <CardHeader className="pb-2">
+              <CardDescription className="text-xs font-medium tracking-wider uppercase">
+                Your Role
+              </CardDescription>
+              <CardTitle className="pt-1">
+                <Badge variant="secondary" className="font-mono text-xs tracking-wide">
+                  {user.role}
+                </Badge>
               </CardTitle>
             </CardHeader>
           </Card>
         </div>
+        <DashboardQuickActions />
         <RecentFilesCard />
       </div>
     </HydrationBoundary>

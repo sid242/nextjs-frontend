@@ -9,6 +9,7 @@ import {
   FileText,
   KeyRound,
   Layers,
+  LayoutDashboard,
   LifeBuoy,
   LogOut,
   Menu,
@@ -50,6 +51,13 @@ interface NavItemConfig {
 }
 
 const NAV_ITEMS: NavItemConfig[] = [
+  {
+    href: "/platform/dashboard",
+    label: "Overview",
+    description: "System KPIs, telemetry & operations control",
+    icon: LayoutDashboard,
+    permission: PLATFORM_PERMISSION_KEYS.TENANTS_READ,
+  },
   {
     href: "/platform/tenants",
     label: "Workspaces",
