@@ -1,3 +1,5 @@
+"use client";
+
 import { queryOptions, useQuery } from "@tanstack/react-query";
 
 import { getPlatformInvoices, getTenantInvoiceById, getTenantInvoices } from "./api";
