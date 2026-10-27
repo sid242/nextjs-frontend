@@ -69,7 +69,9 @@ async function handler(req: NextRequest, { params }: Ctx) {
     upstreamPath === "/platform" ||
     upstreamPath.startsWith("/platform/") ||
     upstreamPath === "/plans/platform" ||
-    upstreamPath.startsWith("/plans/platform/");
+    upstreamPath.startsWith("/plans/platform/") ||
+    upstreamPath === "/billing/platform" ||
+    upstreamPath.startsWith("/billing/platform/");
 
   const token = isPlatformRoute
     ? req.cookies.get(PLATFORM_STAFF_COOKIE)?.value

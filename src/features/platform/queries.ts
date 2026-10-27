@@ -3,6 +3,7 @@
 import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
+  activateStaffMember,
   activateTenant,
   createPlatformRole,
   createStaffMember,
@@ -22,8 +23,10 @@ import {
   loginPlatformStaff,
   logoutPlatformStaff,
   provisionTenant,
+  resetStaffMemberPassword,
   setupPlatformTwoFactor,
   startSupportSession,
+  suspendStaffMember,
   suspendTenant,
   updatePlatformRole,
   updatePlatformTenant,
@@ -83,6 +86,37 @@ export function useUpdateStaff() {
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: UpdateStaffInput }) =>
       updateStaffMember(id, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: platformKeys.staff() });
+    },
+  });
+}
+
+export function useSuspendStaff() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) => suspendStaffMember(id, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: platformKeys.staff() });
+    },
+  });
+}
+
+export function useActivateStaff() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => activateStaffMember(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: platformKeys.staff() });
+    },
+  });
+}
+
+export function useResetStaffPassword() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, newPassword }: { id: string; newPassword?: string }) =>
+      resetStaffMemberPassword(id, newPassword),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: platformKeys.staff() });
     },

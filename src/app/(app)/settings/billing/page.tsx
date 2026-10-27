@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { InvoicesTable } from "@/features/billing";
 import { TenantBillingCard } from "@/features/plans";
 import { TENANT_PERMISSIONS, TenantPermissionGate } from "@/features/tenants";
 
@@ -13,6 +14,7 @@ export default function BillingSettingsPage() {
     <TenantPermissionGate permission={TENANT_PERMISSIONS.TENANTS_UPDATE}>
       <div className="space-y-6">
         <TenantBillingCard />
+        <InvoicesTable />
       </div>
     </TenantPermissionGate>
   );

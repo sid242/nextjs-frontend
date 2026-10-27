@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   CheckCircle2,
   Clock,
+  KeyRound,
   MoreVertical,
   Search,
   Shield,
@@ -66,10 +67,13 @@ import {
 
 import { hasPlatformPermission, PLATFORM_PERMISSION_KEYS } from "../permissions";
 import {
+  useActivateStaff,
   useCreateStaff,
   usePlatformMe,
   usePlatformRoles,
+  useResetStaffPassword,
   useStaffList,
+  useSuspendStaff,
   useUpdateStaff,
 } from "../queries";
 import { createStaffSchema, type CreateStaffInput, type StaffMember } from "../schemas";
@@ -120,6 +124,8 @@ export function StaffTable() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<StaffMember | null>(null);
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
+  const [selectedStaffForReset, setSelectedStaffForReset] = useState<StaffMember | null>(null);
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const rawPage = getNumber("page", 1) ?? 1;
   const page = Math.max(1, rawPage);
   const rawLimit = getNumber("limit", 10) ?? 10;
@@ -134,7 +140,8 @@ export function StaffTable() {
 
   const { data: staffData, isLoading, error } = useStaffList({ limit: 100 });
   const { data: roles = [] } = usePlatformRoles();
-  const { mutateAsync: updateStaff } = useUpdateStaff();
+  const { mutateAsync: suspendStaff } = useSuspendStaff();
+  const { mutateAsync: activateStaff } = useActivateStaff();
   const { data: staffMe } = usePlatformMe();
 
   const canUpdateStaff = hasPlatformPermission(staffMe, PLATFORM_PERMISSION_KEYS.STAFF_UPDATE);
@@ -164,12 +171,12 @@ export function StaffTable() {
   });
 
   const handleStatusToggle = async (member: StaffMember) => {
-    const nextStatus = member?.status === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
     try {
-      await updateStaff({
-        id: member.id,
-        input: { status: nextStatus },
-      });
+      if (member?.status === "ACTIVE") {
+        await suspendStaff({ id: member.id, reason: "Administrative suspension from console" });
+      } else {
+        await activateStaff(member.id);
+      }
     } catch (err: unknown) {
       alert(getErrorMessage(err, "Failed to update status"));
     }
@@ -264,6 +271,17 @@ export function StaffTable() {
                   >
                     <Shield className="mr-2 h-3.5 w-3.5" />
                     Change Platform Role
+                  </DropdownMenuItem>
+                ) : null}
+                {canUpdateStaff ? (
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setSelectedStaffForReset(member);
+                      setResetDialogOpen(true);
+                    }}
+                  >
+                    <KeyRound className="mr-2 h-3.5 w-3.5" />
+                    Reset Password
                   </DropdownMenuItem>
                 ) : null}
                 {canUpdateStaff && canSuspendStaff ? <DropdownMenuSeparator /> : null}
@@ -456,6 +474,16 @@ export function StaffTable() {
           if (!open) setSelectedStaff(null);
         }}
         roles={roles}
+      />
+
+      {/* Reset Password Modal */}
+      <ResetPasswordDialog
+        staff={selectedStaffForReset}
+        open={resetDialogOpen}
+        onOpenChange={(open) => {
+          setResetDialogOpen(open);
+          if (!open) setSelectedStaffForReset(null);
+        }}
       />
     </div>
   );
@@ -661,6 +689,125 @@ function ReassignRoleDialog({
             </SubmitButton>
           </DialogFooter>
         </FormWrapper>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ResetPasswordDialog({
+  staff,
+  open,
+  onOpenChange,
+}: {
+  staff: StaffMember | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [newPassword, setNewPassword] = useState("");
+  const [temporaryPassword, setTemporaryPassword] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const { mutateAsync: resetPassword, isPending } = useResetStaffPassword();
+
+  const handleReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!staff) return;
+    setError(null);
+    try {
+      const res = await resetPassword({
+        id: staff.id,
+        newPassword: newPassword.trim() ? newPassword.trim() : undefined,
+      });
+      setTemporaryPassword(res?.temporaryPassword ?? newPassword.trim());
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Failed to reset password"));
+    }
+  };
+
+  const handleClose = () => {
+    setNewPassword("");
+    setTemporaryPassword(null);
+    setError(null);
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <KeyRound className="h-5 w-5 text-red-500" />
+            Reset Staff Password
+          </DialogTitle>
+          <DialogDescription className="text-xs">
+            Issue a new password or auto-generate temporary credentials for {staff?.displayName}.
+          </DialogDescription>
+        </DialogHeader>
+
+        {temporaryPassword ? (
+          <div className="space-y-4 py-2">
+            <Alert className="border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+              <CheckCircle2 className="h-4 w-4" />
+              <AlertDescription className="text-xs font-semibold">
+                Password successfully updated!
+              </AlertDescription>
+            </Alert>
+            <div className="border-border bg-muted/40 space-y-1.5 rounded-lg border p-3">
+              <span className="text-muted-foreground font-mono text-[11px] uppercase">
+                Temporary Credentials:
+              </span>
+              <div className="text-foreground bg-background border-border rounded border p-2 font-mono text-sm font-bold select-all">
+                {temporaryPassword}
+              </div>
+              <p className="text-muted-foreground pt-1 text-[11px]">
+                Please copy and transmit these credentials securely to the staff member.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button type="button" size="sm" onClick={handleClose}>
+                Done
+              </Button>
+            </DialogFooter>
+          </div>
+        ) : (
+          <form onSubmit={handleReset} className="space-y-4 py-2">
+            {error ? (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            ) : null}
+
+            <div className="space-y-1.5">
+              <label className="text-foreground text-xs font-medium">
+                Custom Password (optional)
+              </label>
+              <Input
+                type="text"
+                placeholder="Leave blank to auto-generate random 16-char password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="font-mono text-xs"
+              />
+              <p className="text-muted-foreground text-[11px]">
+                If omitted, a cryptographically secure temporary password will be created
+                automatically.
+              </p>
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" size="sm" onClick={handleClose}>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={isPending}
+                className="bg-red-600 text-white hover:bg-red-700"
+              >
+                {isPending ? "Resetting..." : "Confirm Password Reset"}
+              </Button>
+            </DialogFooter>
+          </form>
+        )}
       </DialogContent>
     </Dialog>
   );

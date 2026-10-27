@@ -59,6 +59,31 @@ export async function updateStaffMember(id: string, input: UpdateStaffInput): Pr
   return api.patch<StaffMember>(`/platform/staff/${id}`, input);
 }
 
+export async function suspendStaffMember(
+  id: string,
+  reason?: string,
+): Promise<{ success: boolean; message: string }> {
+  return api.post<{ success: boolean; message: string }>(`/platform/staff/${id}/suspend`, {
+    reason,
+  });
+}
+
+export async function activateStaffMember(
+  id: string,
+): Promise<{ success: boolean; message: string }> {
+  return api.post<{ success: boolean; message: string }>(`/platform/staff/${id}/activate`);
+}
+
+export async function resetStaffMemberPassword(
+  id: string,
+  newPassword?: string,
+): Promise<{ success: boolean; message: string; temporaryPassword?: string }> {
+  return api.post<{ success: boolean; message: string; temporaryPassword?: string }>(
+    `/platform/staff/${id}/reset-password`,
+    { newPassword },
+  );
+}
+
 // ==========================================
 // 2. Platform Roles & Permissions
 // ==========================================
