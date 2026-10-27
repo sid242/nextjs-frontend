@@ -1,5 +1,3 @@
-"use client";
-
 export * from "./schemas";
 export * from "./constants";
 export { tenantKeys } from "./keys";

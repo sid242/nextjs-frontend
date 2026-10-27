@@ -1,5 +1,3 @@
-"use client";
-
 export * from "./schemas";
 export { planKeys } from "./keys";
 export {

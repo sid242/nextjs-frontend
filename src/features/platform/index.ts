@@ -1,5 +1,3 @@
-"use client";
-
 export * from "./schemas";
 export { platformKeys } from "./keys";
 export {
