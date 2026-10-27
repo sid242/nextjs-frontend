@@ -2,6 +2,7 @@ import type { NextResponse } from "next/server";
 
 import {
   ACCESS_COOKIE,
+  PLATFORM_STAFF_COOKIE,
   REFRESH_COOKIE,
   REFRESH_COOKIE_PATH,
   REFRESH_GUARD_COOKIE,
@@ -58,6 +59,25 @@ export function setRefreshGuard<T extends NextResponse>(res: T): T {
     ...baseOptions(),
     path: REFRESH_COOKIE_PATH,
     maxAge: 10,
+  });
+  return res;
+}
+
+export function applyPlatformStaffCookie<T extends NextResponse>(res: T, token: string): T {
+  const exp = decodeJwt(token)?.exp;
+  res.cookies.set(PLATFORM_STAFF_COOKIE, token, {
+    ...baseOptions(),
+    path: "/",
+    maxAge: exp ? Math.max(exp - now() - 10, 1) : 8 * 60 * 60,
+  });
+  return res;
+}
+
+export function clearPlatformStaffCookie<T extends NextResponse>(res: T): T {
+  res.cookies.set(PLATFORM_STAFF_COOKIE, "", {
+    ...baseOptions(),
+    path: "/",
+    maxAge: 0,
   });
   return res;
 }

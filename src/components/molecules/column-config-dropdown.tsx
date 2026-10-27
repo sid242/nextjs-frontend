@@ -1,6 +1,13 @@
 "use client";
 
-import { ChevronDownIcon, ChevronUpIcon, RotateCcwIcon, SlidersHorizontalIcon } from "lucide-react";
+import { useState } from "react";
+import {
+  ChevronDownIcon,
+  ChevronUpIcon,
+  GripVerticalIcon,
+  RotateCcwIcon,
+  SlidersHorizontalIcon,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -23,6 +30,8 @@ export interface ColumnConfigDropdownProps<TId extends string = string> {
   onToggleColumn?: (id: TId) => void;
   /** Callback when moving column up or down */
   onMoveColumn?: (id: TId, direction: "up" | "down") => void;
+  /** Callback to reorder columns by start and target index (drag-and-drop) */
+  onReorderColumns?: (startIndex: number, endIndex: number) => void;
   /** Callback to reset columns to default */
   onResetColumns?: () => void;
   /** Whether columns currently differ from defaults */
@@ -40,13 +49,14 @@ export interface ColumnConfigDropdownProps<TId extends string = string> {
 }
 
 /**
- * Dropdown component allowing users to show/hide and reorder table columns.
+ * Dropdown component allowing users to show/hide and reorder table columns via drag-and-drop or action controls.
  */
 export function ColumnConfigDropdown<TId extends string = string>({
   tableColumns,
   columnItems: explicitItems,
   onToggleColumn: explicitToggle,
   onMoveColumn: explicitMove,
+  onReorderColumns: explicitReorder,
   onResetColumns: explicitReset,
   isCustomized: explicitCustomized,
   align = "end",
@@ -58,8 +68,54 @@ export function ColumnConfigDropdown<TId extends string = string>({
   const items = explicitItems ?? tableColumns?.columnItems ?? [];
   const handleToggle = explicitToggle ?? tableColumns?.toggleColumn;
   const handleMove = explicitMove ?? tableColumns?.moveColumn;
+  const handleReorder = explicitReorder ?? tableColumns?.reorderColumns;
   const handleReset = explicitReset ?? tableColumns?.resetColumns;
   const isCustomized = explicitCustomized ?? tableColumns?.isCustomized ?? false;
+
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
+    e?.dataTransfer?.setData("text/plain", String(index));
+    if (e?.dataTransfer) {
+      e.dataTransfer.effectAllowed = "move";
+    }
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>, index: number) => {
+    e?.preventDefault?.();
+    if (e?.dataTransfer) {
+      e.dataTransfer.dropEffect = "move";
+    }
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragLeave = (_e: React.DragEvent<HTMLDivElement>, index: number) => {
+    if (dragOverIndex === index) {
+      setDragOverIndex(null);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>, targetIndex: number) => {
+    e?.preventDefault?.();
+    const rawSource = e?.dataTransfer?.getData("text/plain");
+    const sourceIndex = draggedIndex ?? (rawSource ? parseInt(rawSource, 10) : NaN);
+
+    if (!Number.isNaN(sourceIndex) && sourceIndex !== targetIndex && handleReorder) {
+      handleReorder(sourceIndex, targetIndex);
+    }
+
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
 
   return (
     <DropdownMenu>
@@ -83,37 +139,58 @@ export function ColumnConfigDropdown<TId extends string = string>({
 
       <DropdownMenuContent
         align={align}
-        className="w-64 p-2 shadow-lg"
-        onCloseAutoFocus={(e) => e.preventDefault()}
+        className="w-72 p-2 shadow-lg"
+        onCloseAutoFocus={(e) => e?.preventDefault?.()}
       >
         <DropdownMenuLabel className="px-1 py-1">
           <p className="text-xs font-semibold">Customize Columns</p>
           <p className="text-muted-foreground text-[11px] font-normal">
-            Show/hide or change column order
+            Drag to reorder or toggle visibility
           </p>
         </DropdownMenuLabel>
 
         <DropdownMenuSeparator className="my-1.5" />
 
         <div className="flex max-h-64 flex-col gap-1 overflow-y-auto py-0.5">
-          {items.map((item) => {
-            const isChecked = item.visible;
-            const canHide = item.canHide;
+          {items?.map((item, index) => {
+            const isChecked = item?.visible ?? true;
+            const canHide = item?.canHide ?? true;
+            const isDragging = draggedIndex === index;
+            const isTargeted = dragOverIndex === index && draggedIndex !== index;
 
             return (
               <div
-                key={item.id}
-                className="hover:bg-accent/60 flex items-center justify-between gap-2 rounded-sm px-1.5 py-1 text-xs transition-colors"
+                key={item?.id}
+                draggable={true}
+                onDragStart={(e) => handleDragStart(e, index)}
+                onDragOver={(e) => handleDragOver(e, index)}
+                onDragLeave={(e) => handleDragLeave(e, index)}
+                onDrop={(e) => handleDrop(e, index)}
+                onDragEnd={handleDragEnd}
+                className={cn(
+                  "hover:bg-accent/60 flex items-center justify-between gap-1.5 rounded-sm px-1.5 py-1 text-xs transition-colors",
+                  isDragging && "bg-accent/30 opacity-40",
+                  isTargeted && "ring-primary/60 bg-accent/50 ring-1",
+                )}
               >
+                {/* Drag Grip Handle */}
+                <div
+                  className="text-muted-foreground/60 hover:text-foreground cursor-grab p-0.5 transition-colors active:cursor-grabbing"
+                  title="Drag to reorder column"
+                  aria-label={`Drag to reorder ${item?.label}`}
+                >
+                  <GripVerticalIcon className="size-3.5" />
+                </div>
+
                 <label
-                  htmlFor={`col-toggle-${item.id}`}
+                  htmlFor={`col-toggle-${item?.id}`}
                   className={cn(
-                    "flex flex-1 items-center gap-2 select-none",
+                    "flex min-w-0 flex-1 items-center gap-2 select-none",
                     canHide ? "cursor-pointer" : "cursor-default opacity-80",
                   )}
                 >
                   <Checkbox
-                    id={`col-toggle-${item.id}`}
+                    id={`col-toggle-${item?.id}`}
                     checked={isChecked}
                     disabled={!canHide}
                     onCheckedChange={() => {
@@ -122,7 +199,7 @@ export function ColumnConfigDropdown<TId extends string = string>({
                       }
                     }}
                   />
-                  <span className="truncate font-medium">{item.label}</span>
+                  <span className="truncate font-medium">{item?.label}</span>
                   {!canHide ? (
                     <span className="bg-muted text-muted-foreground ml-auto rounded px-1 py-0.5 text-[10px] font-medium tracking-tight">
                       Required
@@ -130,36 +207,37 @@ export function ColumnConfigDropdown<TId extends string = string>({
                   ) : null}
                 </label>
 
+                {/* Accessible Directional Reorder Buttons */}
                 <div className="flex shrink-0 items-center gap-0.5">
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="text-muted-foreground hover:text-foreground size-6 p-0"
-                    disabled={item.isFirst}
+                    className="text-muted-foreground hover:text-foreground size-5 p-0"
+                    disabled={item?.isFirst}
                     onClick={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
+                      e?.stopPropagation?.();
+                      e?.preventDefault?.();
                       handleMove?.(item.id, "up");
                     }}
-                    aria-label={`Move ${item.label} column up`}
+                    aria-label={`Move ${item?.label} column up`}
                   >
-                    <ChevronUpIcon className="size-3.5" />
+                    <ChevronUpIcon className="size-3" />
                   </Button>
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="text-muted-foreground hover:text-foreground size-6 p-0"
-                    disabled={item.isLast}
+                    className="text-muted-foreground hover:text-foreground size-5 p-0"
+                    disabled={item?.isLast}
                     onClick={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
+                      e?.stopPropagation?.();
+                      e?.preventDefault?.();
                       handleMove?.(item.id, "down");
                     }}
-                    aria-label={`Move ${item.label} column down`}
+                    aria-label={`Move ${item?.label} column down`}
                   >
-                    <ChevronDownIcon className="size-3.5" />
+                    <ChevronDownIcon className="size-3" />
                   </Button>
                 </div>
               </div>
@@ -176,8 +254,8 @@ export function ColumnConfigDropdown<TId extends string = string>({
           className="text-muted-foreground hover:text-foreground h-7 w-full justify-center gap-1.5 text-xs font-normal"
           disabled={!isCustomized}
           onClick={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
+            e?.stopPropagation?.();
+            e?.preventDefault?.();
             handleReset?.();
           }}
         >

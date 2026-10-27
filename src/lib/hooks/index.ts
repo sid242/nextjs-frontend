@@ -38,3 +38,4 @@ export {
   type UseTableColumnsOptions,
   type UseTableColumnsReturn,
 } from "./use-table-columns";
+export { useServerSentEvents, type SseOptions } from "./use-sse";

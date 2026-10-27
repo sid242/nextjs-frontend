@@ -9,3 +9,4 @@ export { FilePreviewDialog } from "./components/file-preview-dialog";
 export { prefetchFiles } from "./server";
 
 export { triggerFileDownload } from "./download";
+export { useFileSse } from "./use-file-sse";

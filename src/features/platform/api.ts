@@ -192,8 +192,8 @@ export async function loginPlatformStaff(
 export async function verifyPlatformTwoFactor(input: {
   challengeToken: string;
   code: string;
-}): Promise<{ token: string; staff: StaffAuthProfile }> {
-  return api.post<{ token: string; staff: StaffAuthProfile }>("/platform/auth/2fa/verify", input);
+}): Promise<{ token?: string; staff: StaffAuthProfile }> {
+  return api.post<{ token?: string; staff: StaffAuthProfile }>("/platform/auth/2fa/verify", input);
 }
 
 export async function setupPlatformTwoFactor(): Promise<{
