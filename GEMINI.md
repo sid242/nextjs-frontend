@@ -23,3 +23,12 @@ See [AGENTS.md](./AGENTS.md) for full architecture and engineering guidelines.
 6. **Named React Imports**:
    - Never use `import * as React from "react"`.
    - Always use named imports and explicit type imports (`import { useState, useRef, type ReactNode, type Ref } from "react"`).
+7. **Permission-Driven UI & RBAC Gating**:
+   - Never show navigation items, routes, or action buttons (create, edit, delete, suspend, invite) if the user lacks the required permission.
+   - Filter sidebar navigation dynamically using `hasPlatformPermission` or `hasTenantPermission`.
+   - Gate full pages with `<PlatformPermissionGate />` or `<TenantPermissionGate />`. Direct URL access without permission must display a clear "Access Restricted" alert card with the active role and required capability.
+   - Map platform endpoints (e.g. `/platform/*`, `/plans/platform*`) to `platform_staff_token` in BFF proxy, and redirect platform 401s to `/platform/login` without triggering tenant refresh tokens.
+8. **Tailwind CSS v4 Continuous Scale & Modern Standards**:
+   - Prefer native continuous numeric scale utilities over arbitrary bracket syntax. Any integer multiple of 4px (`0.25rem`) is a native utility (e.g., use `min-h-105` instead of `min-h-[420px]`, `w-100` instead of `w-[400px]`, `max-w-120` instead of `max-w-[480px]`).
+   - Use arbitrary brackets (`[...]`) only for values not divisible by 4px or for dynamic CSS functions (`calc(...)`).
+   - Use modern v4 features: OKLCH color system, `@theme` tokens, native `@container` queries, and `text-wrap: balance/pretty`.

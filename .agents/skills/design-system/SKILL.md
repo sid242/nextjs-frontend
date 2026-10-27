@@ -106,3 +106,23 @@ Always use tinted background with high-contrast text and border:
 - [ ] Focus rings are visible on keyboard navigation (`focus-visible`).
 - [ ] Color is never the sole indicator of status (always pair with icons or explicit labels).
 - [ ] Icon-only buttons must have `aria-label` or `<span className="sr-only">`.
+
+---
+
+## 7. Tailwind CSS v4 Continuous Scale & Sizing Standards
+
+Tailwind CSS v4 supports a continuous numeric scale where **1 unit = 0.25rem = 4px**.
+Any integer multiple of 4px is a native utility. **Never write arbitrary bracket syntax (`[...]`) when a divisible-by-4 integer scale exists**:
+
+- **Height & Min-Height**:
+  - Write `min-h-105` instead of `min-h-[420px]` (`105 * 4px = 420px`).
+  - Write `h-80` instead of `h-[320px]` (`80 * 4px = 320px`).
+  - Write `min-h-150` instead of `min-h-[600px]` (`150 * 4px = 600px`).
+- **Width & Max-Width**:
+  - Write `w-100` instead of `w-[400px]` (`100 * 4px = 400px`).
+  - Write `max-w-120` instead of `max-w-[480px]` (`120 * 4px = 480px`).
+  - Write `w-90` instead of `w-[360px]` (`90 * 4px = 360px`).
+- **Padding & Margin**:
+  - Write `p-7` (28px), `p-9` (36px), `gap-7` (28px), `mt-15` (60px).
+- Reserve bracket syntax (`[...]`) strictly for values not divisible by 4px (`w-[347px]`, `top-[1px]`) or dynamic expressions (`min-h-[calc(100vh-4rem)]`).
+- Always use `text-balance` on headings (`h1`, `h2`, dialog titles) and `text-pretty` on multiline paragraphs.

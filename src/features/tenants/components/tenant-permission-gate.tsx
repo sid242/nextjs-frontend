@@ -55,7 +55,7 @@ export function TenantPermissionGate({
   const requiredLabel = Array.isArray(permission) ? permission.join(" or ") : permission;
 
   return (
-    <div className="bg-card/40 border-destructive/20 flex min-h-[420px] flex-col items-center justify-center rounded-2xl border p-8 text-center shadow-xs">
+    <div className="bg-card/40 border-destructive/20 flex min-h-105 flex-col items-center justify-center rounded-2xl border p-8 text-center shadow-xs">
       <div className="border-destructive/30 bg-destructive/10 text-destructive mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border shadow-xs">
         <ShieldAlert className="h-7 w-7" />
       </div>

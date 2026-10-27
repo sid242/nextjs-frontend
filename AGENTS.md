@@ -112,6 +112,20 @@ src/features/<feature-name>/
 - **Environment Variables**:
   - Server environment variables are defined with Zod schema in `src/lib/server/env.ts` (`getEnv()`).
   - No secrets in `NEXT_PUBLIC_*` variables.
+- **Permission-Driven UI Rendering & RBAC Gating**:
+  - **Zero-Exposure Policy**: Never render navigation items, pages, or actionable controls (buttons for create, edit, delete, suspend, invite, etc.) if the caller lacks the required permission.
+  - **Navigation**: Sidebar/topbar items must be filtered using `hasPlatformPermission(staff, item.permission)` on platform surfaces and `hasTenantPermission(permissions, item.permission)` on tenant surfaces.
+  - **Route Gates**: Wrap entire page bodies with `<PlatformPermissionGate permission={...} />` or `<TenantPermissionGate permission={...} />` to render an accessible "Access Restricted" state on unauthorized direct URL navigation.
+  - **Action Controls**: Use `hideInsteadOfBanner` on gates to hide unauthorized action buttons, or disable mutating form controls.
+  - **BFF Route Classification**: In `src/app/api/proxy/[...path]/route.ts`, map all platform-scoped routes (including `/plans/platform*`) to `PLATFORM_STAFF_COOKIE`. Route 401s on platform surfaces directly to `/platform/login` without triggering tenant refresh tokens.
+- **Tailwind CSS v4 Continuous Scale & Modern Standards**:
+  - **Prefer Native Scale over Arbitrary Bracket Syntax**: Tailwind CSS v4 supports a continuous numeric scale where any integer multiple of `0.25rem` (4px) is a native class. Always prefer standard scale utilities:
+    - Write `min-h-105` instead of `min-h-[420px]` (`105 * 4px = 420px`).
+    - Write `w-100` instead of `w-[400px]` (`100 * 4px = 400px`).
+    - Write `max-w-120` instead of `max-w-[480px]` (`120 * 4px = 480px`).
+    - Write `h-80` instead of `h-[320px]` (`80 * 4px = 320px`).
+  - Reserve arbitrary bracket syntax (`[...]`) strictly for values that are not divisible by 4px or for dynamic CSS functions (`calc(...)`).
+  - Modern v4 features: leverage `@theme` design tokens, OKLCH colors, native `@container` queries, and `text-wrap: balance/pretty`.
 
 ---
 
