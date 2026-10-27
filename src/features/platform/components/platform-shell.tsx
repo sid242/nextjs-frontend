@@ -4,14 +4,9 @@ import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Building2,
   ChevronRight,
   ExternalLink,
-  FileText,
   KeyRound,
-  Layers,
-  LayoutDashboard,
-  LifeBuoy,
   LogOut,
   Menu,
   PanelLeftClose,
@@ -19,9 +14,7 @@ import {
   Radio,
   Shield,
   ShieldAlert,
-  ShieldCheck,
   User,
-  Users,
   X,
 } from "lucide-react";
 
@@ -39,6 +32,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
+import { PLATFORM_NAV_GROUPS } from "../constants";
 import { hasPlatformPermission, PLATFORM_PERMISSION_KEYS } from "../permissions";
 import { usePlatformLogout, usePlatformMe, useSupportSessions } from "../queries";
 import { PlatformTwoFactorDialog } from "./platform-two-factor-dialog";
@@ -46,86 +40,6 @@ import { PlatformTwoFactorDialog } from "./platform-two-factor-dialog";
 interface PlatformShellProps {
   children: ReactNode;
 }
-
-interface NavItemConfig {
-  href: string;
-  label: string;
-  description: string;
-  icon: typeof Building2;
-  permission: string | string[];
-}
-
-interface NavGroup {
-  title: string;
-  items: NavItemConfig[];
-}
-
-const NAV_GROUPS: NavGroup[] = [
-  {
-    title: "Core & Telemetry",
-    items: [
-      {
-        href: "/platform/dashboard",
-        label: "Overview",
-        description: "System KPIs, telemetry & operations control",
-        icon: LayoutDashboard,
-        permission: PLATFORM_PERMISSION_KEYS.TENANTS_READ,
-      },
-      {
-        href: "/platform/tenants",
-        label: "Workspaces",
-        description: "Customer organizations, databases & status",
-        icon: Building2,
-        permission: PLATFORM_PERMISSION_KEYS.TENANTS_READ,
-      },
-      {
-        href: "/platform/plans",
-        label: "Plans & Tiers",
-        description: "Multi-tenant tiers, seat limits & quotas",
-        icon: Layers,
-        permission: PLATFORM_PERMISSION_KEYS.BILLING_READ,
-      },
-    ],
-  },
-  {
-    title: "Governance & Access",
-    items: [
-      {
-        href: "/platform/staff",
-        label: "Staff Directory",
-        description: "Manage internal operator accounts & status",
-        icon: Users,
-        permission: PLATFORM_PERMISSION_KEYS.STAFF_READ,
-      },
-      {
-        href: "/platform/roles",
-        label: "Roles & Matrix",
-        description: "System & custom resource::action catalogue",
-        icon: ShieldCheck,
-        permission: PLATFORM_PERMISSION_KEYS.ROLES_READ,
-      },
-      {
-        href: "/platform/support-sessions",
-        label: "Support Sessions",
-        description: "Time-bound, audited tenant delegation",
-        icon: LifeBuoy,
-        permission: [PLATFORM_PERMISSION_KEYS.SUPPORT_START, PLATFORM_PERMISSION_KEYS.SUPPORT_END],
-      },
-    ],
-  },
-  {
-    title: "Security & Auditing",
-    items: [
-      {
-        href: "/platform/audit-logs",
-        label: "Audit Trail",
-        description: "Immutable compliance & security logs",
-        icon: FileText,
-        permission: PLATFORM_PERMISSION_KEYS.AUDIT_READ,
-      },
-    ],
-  },
-];
 
 export function PlatformShell({ children }: PlatformShellProps) {
   const pathname = usePathname();
@@ -266,7 +180,7 @@ export function PlatformShell({ children }: PlatformShellProps) {
 
           {/* Navigation Links with Groupings */}
           <nav className="flex-1 space-y-4 overflow-x-hidden overflow-y-auto px-3 py-4">
-            {NAV_GROUPS.map((group) => {
+            {PLATFORM_NAV_GROUPS.map((group) => {
               const visibleItems = group.items.filter((item) =>
                 hasPlatformPermission(staff, item.permission),
               );
