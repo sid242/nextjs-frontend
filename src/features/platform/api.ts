@@ -173,10 +173,55 @@ export async function getPlatformAuditLogs(
 // 5. Staff Authentication
 // ==========================================
 
+export type PlatformLoginResult =
+  | { token: string; staff: StaffAuthProfile; twoFactorRequired?: false }
+  | {
+      token?: never;
+      staff?: never;
+      twoFactorRequired: true;
+      challengeToken: string;
+      method: "totp";
+    };
+
 export async function loginPlatformStaff(
   credentials: PlatformLoginInput,
-): Promise<{ token: string; staff: StaffAuthProfile }> {
-  return api.post<{ token: string; staff: StaffAuthProfile }>("/platform/auth/login", credentials);
+): Promise<PlatformLoginResult> {
+  return api.post<PlatformLoginResult>("/platform/auth/login", credentials);
+}
+
+export async function verifyPlatformTwoFactor(input: {
+  challengeToken: string;
+  code: string;
+}): Promise<{ token: string; staff: StaffAuthProfile }> {
+  return api.post<{ token: string; staff: StaffAuthProfile }>("/platform/auth/2fa/verify", input);
+}
+
+export async function setupPlatformTwoFactor(): Promise<{
+  secret: string;
+  otpauthUri: string;
+}> {
+  return api.post<{ secret: string; otpauthUri: string }>("/platform/auth/2fa/setup");
+}
+
+export async function enablePlatformTwoFactor(input: {
+  code: string;
+}): Promise<{ message: string; recoveryCodes: string[] }> {
+  return api.post<{ message: string; recoveryCodes: string[] }>("/platform/auth/2fa/enable", input);
+}
+
+export async function disablePlatformTwoFactor(input: {
+  password: string;
+  code: string;
+}): Promise<{ message: string }> {
+  return api.post<{ message: string }>("/platform/auth/2fa/disable", input);
+}
+
+export async function getPlatformTwoFactorStatus(
+  signal?: AbortSignal,
+): Promise<{ enabled: boolean; enabledAt: string | null }> {
+  return api.get<{ enabled: boolean; enabledAt: string | null }>("/platform/auth/2fa/status", {
+    signal,
+  });
 }
 
 export async function getPlatformMe(signal?: AbortSignal): Promise<StaffAuthProfile> {

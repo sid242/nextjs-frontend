@@ -23,4 +23,5 @@ export const platformKeys = {
   tenantMembers: (tenantId: string) => [...platformKeys.tenants(), tenantId, "members"] as const,
 
   me: () => [...platformKeys.all, "me"] as const,
+  twoFactorStatus: () => [...platformKeys.all, "2fa", "status"] as const,
 };

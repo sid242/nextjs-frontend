@@ -6,6 +6,8 @@ import {
   activateTenant,
   createPlatformRole,
   createStaffMember,
+  disablePlatformTwoFactor,
+  enablePlatformTwoFactor,
   endSupportSession,
   getPlatformAuditLogs,
   getPlatformMe,
@@ -13,18 +15,21 @@ import {
   getPlatformRoles,
   getPlatformTenant,
   getPlatformTenants,
+  getPlatformTwoFactorStatus,
   getStaffMembers,
   getSupportSessions,
   getTenantMembers,
   loginPlatformStaff,
   logoutPlatformStaff,
   provisionTenant,
+  setupPlatformTwoFactor,
   startSupportSession,
   suspendTenant,
   updatePlatformRole,
   updatePlatformTenant,
   updatePlatformTenantSubscription,
   updateStaffMember,
+  verifyPlatformTwoFactor,
 } from "./api";
 import { platformKeys } from "./keys";
 import type {
@@ -236,6 +241,61 @@ export function usePlatformLogout() {
         // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- Hard navigation needed to clear platform session state
         window.location.assign("/platform/login");
       }
+    },
+  });
+}
+
+export const platformTwoFactorStatusQueryOptions = () =>
+  queryOptions({
+    queryKey: platformKeys.twoFactorStatus(),
+    queryFn: ({ signal }) => getPlatformTwoFactorStatus(signal),
+    staleTime: 60 * 1000,
+  });
+
+export function usePlatformTwoFactorStatus() {
+  return useQuery(platformTwoFactorStatusQueryOptions());
+}
+
+export function useSetupPlatformTwoFactor() {
+  return useMutation({
+    mutationFn: () => setupPlatformTwoFactor(),
+  });
+}
+
+export function useEnablePlatformTwoFactor() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { code: string }) => enablePlatformTwoFactor(input),
+    onSuccess: () => {
+      queryClient.setQueryData(platformKeys.twoFactorStatus(), {
+        enabled: true,
+        enabledAt: new Date().toISOString(),
+      });
+      queryClient.invalidateQueries({ queryKey: platformKeys.me() });
+    },
+  });
+}
+
+export function useDisablePlatformTwoFactor() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { password: string; code: string }) => disablePlatformTwoFactor(input),
+    onSuccess: () => {
+      queryClient.setQueryData(platformKeys.twoFactorStatus(), {
+        enabled: false,
+        enabledAt: null,
+      });
+      queryClient.invalidateQueries({ queryKey: platformKeys.me() });
+    },
+  });
+}
+
+export function useVerifyPlatformTwoFactor() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { challengeToken: string; code: string }) => verifyPlatformTwoFactor(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: platformKeys.me() });
     },
   });
 }

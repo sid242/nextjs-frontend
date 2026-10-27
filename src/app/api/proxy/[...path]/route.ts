@@ -43,7 +43,9 @@ async function handler(req: NextRequest, { params }: Ctx) {
   }
 
   const isPlatformAuth =
-    upstreamPath === "/platform/auth/login" || upstreamPath === "/platform/auth/logout";
+    upstreamPath === "/platform/auth/login" ||
+    upstreamPath === "/platform/auth/logout" ||
+    upstreamPath === "/platform/auth/2fa/verify";
 
   const token =
     req.cookies.get(ACCESS_COOKIE)?.value ?? req.cookies.get(PLATFORM_STAFF_COOKIE)?.value;

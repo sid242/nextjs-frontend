@@ -1,27 +1,43 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowRight, KeyRound, Lock, Mail, Radio, ShieldAlert } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  KeyRound,
+  Lock,
+  Mail,
+  Radio,
+  ShieldAlert,
+  ShieldCheck,
+} from "lucide-react";
 import { useForm } from "react-hook-form";
 
 import { ControlledInput, FormWrapper } from "@/components/molecules/forms";
 import { SubmitButton } from "@/components/molecules/submit-button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { getErrorMessage } from "@/lib/api/errors";
 import { safeNextPath } from "@/lib/auth/paths";
 
-import { usePlatformLogin } from "../queries";
+import { usePlatformLogin, useVerifyPlatformTwoFactor } from "../queries";
 import { platformLoginSchema, type PlatformLoginInput } from "../schemas";
 
 export function PlatformLoginForm({ next }: { next?: string }) {
   const router = useRouter();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [challengeToken, setChallengeToken] = useState<string | null>(null);
+  const [code, setCode] = useState("");
+  const [useRecoveryCode, setUseRecoveryCode] = useState(false);
 
-  const { mutateAsync: login, isPending } = usePlatformLogin();
+  const { mutateAsync: login, isPending: isLoggingIn } = usePlatformLogin();
+  const { mutateAsync: verifyTwoFactor, isPending: isVerifying } = useVerifyPlatformTwoFactor();
 
   const methods = useForm<PlatformLoginInput>({
     resolver: zodResolver(platformLoginSchema),
@@ -34,7 +50,17 @@ export function PlatformLoginForm({ next }: { next?: string }) {
   const onSubmit = async (values: PlatformLoginInput) => {
     setErrorMsg(null);
     try {
-      await login({ email: values?.email?.trim?.() ?? "", password: values?.password ?? "" });
+      const result = await login({
+        email: values?.email?.trim?.() ?? "",
+        password: values?.password ?? "",
+      });
+
+      if (result?.twoFactorRequired && result?.challengeToken) {
+        setChallengeToken(result.challengeToken);
+        setCode("");
+        return;
+      }
+
       const target = safeNextPath(next, "/platform/staff");
       router?.push?.(target);
       router?.refresh?.();
@@ -42,6 +68,129 @@ export function PlatformLoginForm({ next }: { next?: string }) {
       setErrorMsg(getErrorMessage(err, "Invalid platform credentials or account suspended"));
     }
   };
+
+  const onVerifyChallenge = async (e: FormEvent) => {
+    e?.preventDefault?.();
+    if (!challengeToken || !code.trim()) return;
+
+    setErrorMsg(null);
+    try {
+      await verifyTwoFactor({
+        challengeToken,
+        code: code.trim(),
+      });
+      const target = safeNextPath(next, "/platform/staff");
+      router?.push?.(target);
+      router?.refresh?.();
+    } catch (err: unknown) {
+      setErrorMsg(getErrorMessage(err, "Invalid verification code or expired challenge"));
+    }
+  };
+
+  if (challengeToken) {
+    return (
+      <div className="mx-auto w-full max-w-md space-y-6">
+        {/* Brand Header */}
+        <div className="space-y-2 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-amber-600 text-white shadow-lg shadow-red-500/25">
+            <ShieldCheck className="h-6 w-6" />
+          </div>
+          <div className="flex items-center justify-center gap-1.5 pt-1">
+            <h1 className="text-xl font-bold tracking-tight">Two-Factor Authentication</h1>
+            <Badge
+              variant="outline"
+              className="border-red-500/40 font-mono text-[10px] text-red-500"
+            >
+              REQUIRED
+            </Badge>
+          </div>
+          <p className="text-muted-foreground text-xs">
+            {useRecoveryCode
+              ? "Enter one of your 10-character emergency recovery codes."
+              : "Enter the 6-digit code from your authenticator app to access the Platform Console."}
+          </p>
+        </div>
+
+        <Card className="border-border/80 bg-card/60 shadow-xl backdrop-blur">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+              <KeyRound className="h-4 w-4 text-red-500" />
+              {useRecoveryCode ? "Recovery Code Verification" : "Authenticator Verification"}
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Confirm your operator identity to initialize an administrative session.
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent>
+            <form onSubmit={onVerifyChallenge} className="space-y-4">
+              {errorMsg ? (
+                <Alert variant="destructive">
+                  <AlertDescription>{errorMsg}</AlertDescription>
+                </Alert>
+              ) : null}
+
+              <div className="space-y-1.5">
+                <Label htmlFor="platform-2fa-code" className="text-xs font-medium">
+                  {useRecoveryCode ? "Emergency Recovery Code" : "6-Digit Authenticator Code"}
+                </Label>
+                <Input
+                  id="platform-2fa-code"
+                  type="text"
+                  autoComplete="one-time-code"
+                  autoFocus
+                  placeholder={useRecoveryCode ? "e.g. A1B2C3D4E5" : "••••••"}
+                  value={code}
+                  onChange={(e) => setCode(e?.target?.value ?? "")}
+                  className="text-center font-mono text-base tracking-widest"
+                  required
+                />
+              </div>
+
+              <Button
+                type="submit"
+                disabled={isVerifying || code.trim().length < 6}
+                className="w-full bg-gradient-to-r from-red-600 to-amber-600 font-medium text-white shadow-md shadow-red-500/20 hover:from-red-700 hover:to-amber-700"
+              >
+                {isVerifying ? "Verifying…" : "Verify and Access Console"}
+              </Button>
+            </form>
+
+            <div className="mt-4 flex flex-col gap-2 text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setUseRecoveryCode(!useRecoveryCode);
+                  setCode("");
+                  setErrorMsg(null);
+                }}
+                className="text-primary cursor-pointer text-xs font-medium hover:underline"
+              >
+                {useRecoveryCode
+                  ? "Use 6-digit Authenticator app code"
+                  : "Lost device? Use emergency recovery code"}
+              </button>
+
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setChallengeToken(null);
+                  setCode("");
+                  setErrorMsg(null);
+                }}
+                className="text-muted-foreground hover:text-foreground text-xs"
+              >
+                <ArrowLeft className="mr-1 size-3.5" />
+                Return to operator login
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto w-full max-w-md space-y-6">
@@ -87,7 +236,7 @@ export function PlatformLoginForm({ next }: { next?: string }) {
               autoComplete="email"
               placeholder="operator@platform.local"
               prefix={<Mail className="h-4 w-4" />}
-              disabled={isPending}
+              disabled={isLoggingIn}
               required
               className="h-9 font-mono text-xs"
             />
@@ -99,13 +248,13 @@ export function PlatformLoginForm({ next }: { next?: string }) {
               autoComplete="current-password"
               placeholder="••••••••••••"
               prefix={<KeyRound className="h-4 w-4" />}
-              disabled={isPending}
+              disabled={isLoggingIn}
               required
               className="h-9 text-xs"
             />
 
             <SubmitButton
-              pending={isPending}
+              pending={isLoggingIn}
               pendingText="Verifying Credentials..."
               className="h-9 w-full gap-2 bg-gradient-to-r from-red-600 to-amber-600 text-xs text-white shadow-md shadow-red-600/20 hover:from-red-700 hover:to-amber-700"
             >

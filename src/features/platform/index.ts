@@ -34,6 +34,12 @@ export {
   usePlatformMe,
   usePlatformLogin,
   usePlatformLogout,
+  platformTwoFactorStatusQueryOptions,
+  usePlatformTwoFactorStatus,
+  useSetupPlatformTwoFactor,
+  useEnablePlatformTwoFactor,
+  useDisablePlatformTwoFactor,
+  useVerifyPlatformTwoFactor,
 } from "./queries";
 
 export { PlatformShell } from "./components/platform-shell";
@@ -46,3 +52,4 @@ export { SupportSessionBanner } from "./components/support-session-banner";
 export { TenantsTable } from "./components/tenants-table";
 export { ProvisionTenantDialog } from "./components/provision-tenant-dialog";
 export { TenantInspector } from "./components/tenant-inspector";
+export { PlatformTwoFactorDialog } from "./components/platform-two-factor-dialog";

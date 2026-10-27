@@ -7,6 +7,7 @@ import {
   Building2,
   ExternalLink,
   FileText,
+  KeyRound,
   Layers,
   LifeBuoy,
   LogOut,
@@ -33,6 +34,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { usePlatformLogout, usePlatformMe, useSupportSessions } from "../queries";
+import { PlatformTwoFactorDialog } from "./platform-two-factor-dialog";
 
 interface PlatformShellProps {
   children: ReactNode;
@@ -80,6 +82,7 @@ const NAV_ITEMS = [
 export function PlatformShell({ children }: PlatformShellProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [twoFactorOpen, setTwoFactorOpen] = useState(false);
   const { data: staff, isLoading: staffLoading } = usePlatformMe();
   const { mutate: logout, isPending: loggingOut } = usePlatformLogout();
 
@@ -267,6 +270,11 @@ export function PlatformShell({ children }: PlatformShellProps) {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setTwoFactorOpen(true)} className="cursor-pointer">
+                <KeyRound className="mr-2 h-4 w-4 text-red-500" />
+                <span>Security & 2FA</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => logout()}
                 disabled={loggingOut}
@@ -315,6 +323,8 @@ export function PlatformShell({ children }: PlatformShellProps) {
         {/* Content Body */}
         <main className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-8">{children}</main>
       </div>
+
+      <PlatformTwoFactorDialog open={twoFactorOpen} onOpenChange={setTwoFactorOpen} />
     </div>
   );
 }
