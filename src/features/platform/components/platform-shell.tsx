@@ -13,7 +13,6 @@ import {
   PanelLeftOpen,
   Radio,
   Shield,
-  ShieldAlert,
   User,
   X,
 } from "lucide-react";
@@ -76,7 +75,7 @@ export function PlatformShell({ children }: PlatformShellProps) {
         {/* Mobile Top Bar */}
         <header className="bg-card/80 sticky top-0 z-40 flex items-center justify-between border-b px-4 py-3 backdrop-blur-md md:hidden">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-red-500/30 bg-red-600/15 font-bold text-red-500 shadow-xs">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-indigo-500/30 bg-indigo-600/15 font-bold text-indigo-600 shadow-xs dark:text-indigo-400">
               <Shield className="h-4 w-4" />
             </div>
             <div>
@@ -128,8 +127,8 @@ export function PlatformShell({ children }: PlatformShellProps) {
             )}
           >
             <div className="flex items-center gap-3 overflow-hidden">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-rose-500 to-red-600 text-white shadow-md shadow-red-500/20">
-                <ShieldAlert className="h-5 w-5" />
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-500/20">
+                <Shield className="h-5 w-5" />
               </div>
               {!collapsed && (
                 <div className="min-w-0 flex-1">
@@ -137,7 +136,7 @@ export function PlatformShell({ children }: PlatformShellProps) {
                     <span className="truncate text-sm font-bold tracking-tight">SaaS Console</span>
                     <Badge
                       variant="outline"
-                      className="border-red-500/40 px-1 py-0 font-mono text-[9px] text-red-500 uppercase"
+                      className="border-indigo-500/30 bg-indigo-500/10 px-1.5 py-0 font-mono text-[9px] text-indigo-600 uppercase dark:text-indigo-400"
                     >
                       Staff
                     </Badge>
@@ -213,20 +212,20 @@ export function PlatformShell({ children }: PlatformShellProps) {
                           "group relative flex items-center gap-3 rounded-lg text-xs font-medium transition-all duration-150",
                           collapsed ? "mx-auto h-10 w-10 justify-center p-0" : "px-2.5 py-2",
                           isActive
-                            ? "border border-red-500/20 bg-red-500/10 font-semibold text-red-600 shadow-xs dark:text-red-400"
+                            ? "border border-indigo-500/25 bg-indigo-500/10 font-semibold text-indigo-600 shadow-xs dark:bg-indigo-500/15 dark:text-indigo-400"
                             : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
                         )}
                       >
                         {/* Active vertical accent bar on expanded mode */}
                         {isActive && !collapsed && (
-                          <span className="absolute top-1/2 left-0 h-4 w-1 -translate-y-1/2 rounded-r-full bg-red-500" />
+                          <span className="absolute top-1/2 left-0 h-4 w-1 -translate-y-1/2 rounded-r-full bg-indigo-600 dark:bg-indigo-400" />
                         )}
 
                         <Icon
                           className={cn(
                             "h-4 w-4 shrink-0 transition-colors",
                             isActive
-                              ? "text-red-600 dark:text-red-400"
+                              ? "text-indigo-600 dark:text-indigo-400"
                               : "text-muted-foreground group-hover:text-foreground",
                           )}
                         />
@@ -317,7 +316,7 @@ export function PlatformShell({ children }: PlatformShellProps) {
                   )}
                 >
                   <div className="flex min-w-0 items-center gap-2.5">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-red-500/30 bg-red-500/15 text-xs font-bold text-red-500">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-indigo-500/30 bg-indigo-500/15 text-xs font-bold text-indigo-600 dark:text-indigo-400">
                       {staff?.displayName ? (
                         staff.displayName.charAt(0).toUpperCase()
                       ) : (
@@ -353,7 +352,7 @@ export function PlatformShell({ children }: PlatformShellProps) {
                     </span>
                     <Badge
                       variant="outline"
-                      className="mt-1.5 w-fit border-red-500/40 font-mono text-[10px] text-red-500"
+                      className="mt-1.5 w-fit border-indigo-500/30 bg-indigo-500/10 font-mono text-[10px] text-indigo-600 dark:text-indigo-400"
                     >
                       {staff?.roleName ?? staff?.roleKey ?? "Platform Operator"}
                     </Badge>
@@ -361,7 +360,7 @@ export function PlatformShell({ children }: PlatformShellProps) {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setTwoFactorOpen(true)} className="cursor-pointer">
-                  <KeyRound className="mr-2 h-4 w-4 text-red-500" />
+                  <KeyRound className="mr-2 h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                   <span>Security & 2FA</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -383,8 +382,8 @@ export function PlatformShell({ children }: PlatformShellProps) {
           {/* Top Operational Bar (Desktop) */}
           <header className="bg-card/80 sticky top-0 z-30 hidden h-14 items-center justify-between border-b px-6 backdrop-blur-md md:flex">
             <div className="flex items-center gap-3">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-red-500/20 bg-red-500/5 px-3 py-1 font-mono text-xs font-medium text-red-600 dark:text-red-400">
-                <Radio className="h-3 w-3 animate-pulse text-red-500" />
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/5 px-3 py-1 font-mono text-xs font-medium text-indigo-600 dark:text-indigo-400">
+                <Radio className="h-3 w-3 animate-pulse text-indigo-500" />
                 SaaS Operational Surface &bull; Zero-Standing Customer Privileges
               </span>
             </div>
@@ -402,7 +401,7 @@ export function PlatformShell({ children }: PlatformShellProps) {
                 size="sm"
                 onClick={() => logout()}
                 disabled={loggingOut}
-                className="border-border/80 h-8 gap-1.5 text-xs hover:border-red-500/40 hover:text-red-500"
+                className="border-border/80 h-8 gap-1.5 text-xs hover:border-indigo-500/40 hover:text-indigo-600 dark:hover:text-indigo-400"
               >
                 <LogOut className="h-3.5 w-3.5" />
                 Sign Out

@@ -9,7 +9,7 @@ import {
   ExternalLink,
   LifeBuoy,
   Radio,
-  ShieldAlert,
+  ShieldCheck,
   StopCircle,
   Timer,
 } from "lucide-react";
@@ -281,8 +281,8 @@ export function SupportSessionsTable() {
       </div>
 
       {/* Security Architecture Principle Alert */}
-      <div className="text-foreground flex items-start gap-3 rounded-xl border border-red-500/25 bg-red-500/5 p-4 text-xs">
-        <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-red-500" />
+      <div className="text-foreground flex items-start gap-3 rounded-xl border border-indigo-500/25 bg-indigo-500/5 p-4 text-xs">
+        <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-indigo-500" />
         <div className="space-y-1">
           <p className="text-foreground font-semibold">
             Immutable Tenant Isolation &amp; Controlled Access

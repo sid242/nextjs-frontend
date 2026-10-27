@@ -73,7 +73,7 @@ export function RolesMatrix() {
         >
           <Button
             asChild
-            className="gap-2 bg-red-600 text-white shadow-md shadow-red-600/20 hover:bg-red-700"
+            className="gap-2 bg-indigo-600 text-white shadow-md shadow-indigo-600/20 hover:bg-indigo-700"
           >
             <Link href="/platform/roles/new">
               <Plus className="h-4 w-4" />
@@ -104,14 +104,14 @@ export function RolesMatrix() {
                     onClick={() => setSelectedRole(role)}
                     className={`w-full rounded-xl border p-3.5 text-left transition-all ${
                       isSelected
-                        ? "bg-card border-red-500/50 shadow-md ring-1 ring-red-500/30"
+                        ? "bg-card border-indigo-500/50 shadow-md ring-1 ring-indigo-500/30"
                         : "bg-card/40 border-border/80 hover:bg-card/80"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <ShieldCheck
-                          className={`h-4 w-4 ${isSelected ? "text-red-500" : "text-muted-foreground"}`}
+                          className={`h-4 w-4 ${isSelected ? "text-indigo-600 dark:text-indigo-400" : "text-muted-foreground"}`}
                         />
                         <span className="text-xs font-semibold tracking-tight">{role.name}</span>
                       </div>
@@ -153,7 +153,7 @@ export function RolesMatrix() {
                         <CardTitle className="text-lg font-bold">{activeRole.name}</CardTitle>
                         <Badge
                           variant="outline"
-                          className="border-red-500/30 font-mono text-xs text-red-500"
+                          className="border-indigo-500/30 bg-indigo-500/10 font-mono text-xs text-indigo-600 dark:text-indigo-400"
                         >
                           {activeRole.key}
                         </Badge>
@@ -214,14 +214,14 @@ export function RolesMatrix() {
                               key={perm.id}
                               className={`flex items-start gap-2.5 rounded-lg border p-2.5 text-xs transition-colors ${
                                 isGranted
-                                  ? "border-red-500/25 bg-red-500/5"
+                                  ? "border-indigo-500/25 bg-indigo-500/5"
                                   : "bg-muted/20 border-border/60 opacity-60"
                               }`}
                             >
                               <div
                                 className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full ${
                                   isGranted
-                                    ? "bg-red-500 text-white"
+                                    ? "bg-indigo-600 text-white"
                                     : "bg-muted text-muted-foreground"
                                 }`}
                               >
@@ -319,7 +319,7 @@ function CreatePlatformRoleDialog({
       <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <ShieldAlert className="h-5 w-5 text-red-500" />
+            <ShieldAlert className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
             Create Custom Platform Role
           </DialogTitle>
           <DialogDescription className="text-xs">
@@ -403,7 +403,7 @@ function CreatePlatformRoleDialog({
                           key={perm.id}
                           className={`flex cursor-pointer items-start gap-2 rounded border p-2 text-xs transition-colors ${
                             isChecked
-                              ? "text-foreground border-red-500/40 bg-red-500/10"
+                              ? "text-foreground border-indigo-500/40 bg-indigo-500/10"
                               : "bg-card border-border/60 hover:bg-muted/40 text-muted-foreground"
                           }`}
                         >
@@ -437,7 +437,7 @@ function CreatePlatformRoleDialog({
               pending={isPending}
               pendingText="Creating Role..."
               size="sm"
-              className="bg-red-600 text-white hover:bg-red-700"
+              className="bg-indigo-600 text-white hover:bg-indigo-700"
             >
               Save Custom Role
             </SubmitButton>

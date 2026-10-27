@@ -198,7 +198,7 @@ export function PlatformTwoFactorDialog({ open, onOpenChange }: PlatformTwoFacto
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-red-500" />
+            <ShieldCheck className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
             Platform Operator Security & 2FA
           </DialogTitle>
           <DialogDescription className="text-xs">
@@ -218,7 +218,7 @@ export function PlatformTwoFactorDialog({ open, onOpenChange }: PlatformTwoFacto
           <div className="space-y-4 py-2">
             <div className="border-border/60 bg-muted/20 flex items-center justify-between rounded-lg border p-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-red-500/20 bg-red-500/10 text-red-500">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-indigo-500/20 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
                   <Smartphone className="h-5 w-5" />
                 </div>
                 <div>
@@ -286,7 +286,7 @@ export function PlatformTwoFactorDialog({ open, onOpenChange }: PlatformTwoFacto
                 <Button
                   type="button"
                   size="sm"
-                  className="bg-red-600 text-white hover:bg-red-700"
+                  className="bg-indigo-600 text-white hover:bg-indigo-700"
                   onClick={startSetup}
                   disabled={setupMutation.isPending}
                 >
@@ -386,7 +386,7 @@ export function PlatformTwoFactorDialog({ open, onOpenChange }: PlatformTwoFacto
                     <Button
                       type="submit"
                       size="sm"
-                      className="bg-red-600 text-white hover:bg-red-700"
+                      className="bg-indigo-600 text-white hover:bg-indigo-700"
                       disabled={enableMutation.isPending || setupCode.length !== 6}
                     >
                       {enableMutation.isPending && (

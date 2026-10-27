@@ -159,7 +159,7 @@ export function AuditLogsTable() {
       return (
         <Badge
           variant="outline"
-          className="border-red-500/40 bg-red-500/5 font-mono text-[10px] text-red-500"
+          className="border-indigo-500/40 bg-indigo-500/5 font-mono text-[10px] text-indigo-600 dark:text-indigo-400"
         >
           {action}
         </Badge>
@@ -349,7 +349,7 @@ export function AuditLogsTable() {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 font-mono text-sm">
-              <Code2 className="h-4 w-4 text-red-500" />
+              <Code2 className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
               Audit Payload &bull; {inspectLog?.action}
             </DialogTitle>
             <DialogDescription className="font-mono text-xs">

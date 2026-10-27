@@ -52,8 +52,8 @@ export function PlatformPermissionGate({
   const requiredLabel = Array.isArray(permission) ? permission.join(" or ") : permission;
 
   return (
-    <div className="bg-card/40 flex min-h-105 flex-col items-center justify-center rounded-2xl border border-red-500/20 p-8 text-center shadow-xs">
-      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-red-500/30 bg-red-500/10 text-red-500 shadow-xs">
+    <div className="bg-card/40 flex min-h-105 flex-col items-center justify-center rounded-2xl border border-amber-500/25 p-8 text-center shadow-xs">
+      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-500 shadow-xs">
         <ShieldAlert className="h-7 w-7" />
       </div>
       <h2 className="text-xl font-bold tracking-tight">Access Restricted</h2>

@@ -189,7 +189,7 @@ export function StaffTable() {
         return (
           <TableCell key="member">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-red-500/20 bg-red-500/10 text-xs font-bold text-red-500">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-indigo-500/20 bg-indigo-500/10 text-xs font-bold text-indigo-600 dark:text-indigo-400">
                 {member.displayName?.charAt(0).toUpperCase() ?? "S"}
               </div>
               <div>
@@ -327,7 +327,7 @@ export function StaffTable() {
         >
           <Button
             asChild
-            className="gap-2 bg-red-600 text-white shadow-md shadow-red-600/20 hover:bg-red-700"
+            className="gap-2 bg-indigo-600 text-white shadow-md shadow-indigo-600/20 hover:bg-indigo-700"
           >
             <Link href="/platform/staff/new">
               <UserPlus className="h-4 w-4" />
@@ -550,7 +550,7 @@ function ProvisionStaffDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <UserPlus className="h-5 w-5 text-red-500" />
+            <UserPlus className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
             Provision Platform Staff Member
           </DialogTitle>
           <DialogDescription className="text-xs">
@@ -609,7 +609,7 @@ function ProvisionStaffDialog({
               pending={isPending}
               pendingText="Provisioning..."
               size="sm"
-              className="bg-red-600 text-white hover:bg-red-700"
+              className="bg-indigo-600 text-white hover:bg-indigo-700"
             >
               Create Staff Account
             </SubmitButton>
@@ -748,7 +748,7 @@ function ResetPasswordDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <KeyRound className="h-5 w-5 text-red-500" />
+            <KeyRound className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
             Reset Staff Password
           </DialogTitle>
           <DialogDescription className="text-xs">
@@ -814,7 +814,7 @@ function ResetPasswordDialog({
                 type="submit"
                 size="sm"
                 disabled={isPending}
-                className="bg-red-600 text-white hover:bg-red-700"
+                className="bg-indigo-600 text-white hover:bg-indigo-700"
               >
                 {isPending ? "Resetting..." : "Confirm Password Reset"}
               </Button>

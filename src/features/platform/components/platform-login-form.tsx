@@ -92,14 +92,14 @@ export function PlatformLoginForm({ next }: { next?: string }) {
       <div className="mx-auto w-full max-w-md space-y-6">
         {/* Brand Header */}
         <div className="space-y-2 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-amber-600 text-white shadow-lg shadow-red-500/25">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/25">
             <ShieldCheck className="h-6 w-6" />
           </div>
           <div className="flex items-center justify-center gap-1.5 pt-1">
             <h1 className="text-xl font-bold tracking-tight">Two-Factor Authentication</h1>
             <Badge
               variant="outline"
-              className="border-red-500/40 font-mono text-[10px] text-red-500"
+              className="border-indigo-500/30 bg-indigo-500/10 font-mono text-[10px] text-indigo-600 dark:text-indigo-400"
             >
               REQUIRED
             </Badge>
@@ -114,7 +114,7 @@ export function PlatformLoginForm({ next }: { next?: string }) {
         <Card className="border-border/80 bg-card/60 shadow-xl backdrop-blur">
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-              <KeyRound className="h-4 w-4 text-red-500" />
+              <KeyRound className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
               {useRecoveryCode ? "Recovery Code Verification" : "Authenticator Verification"}
             </CardTitle>
             <CardDescription className="text-xs">
@@ -150,7 +150,7 @@ export function PlatformLoginForm({ next }: { next?: string }) {
               <Button
                 type="submit"
                 disabled={isVerifying || code.trim().length < 6}
-                className="w-full bg-gradient-to-r from-red-600 to-amber-600 font-medium text-white shadow-md shadow-red-500/20 hover:from-red-700 hover:to-amber-700"
+                className="w-full bg-gradient-to-r from-indigo-600 via-indigo-600 to-violet-600 font-medium text-white shadow-md shadow-indigo-500/20 hover:from-indigo-700 hover:to-violet-700"
               >
                 {isVerifying ? "Verifying…" : "Verify and Access Console"}
               </Button>
@@ -196,12 +196,15 @@ export function PlatformLoginForm({ next }: { next?: string }) {
     <div className="mx-auto w-full max-w-md space-y-6">
       {/* Brand Header */}
       <div className="space-y-2 text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-amber-600 text-white shadow-lg shadow-red-500/25">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/25">
           <ShieldAlert className="h-6 w-6" />
         </div>
         <div className="flex items-center justify-center gap-1.5 pt-1">
           <h1 className="text-xl font-bold tracking-tight">SaaS Platform Console</h1>
-          <Badge variant="outline" className="border-red-500/40 font-mono text-[10px] text-red-500">
+          <Badge
+            variant="outline"
+            className="border-indigo-500/30 bg-indigo-500/10 font-mono text-[10px] text-indigo-600 dark:text-indigo-400"
+          >
             SECURE
           </Badge>
         </div>
@@ -213,7 +216,7 @@ export function PlatformLoginForm({ next }: { next?: string }) {
       <Card className="border-border/80 bg-card/60 shadow-xl backdrop-blur">
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-            <Lock className="h-4 w-4 text-red-500" />
+            <Lock className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
             Operator Authentication
           </CardTitle>
           <CardDescription className="text-xs">
@@ -256,7 +259,7 @@ export function PlatformLoginForm({ next }: { next?: string }) {
             <SubmitButton
               pending={isLoggingIn}
               pendingText="Verifying Credentials..."
-              className="h-9 w-full gap-2 bg-gradient-to-r from-red-600 to-amber-600 text-xs text-white shadow-md shadow-red-600/20 hover:from-red-700 hover:to-amber-700"
+              className="h-9 w-full gap-2 bg-gradient-to-r from-indigo-600 via-indigo-600 to-violet-600 text-xs text-white shadow-md shadow-indigo-600/20 hover:from-indigo-700 hover:to-violet-700"
             >
               Authenticate Platform Session
               <ArrowRight className="h-4 w-4" />
