@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # Build once, deploy anywhere: there are NO NEXT_PUBLIC_* build args.
 # API_URL / SOCKET_URL / CSP_CONNECT_EXTRA are read at runtime.
-FROM node:22-alpine AS base
+FROM node:24-alpine AS base
 RUN apk add --no-cache libc6-compat tini
 WORKDIR /app
 
