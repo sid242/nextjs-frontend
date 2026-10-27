@@ -55,11 +55,19 @@ export function TenantLogo({
 }: TenantLogoProps) {
   const [failedUrls, setFailedUrls] = useState<Record<string, boolean>>({});
 
-  const { activeTenant } = useActiveTenant();
-  const currentTenant = overrideTenant !== undefined ? overrideTenant : activeTenant;
-  const { data: fetchedBranding } = useTenantBranding(currentTenant?.id);
+  const isControlledTenant = overrideTenant !== undefined;
+  const isControlledBranding = overrideBranding !== undefined;
 
-  const activeBranding = overrideBranding !== undefined ? overrideBranding : fetchedBranding;
+  const { activeTenant } = useActiveTenant({ enabled: !isControlledTenant });
+  const currentTenant = isControlledTenant ? overrideTenant : activeTenant;
+
+  const shouldFetchBranding =
+    !isControlledBranding && !isControlledTenant && Boolean(currentTenant?.id);
+  const { data: fetchedBranding } = useTenantBranding(currentTenant?.id, {
+    enabled: shouldFetchBranding,
+  });
+
+  const activeBranding = isControlledBranding ? overrideBranding : fetchedBranding;
 
   const lightLogo = activeBranding?.logoUrl?.trim() || null;
   const darkLogo = activeBranding?.logoDarkUrl?.trim() || null;

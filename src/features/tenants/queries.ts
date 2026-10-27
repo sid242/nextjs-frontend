@@ -162,9 +162,9 @@ export function useTenantContext(
   return useAppQuery<TenantContext>(tenantContextQueryOptions(tenantId ?? ""), options);
 }
 
-export function useActiveTenant() {
+export function useActiveTenant(options?: QueryOverrides<Tenant[]>) {
   const queryClient = useQueryClient();
-  const { data: tenants = [], isLoading } = useTenants();
+  const { data: tenants = [], isLoading } = useTenants(options);
   const activeTenantId = useTenantStore((s) => s.activeTenantId);
   const storeSetActiveTenantId = useTenantStore((s) => s.setActiveTenantId);
 

@@ -61,7 +61,7 @@ export function PlatformLoginForm({ next }: { next?: string }) {
         return;
       }
 
-      const target = safeNextPath(next, "/platform/staff");
+      const target = safeNextPath(next, "/platform/dashboard");
       router?.push?.(target);
       router?.refresh?.();
     } catch (err: unknown) {
@@ -79,7 +79,7 @@ export function PlatformLoginForm({ next }: { next?: string }) {
         challengeToken,
         code: code.trim(),
       });
-      const target = safeNextPath(next, "/platform/staff");
+      const target = safeNextPath(next, "/platform/dashboard");
       router?.push?.(target);
       router?.refresh?.();
     } catch (err: unknown) {

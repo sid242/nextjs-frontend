@@ -7,6 +7,7 @@ import {
   isPlatformPath,
   isProtectedPath,
   matchTenantAuthPath,
+  safeNextPath,
 } from "@/lib/auth/paths";
 
 const isDev = process.env.NODE_ENV !== "production";
@@ -96,7 +97,9 @@ export function proxy(req: NextRequest) {
   if (isPlatformPath(pathname)) {
     if (isPlatformLogin(pathname)) {
       if (hasPlatformStaff) {
-        return NextResponse.redirect(new URL("/platform/staff", req.url));
+        const next = req.nextUrl.searchParams.get("next");
+        const destination = safeNextPath(next, "/platform/dashboard");
+        return NextResponse.redirect(new URL(destination, req.url));
       }
     } else {
       if (!hasPlatformStaff) {
