@@ -111,18 +111,19 @@ export function PlatformShell({ children }: PlatformShellProps) {
         {/* Desktop Sidebar & Mobile Drawer */}
         <aside
           className={cn(
-            "bg-card/95 sticky top-0 z-50 flex h-screen shrink-0 flex-col border-r backdrop-blur-md transition-[width,transform] duration-200 ease-in-out",
-            // Mobile behavior: fixed drawer
-            "fixed inset-y-0 left-0 md:static md:translate-x-0",
+            "bg-card/95 z-50 flex flex-col border-r backdrop-blur-md transition-[width,transform] duration-200 ease-in-out",
+            // Mobile drawer: fixed full-height slide-over
+            "fixed inset-y-0 left-0 h-screen",
             mobileOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full",
-            // Desktop width: collapsible
+            // Desktop: sticky pinned to viewport top, never scrolls away with document
+            "md:sticky md:top-0 md:h-screen md:max-h-screen md:translate-x-0",
             collapsed ? "md:w-18" : "md:w-68",
           )}
         >
-          {/* Brand & Collapse Header */}
+          {/* Brand & Collapse Header - h-14 matching desktop top bar */}
           <div
             className={cn(
-              "flex items-center border-b p-4 transition-all",
+              "flex h-14 shrink-0 items-center border-b px-4 transition-all",
               collapsed ? "justify-center" : "justify-between",
             )}
           >
@@ -178,8 +179,8 @@ export function PlatformShell({ children }: PlatformShellProps) {
             </div>
           </div>
 
-          {/* Navigation Links with Groupings */}
-          <nav className="flex-1 space-y-4 overflow-x-hidden overflow-y-auto px-3 py-4">
+          {/* Navigation Links with Groupings - min-h-0 allows internal scroll if short */}
+          <nav className="min-h-0 flex-1 space-y-4 overflow-x-hidden overflow-y-auto px-3 py-4">
             {PLATFORM_NAV_GROUPS.map((group) => {
               const visibleItems = group.items.filter((item) =>
                 hasPlatformPermission(staff, item.permission),
@@ -380,23 +381,20 @@ export function PlatformShell({ children }: PlatformShellProps) {
         {/* Main Content Workspace */}
         <div className="flex min-w-0 flex-1 flex-col">
           {/* Top Operational Bar (Desktop) */}
-          <header className="bg-card/40 sticky top-0 z-30 hidden h-14 items-center justify-between border-b px-6 backdrop-blur-md md:flex">
+          <header className="bg-card/80 sticky top-0 z-30 hidden h-14 items-center justify-between border-b px-6 backdrop-blur-md md:flex">
             <div className="flex items-center gap-3">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-red-500/25 bg-red-500/10 px-2.5 py-1 font-mono text-xs font-medium text-red-500 shadow-2xs">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-red-500/20 bg-red-500/5 px-3 py-1 font-mono text-xs font-medium text-red-600 dark:text-red-400">
                 <Radio className="h-3 w-3 animate-pulse text-red-500" />
                 SaaS Operational Surface &bull; Zero-Standing Customer Privileges
               </span>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5">
               {activeSupportCount > 0 && (
-                <Badge
-                  variant="destructive"
-                  className="gap-1.5 bg-emerald-600 px-2.5 py-1 font-mono text-xs text-white"
-                >
-                  <span className="h-1.5 w-1.5 animate-ping rounded-full bg-white" />
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 font-mono text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                  <span className="h-1.5 w-1.5 animate-ping rounded-full bg-emerald-500" />
                   {activeSupportCount} Active Support Delegation
-                </Badge>
+                </div>
               )}
               <ThemeToggle />
               <Button
