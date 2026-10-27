@@ -336,48 +336,55 @@ export function TenantsTable() {
         );
       case "actions":
         return (
-          <TableCell key="actions" className="pr-6 text-right">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="size-8">
-                  <MoreVertical className="size-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuLabel className="text-xs">Organization Actions</DropdownMenuLabel>
-                <DropdownMenuItem asChild>
-                  <Link href={`/platform/tenants/${t.id}`} className="gap-2">
-                    <ExternalLink className="size-3.5" /> View Inspector
-                  </Link>
-                </DropdownMenuItem>
-                {canStartSupport ? (
-                  <DropdownMenuItem onClick={() => setSupportTarget(t)} className="gap-2">
-                    <LifeBuoy className="size-3.5 text-blue-500" /> Start Support Session
+          <TableCell key="actions" className="w-[110px] min-w-[110px] pr-4 text-right">
+            <div className="flex items-center justify-end">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="hover:bg-muted size-8 cursor-pointer"
+                    aria-label="Organization actions"
+                  >
+                    <MoreVertical className="size-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuLabel className="text-xs">Organization Actions</DropdownMenuLabel>
+                  <DropdownMenuItem asChild>
+                    <Link href={`/platform/tenants/${t.id}`} className="gap-2">
+                      <ExternalLink className="size-3.5" /> View Inspector
+                    </Link>
                   </DropdownMenuItem>
-                ) : null}
+                  {canStartSupport ? (
+                    <DropdownMenuItem onClick={() => setSupportTarget(t)} className="gap-2">
+                      <LifeBuoy className="size-3.5 text-blue-500" /> Start Support Session
+                    </DropdownMenuItem>
+                  ) : null}
 
-                {canSuspendTenant ? (
-                  <>
-                    <DropdownMenuSeparator />
-                    {t.status === "ACTIVE" ? (
-                      <DropdownMenuItem
-                        onClick={() => setSuspendTarget(t)}
-                        className="gap-2 text-red-600 dark:text-red-400"
-                      >
-                        <PowerOff className="size-3.5" /> Suspend Workspace
-                      </DropdownMenuItem>
-                    ) : (
-                      <DropdownMenuItem
-                        onClick={() => setActivateTarget(t)}
-                        className="gap-2 text-emerald-600 dark:text-emerald-400"
-                      >
-                        <Power className="size-3.5" /> Reactivate Workspace
-                      </DropdownMenuItem>
-                    )}
-                  </>
-                ) : null}
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  {canSuspendTenant ? (
+                    <>
+                      <DropdownMenuSeparator />
+                      {t.status === "ACTIVE" ? (
+                        <DropdownMenuItem
+                          onClick={() => setSuspendTarget(t)}
+                          className="gap-2 text-red-600 dark:text-red-400"
+                        >
+                          <PowerOff className="size-3.5" /> Suspend Workspace
+                        </DropdownMenuItem>
+                      ) : (
+                        <DropdownMenuItem
+                          onClick={() => setActivateTarget(t)}
+                          className="gap-2 text-emerald-600 dark:text-emerald-400"
+                        >
+                          <Power className="size-3.5" /> Reactivate Workspace
+                        </DropdownMenuItem>
+                      )}
+                    </>
+                  ) : null}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </TableCell>
         );
     }
@@ -514,17 +521,18 @@ export function TenantsTable() {
                       colId === "workspace"
                         ? "pl-6"
                         : colId === "actions"
-                          ? "w-[60px] pr-4 text-right"
+                          ? "w-[110px] min-w-[110px] pr-4 text-right"
                           : undefined
                     }
                   >
                     {colId === "actions" ? (
-                      <div className="flex items-center justify-end">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <span className="text-muted-foreground text-xs font-semibold">Actions</span>
                         <ColumnConfigDropdown
                           tableColumns={tableColumns}
                           variant="ghost"
                           size="icon"
-                          className="text-muted-foreground hover:text-foreground size-7"
+                          className="text-muted-foreground hover:text-foreground hover:bg-muted size-8 cursor-pointer"
                           align="end"
                         />
                       </div>

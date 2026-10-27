@@ -211,7 +211,7 @@ export function SupportSessionsTable() {
         );
       case "actions":
         return (
-          <TableCell key="actions" className="text-right">
+          <TableCell key="actions" className="w-[260px] min-w-[260px] pr-4 text-right">
             {isActive && (
               <div className="flex items-center justify-end gap-1.5">
                 <Button
@@ -369,15 +369,22 @@ export function SupportSessionsTable() {
                     {tableColumns.orderedVisibleColumns.map((colId) => (
                       <TableHead
                         key={colId}
-                        className={colId === "actions" ? "w-[60px] pr-4 text-right" : undefined}
+                        className={
+                          colId === "actions"
+                            ? "w-[260px] min-w-[260px] pr-4 text-right"
+                            : undefined
+                        }
                       >
                         {colId === "actions" ? (
-                          <div className="flex items-center justify-end">
+                          <div className="flex items-center justify-end gap-1">
+                            <span className="text-muted-foreground text-xs font-semibold">
+                              Actions
+                            </span>
                             <ColumnConfigDropdown
                               tableColumns={tableColumns}
                               variant="ghost"
                               size="icon"
-                              className="text-muted-foreground hover:text-foreground size-7"
+                              className="text-muted-foreground hover:text-foreground hover:bg-muted size-8 cursor-pointer"
                               align="end"
                             />
                           </div>

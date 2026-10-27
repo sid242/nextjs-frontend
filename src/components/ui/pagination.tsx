@@ -74,11 +74,12 @@ function PaginationPrevious({
   return (
     <PaginationLink
       aria-label="Go to previous page"
-      className={cn("h-8 gap-1 px-2.5 font-sans text-xs", className)}
+      size="sm"
+      className={cn("h-8 w-auto gap-1.5 px-3 font-sans text-xs select-none", className)}
       {...props}
     >
-      <ChevronLeftIcon className="size-4" />
-      {children ?? <span className="hidden sm:inline">Previous</span>}
+      <ChevronLeftIcon className="size-4 shrink-0" />
+      {children ?? <span>Previous</span>}
     </PaginationLink>
   );
 }
@@ -87,11 +88,12 @@ function PaginationNext({ className, children, ...props }: ComponentProps<typeof
   return (
     <PaginationLink
       aria-label="Go to next page"
-      className={cn("h-8 gap-1 px-2.5 font-sans text-xs", className)}
+      size="sm"
+      className={cn("h-8 w-auto gap-1.5 px-3 font-sans text-xs select-none", className)}
       {...props}
     >
-      {children ?? <span className="hidden sm:inline">Next</span>}
-      <ChevronRightIcon className="size-4" />
+      {children ?? <span>Next</span>}
+      <ChevronRightIcon className="size-4 shrink-0" />
     </PaginationLink>
   );
 }

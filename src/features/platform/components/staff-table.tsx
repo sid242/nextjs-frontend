@@ -254,58 +254,65 @@ export function StaffTable() {
           );
         }
         return (
-          <TableCell key="actions" className="text-right">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 text-xs">
-                <DropdownMenuLabel>Staff Actions</DropdownMenuLabel>
-                {canUpdateStaff ? (
-                  <DropdownMenuItem
-                    onClick={() => {
-                      setSelectedStaff(member);
-                      setRoleDialogOpen(true);
-                    }}
+          <TableCell key="actions" className="w-[110px] min-w-[110px] pr-4 text-right">
+            <div className="flex items-center justify-end">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="hover:bg-muted size-8 cursor-pointer"
+                    aria-label="Staff actions"
                   >
-                    <Shield className="mr-2 h-3.5 w-3.5" />
-                    Change Platform Role
-                  </DropdownMenuItem>
-                ) : null}
-                {canUpdateStaff ? (
-                  <DropdownMenuItem
-                    onClick={() => {
-                      setSelectedStaffForReset(member);
-                      setResetDialogOpen(true);
-                    }}
-                  >
-                    <KeyRound className="mr-2 h-3.5 w-3.5" />
-                    Reset Password
-                  </DropdownMenuItem>
-                ) : null}
-                {canUpdateStaff && canSuspendStaff ? <DropdownMenuSeparator /> : null}
-                {canSuspendStaff ? (
-                  <DropdownMenuItem
-                    onClick={() => handleStatusToggle(member)}
-                    className={member.status === "ACTIVE" ? "text-amber-500" : "text-emerald-500"}
-                  >
-                    {member.status === "ACTIVE" ? (
-                      <>
-                        <Clock className="mr-2 h-3.5 w-3.5" />
-                        Suspend Account
-                      </>
-                    ) : (
-                      <>
-                        <UserCheck className="mr-2 h-3.5 w-3.5" />
-                        Reactivate Account
-                      </>
-                    )}
-                  </DropdownMenuItem>
-                ) : null}
-              </DropdownMenuContent>
-            </DropdownMenu>
+                    <MoreVertical className="size-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48 text-xs">
+                  <DropdownMenuLabel>Staff Actions</DropdownMenuLabel>
+                  {canUpdateStaff ? (
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setSelectedStaff(member);
+                        setRoleDialogOpen(true);
+                      }}
+                    >
+                      <Shield className="mr-2 h-3.5 w-3.5" />
+                      Change Platform Role
+                    </DropdownMenuItem>
+                  ) : null}
+                  {canUpdateStaff ? (
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setSelectedStaffForReset(member);
+                        setResetDialogOpen(true);
+                      }}
+                    >
+                      <KeyRound className="mr-2 h-3.5 w-3.5" />
+                      Reset Password
+                    </DropdownMenuItem>
+                  ) : null}
+                  {canUpdateStaff && canSuspendStaff ? <DropdownMenuSeparator /> : null}
+                  {canSuspendStaff ? (
+                    <DropdownMenuItem
+                      onClick={() => handleStatusToggle(member)}
+                      className={member.status === "ACTIVE" ? "text-amber-500" : "text-emerald-500"}
+                    >
+                      {member.status === "ACTIVE" ? (
+                        <>
+                          <Clock className="mr-2 h-3.5 w-3.5" />
+                          Suspend Account
+                        </>
+                      ) : (
+                        <>
+                          <UserCheck className="mr-2 h-3.5 w-3.5" />
+                          Reactivate Account
+                        </>
+                      )}
+                    </DropdownMenuItem>
+                  ) : null}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </TableCell>
         );
     }
@@ -427,15 +434,22 @@ export function StaffTable() {
                     {tableColumns.orderedVisibleColumns.map((colId) => (
                       <TableHead
                         key={colId}
-                        className={colId === "actions" ? "w-[60px] pr-4 text-right" : undefined}
+                        className={
+                          colId === "actions"
+                            ? "w-[110px] min-w-[110px] pr-4 text-right"
+                            : undefined
+                        }
                       >
                         {colId === "actions" ? (
-                          <div className="flex items-center justify-end">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <span className="text-muted-foreground text-xs font-semibold">
+                              Actions
+                            </span>
                             <ColumnConfigDropdown
                               tableColumns={tableColumns}
                               variant="ghost"
                               size="icon"
-                              className="text-muted-foreground hover:text-foreground size-7"
+                              className="text-muted-foreground hover:text-foreground hover:bg-muted size-8 cursor-pointer"
                               align="end"
                             />
                           </div>

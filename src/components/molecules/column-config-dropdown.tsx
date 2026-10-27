@@ -124,10 +124,11 @@ export function ColumnConfigDropdown<TId extends string = string>({
           variant={variant}
           size={size}
           className={cn("relative gap-1.5", className)}
-          aria-label="Customize columns"
+          aria-label={label ?? "Customize columns"}
+          title={label ?? "Customize columns"}
         >
           <SlidersHorizontalIcon className="size-3.5" />
-          <span>{label}</span>
+          {size !== "icon" && <span>{label}</span>}
           {isCustomized ? (
             <span
               className="bg-primary absolute -top-1 -right-1 size-2 rounded-full"
