@@ -64,8 +64,16 @@ import {
   type TableColumnDef,
 } from "@/lib/hooks";
 
-import { useCreateStaff, usePlatformRoles, useStaffList, useUpdateStaff } from "../queries";
+import { hasPlatformPermission, PLATFORM_PERMISSION_KEYS } from "../permissions";
+import {
+  useCreateStaff,
+  usePlatformMe,
+  usePlatformRoles,
+  useStaffList,
+  useUpdateStaff,
+} from "../queries";
 import { createStaffSchema, type CreateStaffInput, type StaffMember } from "../schemas";
+import { PlatformPermissionGate } from "./platform-permission-gate";
 
 type StaffColumnId = "member" | "role" | "status" | "lastLogin" | "createdAt" | "actions";
 
@@ -127,6 +135,10 @@ export function StaffTable() {
   const { data: staffData, isLoading, error } = useStaffList({ limit: 100 });
   const { data: roles = [] } = usePlatformRoles();
   const { mutateAsync: updateStaff } = useUpdateStaff();
+  const { data: staffMe } = usePlatformMe();
+
+  const canUpdateStaff = hasPlatformPermission(staffMe, PLATFORM_PERMISSION_KEYS.STAFF_UPDATE);
+  const canSuspendStaff = hasPlatformPermission(staffMe, PLATFORM_PERMISSION_KEYS.STAFF_SUSPEND);
 
   const filteredStaff = useMemo(() => {
     const query = searchInput.toLowerCase();
@@ -226,6 +238,13 @@ export function StaffTable() {
           </TableCell>
         );
       case "actions":
+        if (!canUpdateStaff && !canSuspendStaff) {
+          return (
+            <TableCell key="actions" className="text-muted-foreground text-right text-xs">
+              —
+            </TableCell>
+          );
+        }
         return (
           <TableCell key="actions" className="text-right">
             <DropdownMenu>
@@ -236,32 +255,36 @@ export function StaffTable() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48 text-xs">
                 <DropdownMenuLabel>Staff Actions</DropdownMenuLabel>
-                <DropdownMenuItem
-                  onClick={() => {
-                    setSelectedStaff(member);
-                    setRoleDialogOpen(true);
-                  }}
-                >
-                  <Shield className="mr-2 h-3.5 w-3.5" />
-                  Change Platform Role
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => handleStatusToggle(member)}
-                  className={member.status === "ACTIVE" ? "text-amber-500" : "text-emerald-500"}
-                >
-                  {member.status === "ACTIVE" ? (
-                    <>
-                      <Clock className="mr-2 h-3.5 w-3.5" />
-                      Suspend Account
-                    </>
-                  ) : (
-                    <>
-                      <UserCheck className="mr-2 h-3.5 w-3.5" />
-                      Reactivate Account
-                    </>
-                  )}
-                </DropdownMenuItem>
+                {canUpdateStaff ? (
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setSelectedStaff(member);
+                      setRoleDialogOpen(true);
+                    }}
+                  >
+                    <Shield className="mr-2 h-3.5 w-3.5" />
+                    Change Platform Role
+                  </DropdownMenuItem>
+                ) : null}
+                {canUpdateStaff && canSuspendStaff ? <DropdownMenuSeparator /> : null}
+                {canSuspendStaff ? (
+                  <DropdownMenuItem
+                    onClick={() => handleStatusToggle(member)}
+                    className={member.status === "ACTIVE" ? "text-amber-500" : "text-emerald-500"}
+                  >
+                    {member.status === "ACTIVE" ? (
+                      <>
+                        <Clock className="mr-2 h-3.5 w-3.5" />
+                        Suspend Account
+                      </>
+                    ) : (
+                      <>
+                        <UserCheck className="mr-2 h-3.5 w-3.5" />
+                        Reactivate Account
+                      </>
+                    )}
+                  </DropdownMenuItem>
+                ) : null}
               </DropdownMenuContent>
             </DropdownMenu>
           </TableCell>
@@ -279,13 +302,18 @@ export function StaffTable() {
             Internal SaaS operators, security officers, and tenant support personnel.
           </p>
         </div>
-        <Button
-          onClick={() => setCreateDialogOpen(true)}
-          className="gap-2 bg-red-600 text-white shadow-md shadow-red-600/20 hover:bg-red-700"
+        <PlatformPermissionGate
+          permission={PLATFORM_PERMISSION_KEYS.STAFF_CREATE}
+          hideInsteadOfBanner
         >
-          <UserPlus className="h-4 w-4" />
-          Provision Staff Member
-        </Button>
+          <Button
+            onClick={() => setCreateDialogOpen(true)}
+            className="gap-2 bg-red-600 text-white shadow-md shadow-red-600/20 hover:bg-red-700"
+          >
+            <UserPlus className="h-4 w-4" />
+            Provision Staff Member
+          </Button>
+        </PlatformPermissionGate>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

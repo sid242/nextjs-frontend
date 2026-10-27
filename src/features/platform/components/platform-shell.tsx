@@ -33,6 +33,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+import { hasPlatformPermission, PLATFORM_PERMISSION_KEYS } from "../permissions";
 import { usePlatformLogout, usePlatformMe, useSupportSessions } from "../queries";
 import { PlatformTwoFactorDialog } from "./platform-two-factor-dialog";
 
@@ -40,42 +41,56 @@ interface PlatformShellProps {
   children: ReactNode;
 }
 
-const NAV_ITEMS = [
+interface NavItemConfig {
+  href: string;
+  label: string;
+  description: string;
+  icon: typeof Building2;
+  permission: string | string[];
+}
+
+const NAV_ITEMS: NavItemConfig[] = [
   {
     href: "/platform/tenants",
     label: "Workspaces",
     description: "Customer organizations, databases & status",
     icon: Building2,
+    permission: PLATFORM_PERMISSION_KEYS.TENANTS_READ,
   },
   {
     href: "/platform/staff",
     label: "Platform Staff",
     description: "Manage internal operator accounts & status",
     icon: Users,
+    permission: PLATFORM_PERMISSION_KEYS.STAFF_READ,
   },
   {
     href: "/platform/roles",
     label: "Roles & Permissions",
     description: "System & custom resource::action catalogue",
     icon: ShieldCheck,
+    permission: PLATFORM_PERMISSION_KEYS.ROLES_READ,
   },
   {
     href: "/platform/plans",
     label: "Plans & Entitlements",
     description: "Multi-tenant tiers, seat limits & quotas",
     icon: Layers,
+    permission: PLATFORM_PERMISSION_KEYS.BILLING_READ,
   },
   {
     href: "/platform/support-sessions",
     label: "Support Sessions",
     description: "Time-bound, audited tenant delegation",
     icon: LifeBuoy,
+    permission: [PLATFORM_PERMISSION_KEYS.SUPPORT_START, PLATFORM_PERMISSION_KEYS.SUPPORT_END],
   },
   {
     href: "/platform/audit-logs",
     label: "Platform Audit Trail",
     description: "Immutable compliance & security logs",
     icon: FileText,
+    permission: PLATFORM_PERMISSION_KEYS.AUDIT_READ,
   },
 ];
 
@@ -86,8 +101,19 @@ export function PlatformShell({ children }: PlatformShellProps) {
   const { data: staff, isLoading: staffLoading } = usePlatformMe();
   const { mutate: logout, isPending: loggingOut } = usePlatformLogout();
 
-  // Query active support sessions for live indicator
-  const { data: sessionsData } = useSupportSessions({ page: 1, limit: 5 });
+  // Filter navigation items by staff permissions
+  const visibleNavItems = NAV_ITEMS.filter((item) => hasPlatformPermission(staff, item.permission));
+
+  const canInspectSupport = hasPlatformPermission(staff, [
+    PLATFORM_PERMISSION_KEYS.SUPPORT_START,
+    PLATFORM_PERMISSION_KEYS.SUPPORT_END,
+  ]);
+
+  // Query active support sessions only if staff has permission
+  const { data: sessionsData } = useSupportSessions(
+    { page: 1, limit: 5 },
+    { enabled: canInspectSupport },
+  );
   const activeSessions = (sessionsData?.items ?? []).filter((s) => s?.status === "ACTIVE");
 
   return (
@@ -184,7 +210,7 @@ export function PlatformShell({ children }: PlatformShellProps) {
           <div className="text-muted-foreground px-3 pt-2 pb-1.5 font-mono text-[10px] font-semibold tracking-wider uppercase">
             Platform Management
           </div>
-          {NAV_ITEMS.map((item) => {
+          {visibleNavItems.map((item) => {
             const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`);
             const Icon = item.icon;
             return (

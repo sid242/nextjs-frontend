@@ -7,6 +7,7 @@ import type {
   SearchAuditLogsInput,
   Tenant,
   TenantBranding,
+  TenantContext,
   TenantEmailConfig,
   TenantMember,
   TestEmailInput,
@@ -327,4 +328,11 @@ export async function transferTenantOwnership(
   }>(`/tenants/${tenantId}/members/${memberId}/transfer-ownership`, {
     newRoleForFormerOwner,
   });
+}
+
+export async function getTenantContext(
+  tenantId: string,
+  signal?: AbortSignal,
+): Promise<TenantContext> {
+  return api.get<TenantContext>(`/tenants/${tenantId}/context`, { signal });
 }

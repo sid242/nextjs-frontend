@@ -24,6 +24,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getErrorMessage } from "@/lib/api/errors";
 
+import { PLATFORM_PERMISSION_KEYS } from "../permissions";
 import { useCreatePlatformRole, usePlatformPermissions, usePlatformRoles } from "../queries";
 import {
   createPlatformRoleSchema,
@@ -31,6 +32,7 @@ import {
   type PlatformPermission,
   type PlatformRole,
 } from "../schemas";
+import { PlatformPermissionGate } from "./platform-permission-gate";
 
 export function RolesMatrix() {
   const { data: roles = [], isLoading: rolesLoading } = usePlatformRoles();
@@ -64,13 +66,18 @@ export function RolesMatrix() {
             Canonical <code>resource::action</code> catalogue governing internal SaaS operations.
           </p>
         </div>
-        <Button
-          onClick={() => setCreateDialogOpen(true)}
-          className="gap-2 bg-red-600 text-white shadow-md shadow-red-600/20 hover:bg-red-700"
+        <PlatformPermissionGate
+          permission={PLATFORM_PERMISSION_KEYS.ROLES_MANAGE}
+          hideInsteadOfBanner
         >
-          <Plus className="h-4 w-4" />
-          Create Custom Platform Role
-        </Button>
+          <Button
+            onClick={() => setCreateDialogOpen(true)}
+            className="gap-2 bg-red-600 text-white shadow-md shadow-red-600/20 hover:bg-red-700"
+          >
+            <Plus className="h-4 w-4" />
+            Create Custom Platform Role
+          </Button>
+        </PlatformPermissionGate>
       </div>
 
       {rolesLoading || permsLoading ? (

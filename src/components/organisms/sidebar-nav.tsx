@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -63,12 +63,23 @@ function hasActiveDescendant(item: NavItem, pathname: string): boolean {
   return false;
 }
 
+function checkPermission(item: NavItem, userPermissions?: string[]): boolean {
+  if (!userPermissions) return true;
+  if (!item.permission) return true;
+  if (userPermissions.includes("*")) return true;
+  if (Array.isArray(item.permission)) {
+    return item.permission.some((p) => userPermissions.includes(p));
+  }
+  return userPermissions.includes(item.permission);
+}
+
 interface SidebarNavProps {
   orientation?: "vertical" | "horizontal";
   /** Icon-only mode. Labels stay in the DOM (sr-only) so the links remain accessible. */
   collapsed?: boolean;
   onNavigate?: () => void;
   sections?: NavSection[];
+  permissions?: string[];
 }
 
 export function SidebarNav({
@@ -76,10 +87,32 @@ export function SidebarNav({
   collapsed = false,
   onNavigate,
   sections = defaultNavSections,
+  permissions,
 }: SidebarNavProps) {
   const pathname = usePathname();
   // Track user manual toggle overrides without needing an effect
   const [toggledItems, setToggledItems] = useState<Record<string, boolean>>({});
+
+  const filteredSections = useMemo(() => {
+    if (!permissions) return sections;
+    return sections
+      .map((section) => {
+        const items = (section?.items ?? [])
+          .map((item) => {
+            if (item?.items && item.items.length > 0) {
+              const childItems = item.items.filter((child) => checkPermission(child, permissions));
+              if (childItems.length === 0) return null;
+              return { ...item, items: childItems };
+            }
+            return checkPermission(item, permissions) ? item : null;
+          })
+          .filter((item): item is NavItem => item !== null);
+
+        if (items.length === 0) return null;
+        return { ...section, items };
+      })
+      .filter((section): section is NavSection => section !== null);
+  }, [sections, permissions]);
 
   const toggleItem = (key: string, currentlyOpen: boolean) => {
     setToggledItems((prev) => ({
@@ -90,7 +123,7 @@ export function SidebarNav({
 
   if (orientation === "horizontal") {
     // Flattened horizontal bar for top navigation if requested
-    const flatItems = sections?.flatMap((s) => s?.items ?? []) ?? [];
+    const flatItems = filteredSections?.flatMap((s) => s?.items ?? []) ?? [];
     return (
       <nav aria-label="Main" className="flex items-center gap-1 overflow-x-auto py-1">
         {flatItems.map((item) => {
@@ -120,7 +153,7 @@ export function SidebarNav({
 
   return (
     <nav aria-label="Main" className="flex flex-col gap-4">
-      {sections?.map((section, sIdx) => {
+      {filteredSections?.map((section, sIdx) => {
         const hasSectionTitle = Boolean(section?.title);
 
         return (

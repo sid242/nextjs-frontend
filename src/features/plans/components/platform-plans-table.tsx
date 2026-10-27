@@ -17,6 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { PLATFORM_PERMISSION_KEYS, PlatformPermissionGate } from "@/features/platform";
 import { getErrorMessage } from "@/lib/api/errors";
 import { useSearchQueryParams, useTableColumns, type TableColumnDef } from "@/lib/hooks";
 
@@ -220,14 +221,19 @@ export function PlatformPlansTable() {
             </div>
             <div className="flex items-center gap-2">
               <ColumnConfigDropdown tableColumns={tableColumns} />
-              <Button
-                size="sm"
-                onClick={() => setCreateDialogOpen(true)}
-                className="gap-1.5 text-xs shadow-sm"
+              <PlatformPermissionGate
+                permission={PLATFORM_PERMISSION_KEYS.BILLING_MANAGE}
+                hideInsteadOfBanner
               >
-                <Plus className="h-3.5 w-3.5" />
-                Provision New Tier
-              </Button>
+                <Button
+                  size="sm"
+                  onClick={() => setCreateDialogOpen(true)}
+                  className="gap-1.5 text-xs shadow-sm"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Provision New Tier
+                </Button>
+              </PlatformPermissionGate>
             </div>
           </div>
         </CardHeader>

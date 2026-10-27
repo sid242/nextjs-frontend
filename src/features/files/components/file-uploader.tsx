@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import { useRef, useState } from "react";
 import { UploadIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -11,8 +11,8 @@ import { useUploadFiles } from "../use-upload-files";
 import { UploadList } from "./upload-list";
 
 export function FileUploader() {
-  const inputRef = React.useRef<HTMLInputElement>(null);
-  const [dragging, setDragging] = React.useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [dragging, setDragging] = useState(false);
   const uploadFiles = useUploadFiles();
 
   function handle(files: FileList | null) {

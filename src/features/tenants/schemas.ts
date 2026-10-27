@@ -132,3 +132,20 @@ export const searchAuditLogsSchema = z.object({
   limit: z.number().int().min(1).max(100).optional(),
 });
 export type SearchAuditLogsInput = z.infer<typeof searchAuditLogsSchema>;
+
+export interface TenantContext {
+  tenant: {
+    id: string;
+    name: string;
+    slug: string;
+    status: string;
+    plan: string;
+    databaseMode?: string;
+  };
+  membership?: {
+    id: string;
+    status: string;
+    roles: string[];
+  };
+  permissions: string[];
+}

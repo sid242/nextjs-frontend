@@ -1,4 +1,4 @@
-import { RolesMatrix } from "@/features/platform";
+import { PLATFORM_PERMISSION_KEYS, PlatformPermissionGate, RolesMatrix } from "@/features/platform";
 
 export const metadata = {
   title: "Platform Roles & Permissions | Internal Console",
@@ -7,5 +7,9 @@ export const metadata = {
 };
 
 export default function PlatformRolesPage() {
-  return <RolesMatrix />;
+  return (
+    <PlatformPermissionGate permission={PLATFORM_PERMISSION_KEYS.ROLES_READ}>
+      <RolesMatrix />
+    </PlatformPermissionGate>
+  );
 }

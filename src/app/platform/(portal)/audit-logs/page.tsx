@@ -1,4 +1,8 @@
-import { AuditLogsTable } from "@/features/platform";
+import {
+  AuditLogsTable,
+  PLATFORM_PERMISSION_KEYS,
+  PlatformPermissionGate,
+} from "@/features/platform";
 
 export const metadata = {
   title: "Platform Compliance Audit Trail | Internal Console",
@@ -7,5 +11,9 @@ export const metadata = {
 };
 
 export default function PlatformAuditLogsPage() {
-  return <AuditLogsTable />;
+  return (
+    <PlatformPermissionGate permission={PLATFORM_PERMISSION_KEYS.AUDIT_READ}>
+      <AuditLogsTable />
+    </PlatformPermissionGate>
+  );
 }

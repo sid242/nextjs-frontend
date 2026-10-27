@@ -15,10 +15,11 @@ import { SidebarNav } from "./sidebar-nav";
 interface AppSidebarProps {
   tenantSwitcher?: ReactNode;
   userProfile?: ReactNode;
+  navigationSlot?: ReactNode;
 }
 
 /** Desktop sidebar. The collapsed state is a persisted zustand preference. */
-export function AppSidebar({ tenantSwitcher, userProfile }: AppSidebarProps) {
+export function AppSidebar({ tenantSwitcher, userProfile, navigationSlot }: AppSidebarProps) {
   const collapsed = useUiStore((state) => state.sidebarCollapsed);
   const toggle = useUiStore((state) => state.toggleSidebar);
 
@@ -60,7 +61,7 @@ export function AppSidebar({ tenantSwitcher, userProfile }: AppSidebarProps) {
 
           {/* Navigation list with independent scroll container */}
           <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto pr-0.5">
-            <SidebarNav collapsed={collapsed} />
+            {navigationSlot ?? <SidebarNav collapsed={collapsed} />}
           </div>
         </div>
 

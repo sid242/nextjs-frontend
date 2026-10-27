@@ -48,12 +48,14 @@ import {
 import { getErrorMessage } from "@/lib/api/errors";
 import { useSearchQueryParams, useTableColumns, type TableColumnDef } from "@/lib/hooks";
 
+import { PLATFORM_PERMISSION_KEYS } from "../permissions";
 import { useEndSupportSession, useStartSupportSession, useSupportSessions } from "../queries";
 import {
   startSupportSessionSchema,
   type PlatformSupportSession,
   type StartSupportSessionInput,
 } from "../schemas";
+import { PlatformPermissionGate } from "./platform-permission-gate";
 
 function SessionCountdown({ expiresAt }: { expiresAt: string }) {
   const [timeLeft, setTimeLeft] = useState<string>("");
@@ -232,15 +234,20 @@ export function SupportSessionsTable() {
                   <ExternalLink className="h-3 w-3" />
                   Access Workspace
                 </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => setTerminateSession(session)}
-                  className="h-7 gap-1 text-xs"
+                <PlatformPermissionGate
+                  permission={PLATFORM_PERMISSION_KEYS.SUPPORT_END}
+                  hideInsteadOfBanner
                 >
-                  <StopCircle className="h-3.5 w-3.5" />
-                  Terminate
-                </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => setTerminateSession(session)}
+                    className="h-7 gap-1 text-xs"
+                  >
+                    <StopCircle className="h-3.5 w-3.5" />
+                    Terminate
+                  </Button>
+                </PlatformPermissionGate>
               </div>
             )}
           </TableCell>
@@ -259,13 +266,18 @@ export function SupportSessionsTable() {
             tokens.
           </p>
         </div>
-        <Button
-          onClick={() => setInitiateDialogOpen(true)}
-          className="gap-2 bg-emerald-600 text-white shadow-md shadow-emerald-600/20 hover:bg-emerald-700"
+        <PlatformPermissionGate
+          permission={PLATFORM_PERMISSION_KEYS.SUPPORT_START}
+          hideInsteadOfBanner
         >
-          <LifeBuoy className="h-4 w-4" />
-          Initiate Support Delegation
-        </Button>
+          <Button
+            onClick={() => setInitiateDialogOpen(true)}
+            className="gap-2 bg-emerald-600 text-white shadow-md shadow-emerald-600/20 hover:bg-emerald-700"
+          >
+            <LifeBuoy className="h-4 w-4" />
+            Initiate Support Delegation
+          </Button>
+        </PlatformPermissionGate>
       </div>
 
       {/* Security Architecture Principle Alert */}

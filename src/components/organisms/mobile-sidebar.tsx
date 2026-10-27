@@ -20,9 +20,15 @@ interface MobileSidebarProps {
   tenantSwitcher?: ReactNode;
   userProfile?: ReactNode;
   tenantBrand?: ReactNode;
+  navigationSlot?: ((props: { onNavigate: () => void }) => ReactNode) | ReactNode;
 }
 
-export function MobileSidebar({ tenantSwitcher, userProfile, tenantBrand }: MobileSidebarProps) {
+export function MobileSidebar({
+  tenantSwitcher,
+  userProfile,
+  tenantBrand,
+  navigationSlot,
+}: MobileSidebarProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -55,7 +61,11 @@ export function MobileSidebar({ tenantSwitcher, userProfile, tenantBrand }: Mobi
             </SheetHeader>
 
             <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto py-1 pr-1">
-              <SidebarNav orientation="vertical" onNavigate={() => setOpen(false)} />
+              {typeof navigationSlot === "function"
+                ? navigationSlot({ onNavigate: () => setOpen(false) })
+                : (navigationSlot ?? (
+                    <SidebarNav orientation="vertical" onNavigate={() => setOpen(false)} />
+                  ))}
             </div>
           </div>
 

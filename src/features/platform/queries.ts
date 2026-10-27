@@ -144,8 +144,14 @@ export const supportSessionsQueryOptions = (params?: { page?: number; limit?: nu
     queryFn: ({ signal }) => getSupportSessions(params, signal),
   });
 
-export function useSupportSessions(params?: { page?: number; limit?: number }) {
-  return useQuery(supportSessionsQueryOptions(params));
+export function useSupportSessions(
+  params?: { page?: number; limit?: number },
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    ...supportSessionsQueryOptions(params),
+    enabled: options?.enabled,
+  });
 }
 
 export function useStartSupportSession() {

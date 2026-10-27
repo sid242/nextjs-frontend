@@ -16,7 +16,7 @@ import {
   usePermissions,
   useTenantRoles,
 } from "@/features/rbac";
-import { useActiveTenant } from "@/features/tenants";
+import { TENANT_PERMISSIONS, TenantPermissionGate, useActiveTenant } from "@/features/tenants";
 
 export default function RolesPage() {
   const { activeTenant, activeTenantId } = useActiveTenant();
@@ -72,45 +72,52 @@ export default function RolesPage() {
   }, [rawPermissions, rawModules]);
 
   return (
-    <div className="grid gap-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <PageHeader
-          title="Dynamic RBAC & Roles"
-          description={`Configure access control policies and customized permissions for ${activeTenant?.name ?? "your organization"}.`}
+    <TenantPermissionGate permission={TENANT_PERMISSIONS.ROLES_READ}>
+      <div className="grid gap-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <PageHeader
+            title="Dynamic RBAC & Roles"
+            description={`Configure access control policies and customized permissions for ${activeTenant?.name ?? "your organization"}.`}
+          />
+          <TenantPermissionGate permission={TENANT_PERMISSIONS.ROLES_CREATE} hideInsteadOfBanner>
+            <Button
+              onClick={() => setCreateOpen(true)}
+              className="w-full gap-2 shadow-sm sm:w-auto"
+            >
+              <PlusIcon className="size-4" /> Create Custom Role
+            </Button>
+          </TenantPermissionGate>
+        </div>
+
+        <RoleStatsCards
+          rolesCount={roles.length}
+          customRolesCount={customRolesCount}
+          scopesCount={uniqueScopesCount}
+          modulesCount={rawModules.length || 5}
         />
-        <Button onClick={() => setCreateOpen(true)} className="w-full gap-2 shadow-sm sm:w-auto">
-          <PlusIcon className="size-4" /> Create Custom Role
-        </Button>
-      </div>
 
-      <RoleStatsCards
-        rolesCount={roles.length}
-        customRolesCount={customRolesCount}
-        scopesCount={uniqueScopesCount}
-        modulesCount={rawModules.length || 5}
-      />
-
-      <div className="grid gap-4">
-        {rolesLoading ? (
-          <div className="p-8 text-center">
-            <div className="text-muted-foreground animate-pulse text-sm">
-              Loading workspace roles…
+        <div className="grid gap-4">
+          {rolesLoading ? (
+            <div className="p-8 text-center">
+              <div className="text-muted-foreground animate-pulse text-sm">
+                Loading workspace roles…
+              </div>
             </div>
-          </div>
-        ) : (
-          roles.map((role) => <RoleCard key={role.id} role={role} onDelete={handleDeleteRole} />)
-        )}
-      </div>
+          ) : (
+            roles.map((role) => <RoleCard key={role.id} role={role} onDelete={handleDeleteRole} />)
+          )}
+        </div>
 
-      <CreateRoleDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        activeTenantName={activeTenant?.name}
-        rawModules={rawModules}
-        rawPermissions={rawPermissions}
-        onSubmit={handleCreateRole}
-        isSubmitting={createRoleMutation.isPending}
-      />
-    </div>
+        <CreateRoleDialog
+          open={createOpen}
+          onOpenChange={setCreateOpen}
+          activeTenantName={activeTenant?.name}
+          rawModules={rawModules}
+          rawPermissions={rawPermissions}
+          onSubmit={handleCreateRole}
+          isSubmitting={createRoleMutation.isPending}
+        />
+      </div>
+    </TenantPermissionGate>
   );
 }

@@ -34,6 +34,8 @@ interface TeamMembersListProps {
   onRemoveMember: (memberId: string, memberName: string) => void;
   onTransferOwnership?: (memberId: string, memberName: string) => void;
   isCurrentUserOwner?: boolean;
+  canManageRoles?: boolean;
+  canRemoveMembers?: boolean;
 }
 
 export function TeamMembersList({
@@ -45,6 +47,8 @@ export function TeamMembersList({
   onRemoveMember,
   onTransferOwnership,
   isCurrentUserOwner = false,
+  canManageRoles = true,
+  canRemoveMembers = true,
 }: TeamMembersListProps) {
   const filteredMembers = members.filter(
     (m: TenantMember) =>
@@ -122,6 +126,7 @@ export function TeamMembersList({
                   <Select
                     defaultValue={member?.role}
                     onValueChange={(val) => onRoleChange(member.id, val)}
+                    disabled={!canManageRoles}
                   >
                     <SelectTrigger className="h-8 w-28 text-xs font-medium">
                       <SelectValue />
@@ -135,34 +140,38 @@ export function TeamMembersList({
                     </SelectContent>
                   </Select>
 
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="size-8">
-                        <MoreVerticalIcon className="size-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel className="text-xs">Member Actions</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      {isCurrentUserOwner &&
-                        member?.role !== "OWNER" &&
-                        member?.status === "ACTIVE" &&
-                        onTransferOwnership && (
+                  {canRemoveMembers || (isCurrentUserOwner && member?.role !== "OWNER") ? (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="size-8">
+                          <MoreVerticalIcon className="size-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel className="text-xs">Member Actions</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        {isCurrentUserOwner &&
+                          member?.role !== "OWNER" &&
+                          member?.status === "ACTIVE" &&
+                          onTransferOwnership && (
+                            <DropdownMenuItem
+                              className="gap-2 text-xs text-amber-600 focus:text-amber-600 dark:text-amber-400"
+                              onClick={() => onTransferOwnership(member.id, member.name)}
+                            >
+                              <ShieldAlert className="size-3.5" /> Transfer Ownership
+                            </DropdownMenuItem>
+                          )}
+                        {canRemoveMembers && (
                           <DropdownMenuItem
-                            className="gap-2 text-xs text-amber-600 focus:text-amber-600 dark:text-amber-400"
-                            onClick={() => onTransferOwnership(member.id, member.name)}
+                            className="text-destructive focus:text-destructive gap-2 text-xs"
+                            onClick={() => onRemoveMember(member.id, member.name)}
                           >
-                            <ShieldAlert className="size-3.5" /> Transfer Ownership
+                            <Trash2Icon className="size-3.5" /> Remove from Organization
                           </DropdownMenuItem>
                         )}
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive gap-2 text-xs"
-                        onClick={() => onRemoveMember(member.id, member.name)}
-                      >
-                        <Trash2Icon className="size-3.5" /> Remove from Organization
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : null}
                 </div>
               </div>
             ))}

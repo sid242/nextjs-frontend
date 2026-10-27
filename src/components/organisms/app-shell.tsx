@@ -26,6 +26,10 @@ interface AppShellProps {
   headerSlot?: ReactNode;
   /** Optional top banner (e.g. Impersonation banner) */
   topBanner?: ReactNode;
+  /** Custom navigation slot for desktop sidebar (e.g. Tenant-aware navigation) */
+  navigationSlot?: ReactNode;
+  /** Custom navigation slot for mobile drawer */
+  mobileNavigationSlot?: ((props: { onNavigate: () => void }) => ReactNode) | ReactNode;
 }
 
 /**
@@ -41,11 +45,17 @@ export function AppShell({
   notifications,
   headerSlot,
   topBanner,
+  navigationSlot,
+  mobileNavigationSlot,
 }: AppShellProps) {
   return (
     <div className="bg-background flex min-h-screen">
       {/* Desktop Collapsible Sidebar */}
-      <AppSidebar tenantSwitcher={tenantSwitcher} userProfile={userProfile} />
+      <AppSidebar
+        tenantSwitcher={tenantSwitcher}
+        userProfile={userProfile}
+        navigationSlot={navigationSlot}
+      />
 
       {/* Main Content Area */}
       <div className="flex min-w-0 flex-1 flex-col">
@@ -60,6 +70,7 @@ export function AppShell({
               tenantBrand={tenantBrand}
               tenantSwitcher={tenantSwitcher}
               userProfile={userProfile}
+              navigationSlot={mobileNavigationSlot ?? navigationSlot}
             />
 
             <Breadcrumbs />

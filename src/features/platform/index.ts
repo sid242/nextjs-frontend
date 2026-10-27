@@ -53,3 +53,10 @@ export { TenantsTable } from "./components/tenants-table";
 export { ProvisionTenantDialog } from "./components/provision-tenant-dialog";
 export { TenantInspector } from "./components/tenant-inspector";
 export { PlatformTwoFactorDialog } from "./components/platform-two-factor-dialog";
+export { PlatformPermissionGate } from "./components/platform-permission-gate";
+export {
+  PLATFORM_PERMISSION_KEYS,
+  hasPlatformPermission,
+  hasAllPlatformPermissions,
+  type PlatformPermissionKey,
+} from "./permissions";

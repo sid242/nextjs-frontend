@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { TenantSettingsCard } from "@/features/tenants";
+import { TENANT_PERMISSIONS, TenantPermissionGate, TenantSettingsCard } from "@/features/tenants";
 
 export const metadata: Metadata = {
   title: "Workspace Settings",
@@ -8,8 +8,10 @@ export const metadata: Metadata = {
 
 export default function WorkspaceSettingsPage() {
   return (
-    <div className="space-y-6">
-      <TenantSettingsCard />
-    </div>
+    <TenantPermissionGate permission={TENANT_PERMISSIONS.TENANTS_READ}>
+      <div className="space-y-6">
+        <TenantSettingsCard />
+      </div>
+    </TenantPermissionGate>
   );
 }

@@ -63,13 +63,16 @@ import {
   type TableColumnDef,
 } from "@/lib/hooks";
 
+import { hasPlatformPermission, PLATFORM_PERMISSION_KEYS } from "../permissions";
 import {
   useActivateTenant,
+  usePlatformMe,
   usePlatformTenants,
   useStartSupportSession,
   useSuspendTenant,
 } from "../queries";
 import type { PlatformTenant } from "../schemas";
+import { PlatformPermissionGate } from "./platform-permission-gate";
 import { ProvisionTenantDialog } from "./provision-tenant-dialog";
 
 type TenantColumnId =
@@ -148,6 +151,10 @@ export function TenantsTable() {
   const { mutateAsync: activateTenant, isPending: isActivating } = useActivateTenant();
   const { mutateAsync: startSupportSession, isPending: isStartingSupport } =
     useStartSupportSession();
+  const { data: staffMe } = usePlatformMe();
+
+  const canStartSupport = hasPlatformPermission(staffMe, PLATFORM_PERMISSION_KEYS.SUPPORT_START);
+  const canSuspendTenant = hasPlatformPermission(staffMe, PLATFORM_PERMISSION_KEYS.TENANTS_SUSPEND);
 
   const tenants = useMemo(() => tenantsData?.items ?? [], [tenantsData?.items]);
 
@@ -343,27 +350,32 @@ export function TenantsTable() {
                     <ExternalLink className="size-3.5" /> View Inspector
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSupportTarget(t)} className="gap-2">
-                  <LifeBuoy className="size-3.5 text-blue-500" /> Start Support Session
-                </DropdownMenuItem>
-
-                <DropdownMenuSeparator />
-
-                {t.status === "ACTIVE" ? (
-                  <DropdownMenuItem
-                    onClick={() => setSuspendTarget(t)}
-                    className="gap-2 text-red-600 dark:text-red-400"
-                  >
-                    <PowerOff className="size-3.5" /> Suspend Workspace
+                {canStartSupport ? (
+                  <DropdownMenuItem onClick={() => setSupportTarget(t)} className="gap-2">
+                    <LifeBuoy className="size-3.5 text-blue-500" /> Start Support Session
                   </DropdownMenuItem>
-                ) : (
-                  <DropdownMenuItem
-                    onClick={() => setActivateTarget(t)}
-                    className="gap-2 text-emerald-600 dark:text-emerald-400"
-                  >
-                    <Power className="size-3.5" /> Reactivate Workspace
-                  </DropdownMenuItem>
-                )}
+                ) : null}
+
+                {canSuspendTenant ? (
+                  <>
+                    <DropdownMenuSeparator />
+                    {t.status === "ACTIVE" ? (
+                      <DropdownMenuItem
+                        onClick={() => setSuspendTarget(t)}
+                        className="gap-2 text-red-600 dark:text-red-400"
+                      >
+                        <PowerOff className="size-3.5" /> Suspend Workspace
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem
+                        onClick={() => setActivateTarget(t)}
+                        className="gap-2 text-emerald-600 dark:text-emerald-400"
+                      >
+                        <Power className="size-3.5" /> Reactivate Workspace
+                      </DropdownMenuItem>
+                    )}
+                  </>
+                ) : null}
               </DropdownMenuContent>
             </DropdownMenu>
           </TableCell>
@@ -439,10 +451,15 @@ export function TenantsTable() {
                 tiers.
               </CardDescription>
             </div>
-            <Button onClick={() => setProvisionOpen(true)} className="gap-2 shadow-xs">
-              <Plus className="size-4" />
-              Provision Organization
-            </Button>
+            <PlatformPermissionGate
+              permission={PLATFORM_PERMISSION_KEYS.TENANTS_MANAGE}
+              hideInsteadOfBanner
+            >
+              <Button onClick={() => setProvisionOpen(true)} className="gap-2 shadow-xs">
+                <Plus className="size-4" />
+                Provision Organization
+              </Button>
+            </PlatformPermissionGate>
           </div>
 
           <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:items-center">

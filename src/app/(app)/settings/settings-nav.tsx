@@ -12,6 +12,7 @@ import {
   UsersIcon,
 } from "lucide-react";
 
+import { hasTenantPermission, TENANT_PERMISSIONS, useTenantContext } from "@/features/tenants";
 import { cn } from "@/lib/utils";
 
 interface SettingsNavProps {
@@ -20,55 +21,62 @@ interface SettingsNavProps {
 
 export function SettingsNav({ isAdmin }: SettingsNavProps) {
   const pathname = usePathname();
+  const { data: tenantContext } = useTenantContext();
+  const permissions = tenantContext?.permissions;
 
-  const tabs = [
+  const allTabs = [
     {
       href: "/settings/profile",
       label: "Profile & Account",
       icon: UserIcon,
       active: pathname === "/settings" || pathname === "/settings/profile",
+      visible: true,
     },
     {
       href: "/settings/workspace",
       label: "Workspace",
       icon: Building2Icon,
       active: pathname === "/settings/workspace",
+      visible: hasTenantPermission(permissions, TENANT_PERMISSIONS.TENANTS_READ),
     },
     {
       href: "/settings/branding",
       label: "Branding & Theme",
       icon: PaletteIcon,
       active: pathname === "/settings/branding",
+      visible: hasTenantPermission(permissions, TENANT_PERMISSIONS.TENANTS_UPDATE),
     },
     {
       href: "/settings/billing",
       label: "Plans & Billing",
       icon: CreditCardIcon,
       active: pathname === "/settings/billing",
+      visible: hasTenantPermission(permissions, TENANT_PERMISSIONS.TENANTS_UPDATE),
     },
     {
       href: "/settings/email",
       label: "Email (SMTP)",
       icon: MailIcon,
       active: pathname === "/settings/email" || pathname === "/settings/smtp",
+      visible: hasTenantPermission(permissions, TENANT_PERMISSIONS.TENANTS_UPDATE),
     },
     {
       href: "/settings/security",
       label: "Security & Sessions",
       icon: ShieldIcon,
       active: pathname === "/settings/security",
+      visible: true,
     },
-    ...(isAdmin
-      ? [
-          {
-            href: "/settings/admin",
-            label: "Administration",
-            icon: UsersIcon,
-            active: pathname === "/settings/admin",
-          },
-        ]
-      : []),
+    {
+      href: "/settings/admin",
+      label: "Administration",
+      icon: UsersIcon,
+      active: pathname === "/settings/admin",
+      visible: Boolean(isAdmin),
+    },
   ];
+
+  const tabs = allTabs.filter((t) => t.visible);
 
   return (
     <nav aria-label="Settings navigation" className="overflow-x-auto pb-1">

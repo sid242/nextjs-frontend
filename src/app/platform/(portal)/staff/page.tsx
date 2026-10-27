@@ -1,4 +1,4 @@
-import { StaffTable } from "@/features/platform";
+import { PLATFORM_PERMISSION_KEYS, PlatformPermissionGate, StaffTable } from "@/features/platform";
 
 export const metadata = {
   title: "Platform Staff Directory | Internal Console",
@@ -6,5 +6,9 @@ export const metadata = {
 };
 
 export default function PlatformStaffPage() {
-  return <StaffTable />;
+  return (
+    <PlatformPermissionGate permission={PLATFORM_PERMISSION_KEYS.STAFF_READ}>
+      <StaffTable />
+    </PlatformPermissionGate>
+  );
 }

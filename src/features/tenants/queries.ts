@@ -15,6 +15,7 @@ import {
   createTenant,
   getTenantAuditLogs,
   getTenantBranding,
+  getTenantContext,
   getTenantEmailConfig,
   getTenantMembers,
   getTenantModules,
@@ -38,6 +39,7 @@ import type {
   SearchAuditLogsInput,
   Tenant,
   TenantBranding,
+  TenantContext,
   TenantEmailConfig,
   TenantMember,
   TenantModule,
@@ -143,6 +145,21 @@ export function useTenantAuditLogsSearch(
     tenantAuditLogsSearchQueryOptions(tenantId ?? "", criteria),
     options,
   );
+}
+
+export const tenantContextQueryOptions = (tenantId: string) =>
+  queryOptions({
+    queryKey: tenantKeys.context(tenantId),
+    queryFn: ({ signal }) => getTenantContext(tenantId, signal),
+    enabled: Boolean(tenantId),
+    staleTime: 60 * 1000,
+  });
+
+export function useTenantContext(
+  tenantId?: string | null,
+  options?: QueryOverrides<TenantContext>,
+) {
+  return useAppQuery<TenantContext>(tenantContextQueryOptions(tenantId ?? ""), options);
 }
 
 export function useActiveTenant() {

@@ -20,6 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { hasTenantPermission, TENANT_PERMISSIONS, useTenantContext } from "@/features/tenants";
 import { getErrorMessage } from "@/lib/api/errors";
 import type { FileRecord } from "@/lib/api/types";
 import { formatBytes, formatDate } from "@/lib/format";
@@ -57,6 +58,11 @@ const COLUMN_CONFIG: Record<FileColumnId, { label: string; className?: string }>
 
 export function FilesTable() {
   useFileRealtime();
+  const { data: tenantContext } = useTenantContext();
+  const canDelete = hasTenantPermission(
+    tenantContext?.permissions,
+    TENANT_PERMISSIONS.FILES_DELETE,
+  );
   const { data, isPending, isError, error, refetch } = useFiles();
   const fileList = useMemo(() => {
     if (Array.isArray(data)) return data;
@@ -178,15 +184,17 @@ export function FilesTable() {
             >
               <DownloadIcon className="size-4" />
             </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              aria-label={`Delete ${file?.filename}`}
-              onClick={() => setToDelete(file)}
-              title="Delete file"
-            >
-              <Trash2Icon className="size-4" />
-            </Button>
+            {canDelete ? (
+              <Button
+                size="icon"
+                variant="ghost"
+                aria-label={`Delete ${file?.filename}`}
+                onClick={() => setToDelete(file)}
+                title="Delete file"
+              >
+                <Trash2Icon className="size-4" />
+              </Button>
+            ) : null}
           </TableCell>
         );
     }

@@ -17,6 +17,7 @@ export interface NavItem {
   disabled?: boolean;
   external?: boolean;
   items?: NavItem[];
+  permission?: string | string[];
 }
 
 export interface NavSection {
@@ -45,11 +46,13 @@ export const navSections: NavSection[] = [
           {
             title: "Members",
             href: "/team",
+            permission: "members:read",
           },
           {
             title: "Roles & Permissions",
             href: "/roles",
             icon: "shield-check",
+            permission: "roles:read",
           },
         ],
       },
@@ -57,11 +60,13 @@ export const navSections: NavSection[] = [
         title: "Files",
         href: "/files",
         icon: "folder",
+        permission: "files:read",
       },
       {
         title: "Email Templates",
         href: "/email-templates",
         icon: "mail",
+        permission: "tenants:read",
       },
     ],
   },
@@ -72,6 +77,7 @@ export const navSections: NavSection[] = [
         title: "Audit Logs",
         href: "/audit-logs",
         icon: "scroll-text",
+        permission: "audit:read",
       },
       {
         title: "Settings",

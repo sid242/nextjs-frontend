@@ -6,7 +6,7 @@ import { ImpersonationBanner, UserMenu, UserProfileFooter } from "@/features/aut
 import { NotificationBell } from "@/features/notifications";
 import { SupportSessionBanner } from "@/features/platform";
 import { ConnectionStatus, SocketProvider } from "@/features/realtime";
-import { TenantSwitcher, TenantThemeProvider } from "@/features/tenants";
+import { TenantSidebarNav, TenantSwitcher, TenantThemeProvider } from "@/features/tenants";
 import { SUPPORT_SESSION_COOKIE } from "@/lib/auth/constants";
 import { isImpersonating, requireUser } from "@/lib/auth/session";
 
@@ -32,6 +32,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           notifications={<NotificationBell />}
           headerSlot={<ConnectionStatus />}
           topBanner={topBanner}
+          navigationSlot={<TenantSidebarNav />}
+          mobileNavigationSlot={({ onNavigate }) => <TenantSidebarNav onNavigate={onNavigate} />}
         >
           {children}
         </AppShell>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { TenantBillingCard } from "@/features/plans";
+import { TENANT_PERMISSIONS, TenantPermissionGate } from "@/features/tenants";
 
 export const metadata: Metadata = {
   title: "Subscription & Billing Plans | Workspace Settings",
@@ -9,8 +10,10 @@ export const metadata: Metadata = {
 
 export default function BillingSettingsPage() {
   return (
-    <div className="space-y-6">
-      <TenantBillingCard />
-    </div>
+    <TenantPermissionGate permission={TENANT_PERMISSIONS.TENANTS_UPDATE}>
+      <div className="space-y-6">
+        <TenantBillingCard />
+      </div>
+    </TenantPermissionGate>
   );
 }
