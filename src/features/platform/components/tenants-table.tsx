@@ -455,9 +455,11 @@ export function TenantsTable() {
               permission={PLATFORM_PERMISSION_KEYS.TENANTS_MANAGE}
               hideInsteadOfBanner
             >
-              <Button onClick={() => setProvisionOpen(true)} className="gap-2 shadow-xs">
-                <Plus className="size-4" />
-                Provision Organization
+              <Button asChild className="gap-2 shadow-xs">
+                <Link href="/platform/tenants/new">
+                  <Plus className="size-4" />
+                  Provision Organization
+                </Link>
               </Button>
             </PlatformPermissionGate>
           </div>

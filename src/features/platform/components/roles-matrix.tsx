@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Check, Lock, Plus, ShieldAlert, ShieldCheck } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
@@ -71,11 +72,13 @@ export function RolesMatrix() {
           hideInsteadOfBanner
         >
           <Button
-            onClick={() => setCreateDialogOpen(true)}
+            asChild
             className="gap-2 bg-red-600 text-white shadow-md shadow-red-600/20 hover:bg-red-700"
           >
-            <Plus className="h-4 w-4" />
-            Create Custom Platform Role
+            <Link href="/platform/roles/new">
+              <Plus className="h-4 w-4" />
+              Create Custom Platform Role
+            </Link>
           </Button>
         </PlatformPermissionGate>
       </div>
@@ -166,8 +169,25 @@ export function RolesMatrix() {
                       </CardDescription>
                     </div>
 
-                    <div className="text-muted-foreground bg-muted/40 rounded-md px-2.5 py-1 font-mono text-xs">
-                      {activeRole.permissions.length} Granted Privileges
+                    <div className="flex items-center gap-2">
+                      <div className="text-muted-foreground bg-muted/40 rounded-md px-2.5 py-1 font-mono text-xs">
+                        {activeRole.permissions.length} Granted Privileges
+                      </div>
+                      {!activeRole.isSystem && (
+                        <PlatformPermissionGate
+                          permission={PLATFORM_PERMISSION_KEYS.ROLES_MANAGE}
+                          hideInsteadOfBanner
+                        >
+                          <Button
+                            asChild
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs shadow-2xs"
+                          >
+                            <Link href={`/platform/roles/${activeRole.id}/edit`}>Edit Role</Link>
+                          </Button>
+                        </PlatformPermissionGate>
+                      )}
                     </div>
                   </div>
                 </CardHeader>

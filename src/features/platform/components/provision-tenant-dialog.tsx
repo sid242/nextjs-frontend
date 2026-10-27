@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Check, Copy, Sparkles } from "lucide-react";
+import { Check, Copy, ExternalLink, Sparkles } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
 
 import { ControlledInput, ControlledSelect, FormWrapper } from "@/components/molecules/forms";
@@ -125,23 +125,28 @@ export function ProvisionTenantDialog({ open, onOpenChange }: ProvisionTenantDia
                 An invitation email was enqueued for <strong>{provisionResult.ownerEmail}</strong>.
                 You may also share this single-use onboarding URL directly:
               </p>
-              <div className="flex items-center gap-2 pt-1">
-                <code className="bg-muted flex-1 truncate rounded px-2.5 py-1.5 font-mono text-xs">
-                  {provisionResult.inviteUrl}
-                </code>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={copyToClipboard}
-                  className="shrink-0 gap-1.5"
-                >
-                  {copied ? (
-                    <Check className="size-3.5 text-emerald-600" />
-                  ) : (
-                    <Copy className="size-3.5" />
-                  )}
-                  {copied ? "Copied" : "Copy"}
-                </Button>
+              <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:items-center">
+                <input
+                  readOnly
+                  value={provisionResult.inviteUrl}
+                  onClick={(e) => (e.target as HTMLInputElement).select()}
+                  className="bg-muted text-foreground border-input flex-1 rounded-md border px-3 py-1.5 font-mono text-xs focus:outline-hidden"
+                />
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <Button size="sm" variant="outline" onClick={copyToClipboard} className="gap-1.5">
+                    {copied ? (
+                      <Check className="size-3.5 text-emerald-600" />
+                    ) : (
+                      <Copy className="size-3.5" />
+                    )}
+                    {copied ? "Copied" : "Copy"}
+                  </Button>
+                  <Button size="sm" variant="outline" asChild className="gap-1.5">
+                    <a href={provisionResult.inviteUrl} target="_blank" rel="noreferrer">
+                      <ExternalLink className="size-3.5" />
+                    </a>
+                  </Button>
+                </div>
               </div>
             </div>
 

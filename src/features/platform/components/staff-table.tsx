@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   CheckCircle2,
@@ -325,11 +326,13 @@ export function StaffTable() {
           hideInsteadOfBanner
         >
           <Button
-            onClick={() => setCreateDialogOpen(true)}
+            asChild
             className="gap-2 bg-red-600 text-white shadow-md shadow-red-600/20 hover:bg-red-700"
           >
-            <UserPlus className="h-4 w-4" />
-            Provision Staff Member
+            <Link href="/platform/staff/new">
+              <UserPlus className="h-4 w-4" />
+              Provision Staff Member
+            </Link>
           </Button>
         </PlatformPermissionGate>
       </div>
