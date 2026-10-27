@@ -52,6 +52,8 @@ export function ProvisionTenantDialog({ open, onOpenChange }: ProvisionTenantDia
 
   // Automatically derive URL slug from workspace name if not manually modified
   const nameValue = useWatch({ control: form.control, name: "name" });
+  const dbModeValue = useWatch({ control: form.control, name: "databaseMode" });
+
   useEffect(() => {
     if (nameValue && !form.formState.dirtyFields.slug) {
       const derived = nameValue
@@ -61,6 +63,12 @@ export function ProvisionTenantDialog({ open, onOpenChange }: ProvisionTenantDia
       form.setValue("slug", derived, { shouldValidate: true });
     }
   }, [nameValue, form]);
+
+  useEffect(() => {
+    if (dbModeValue === "dedicated") {
+      form.setValue("plan", "ENTERPRISE", { shouldValidate: true });
+    }
+  }, [dbModeValue, form]);
 
   const handleClose = () => {
     form.reset();
@@ -190,14 +198,23 @@ export function ProvisionTenantDialog({ open, onOpenChange }: ProvisionTenantDia
             <div className="grid gap-3 sm:grid-cols-2">
               <ControlledSelect
                 name="plan"
-                label="Subscription Tier"
+                label={
+                  dbModeValue === "dedicated"
+                    ? "Subscription Tier (Locked to Enterprise)"
+                    : "Subscription Tier"
+                }
+                disabled={dbModeValue === "dedicated"}
                 returnPrimitiveValue
-                options={[
-                  { label: "Free Workspace (Default)", value: "FREE" },
-                  { label: "Starter Tier", value: "STARTER" },
-                  { label: "Pro / Growth Tier", value: "PRO" },
-                  { label: "Enterprise Tier", value: "ENTERPRISE" },
-                ]}
+                options={
+                  dbModeValue === "dedicated"
+                    ? [{ label: "Enterprise Tier (Dedicated Database)", value: "ENTERPRISE" }]
+                    : [
+                        { label: "Free Workspace (Default)", value: "FREE" },
+                        { label: "Starter Tier", value: "STARTER" },
+                        { label: "Pro / Growth Tier", value: "PRO" },
+                        { label: "Enterprise Tier", value: "ENTERPRISE" },
+                      ]
+                }
               />
 
               <ControlledSelect

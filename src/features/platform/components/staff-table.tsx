@@ -400,8 +400,6 @@ export function StaffTable() {
                   <SelectItem value="DEACTIVATED">Deactivated</SelectItem>
                 </SelectContent>
               </Select>
-
-              <ColumnConfigDropdown tableColumns={tableColumns} />
             </div>
           </div>
         </CardHeader>
@@ -429,9 +427,21 @@ export function StaffTable() {
                     {tableColumns.orderedVisibleColumns.map((colId) => (
                       <TableHead
                         key={colId}
-                        className={colId === "actions" ? "text-right" : undefined}
+                        className={colId === "actions" ? "w-[60px] pr-4 text-right" : undefined}
                       >
-                        {STAFF_COLUMN_LABELS[colId]}
+                        {colId === "actions" ? (
+                          <div className="flex items-center justify-end">
+                            <ColumnConfigDropdown
+                              tableColumns={tableColumns}
+                              variant="ghost"
+                              size="icon"
+                              className="text-muted-foreground hover:text-foreground size-7"
+                              align="end"
+                            />
+                          </div>
+                        ) : (
+                          STAFF_COLUMN_LABELS[colId]
+                        )}
                       </TableHead>
                     ))}
                   </TableRow>

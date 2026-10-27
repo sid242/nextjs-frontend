@@ -385,9 +385,10 @@ export function ProvisionTenantPage() {
                 </div>
 
                 <div
-                  onClick={() =>
-                    form.setValue("databaseMode", "dedicated", { shouldValidate: true })
-                  }
+                  onClick={() => {
+                    form.setValue("databaseMode", "dedicated", { shouldValidate: true });
+                    form.setValue("plan", "ENTERPRISE", { shouldValidate: true });
+                  }}
                   className={cn(
                     "hover:border-primary/50 cursor-pointer rounded-xl border p-4 transition-all",
                     dbModeValue === "dedicated"
@@ -410,6 +411,60 @@ export function ProvisionTenantPage() {
                   </p>
                 </div>
               </div>
+
+              {/* Dedicated Database Configuration Info */}
+              {dbModeValue === "dedicated" && (
+                <div className="space-y-3 rounded-xl border border-indigo-500/30 bg-indigo-500/5 p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Database className="size-4 text-indigo-500" />
+                      <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-300">
+                        Dedicated Database Architecture Configuration
+                      </span>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className="border-indigo-500/30 font-mono text-[10px] text-indigo-600 dark:text-indigo-400"
+                    >
+                      Isolated Schema
+                    </Badge>
+                  </div>
+
+                  <div className="grid gap-3 pt-1 sm:grid-cols-3">
+                    <div className="bg-background/80 rounded-lg border p-2.5">
+                      <span className="text-muted-foreground text-[10px] font-semibold uppercase">
+                        Routing Key
+                      </span>
+                      <div className="text-foreground mt-0.5 truncate font-mono text-xs font-semibold">
+                        dedicated-{slugValue || "tenant-id"}
+                      </div>
+                    </div>
+
+                    <div className="bg-background/80 rounded-lg border p-2.5">
+                      <span className="text-muted-foreground text-[10px] font-semibold uppercase">
+                        PostgreSQL DB Name
+                      </span>
+                      <div className="text-foreground mt-0.5 truncate font-mono text-xs font-semibold">
+                        tenant_{(slugValue || "id").replace(/[^a-z0-9_]/gi, "_")}
+                      </div>
+                    </div>
+
+                    <div className="bg-background/80 rounded-lg border p-2.5">
+                      <span className="text-muted-foreground text-[10px] font-semibold uppercase">
+                        Pool Limit Budget
+                      </span>
+                      <div className="text-foreground mt-0.5 text-xs font-semibold">
+                        5 Connections (Isolated)
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-muted-foreground text-[11px] leading-relaxed">
+                    Upon provisioning, the system will initialize an independent PostgreSQL database
+                    with its own connection pool budget and run all database schema migrations.
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -426,14 +481,23 @@ export function ProvisionTenantPage() {
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <ControlledSelect
                 name="plan"
-                label="Subscription Tier"
+                label={
+                  dbModeValue === "dedicated"
+                    ? "Subscription Tier (Locked to Enterprise for Dedicated DB)"
+                    : "Subscription Tier"
+                }
+                disabled={dbModeValue === "dedicated"}
                 returnPrimitiveValue
-                options={[
-                  { label: "Free Workspace (Default)", value: "FREE" },
-                  { label: "Starter Tier", value: "STARTER" },
-                  { label: "Pro / Growth Tier", value: "PRO" },
-                  { label: "Enterprise Tier", value: "ENTERPRISE" },
-                ]}
+                options={
+                  dbModeValue === "dedicated"
+                    ? [{ label: "Enterprise Tier (Dedicated Database)", value: "ENTERPRISE" }]
+                    : [
+                        { label: "Free Workspace (Default)", value: "FREE" },
+                        { label: "Starter Tier", value: "STARTER" },
+                        { label: "Pro / Growth Tier", value: "PRO" },
+                        { label: "Enterprise Tier", value: "ENTERPRISE" },
+                      ]
+                }
               />
 
               <ControlledInput

@@ -500,8 +500,6 @@ export function TenantsTable() {
                 <SelectItem value="ENTERPRISE">Enterprise</SelectItem>
               </SelectContent>
             </Select>
-
-            <ColumnConfigDropdown tableColumns={tableColumns} />
           </div>
         </CardHeader>
 
@@ -516,11 +514,23 @@ export function TenantsTable() {
                       colId === "workspace"
                         ? "pl-6"
                         : colId === "actions"
-                          ? "w-[50px] pr-6 text-right"
+                          ? "w-[60px] pr-4 text-right"
                           : undefined
                     }
                   >
-                    {TENANT_COLUMN_LABELS[colId]}
+                    {colId === "actions" ? (
+                      <div className="flex items-center justify-end">
+                        <ColumnConfigDropdown
+                          tableColumns={tableColumns}
+                          variant="ghost"
+                          size="icon"
+                          className="text-muted-foreground hover:text-foreground size-7"
+                          align="end"
+                        />
+                      </div>
+                    ) : (
+                      TENANT_COLUMN_LABELS[colId]
+                    )}
                   </TableHead>
                 ))}
               </TableRow>

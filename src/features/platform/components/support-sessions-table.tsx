@@ -344,7 +344,6 @@ export function SupportSessionsTable() {
               Historical log of time-bound access tickets and operator justifications.
             </CardDescription>
           </div>
-          <ColumnConfigDropdown tableColumns={tableColumns} />
         </CardHeader>
 
         <CardContent className="p-0">
@@ -370,9 +369,21 @@ export function SupportSessionsTable() {
                     {tableColumns.orderedVisibleColumns.map((colId) => (
                       <TableHead
                         key={colId}
-                        className={colId === "actions" ? "text-right" : undefined}
+                        className={colId === "actions" ? "w-[60px] pr-4 text-right" : undefined}
                       >
-                        {SUPPORT_SESSION_COLUMN_LABELS[colId]}
+                        {colId === "actions" ? (
+                          <div className="flex items-center justify-end">
+                            <ColumnConfigDropdown
+                              tableColumns={tableColumns}
+                              variant="ghost"
+                              size="icon"
+                              className="text-muted-foreground hover:text-foreground size-7"
+                              align="end"
+                            />
+                          </div>
+                        ) : (
+                          SUPPORT_SESSION_COLUMN_LABELS[colId]
+                        )}
                       </TableHead>
                     ))}
                   </TableRow>
