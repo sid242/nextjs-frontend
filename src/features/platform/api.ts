@@ -11,6 +11,7 @@ import type {
   PlatformTenant,
   PlatformTenantDetail,
   PlatformTenantMember,
+  PlatformUser,
   ProvisionTenantInput,
   StaffAuthProfile,
   StaffMember,
@@ -66,6 +67,35 @@ export async function suspendStaffMember(
   return api.post<{ success: boolean; message: string }>(`/platform/staff/${id}/suspend`, {
     reason,
   });
+}
+
+// ==========================================
+// 1b. Customer Users Management (Platform)
+// ==========================================
+
+export async function getPlatformUsers(
+  params?: { page?: number; limit?: number; status?: string; search?: string },
+  signal?: AbortSignal,
+): Promise<PaginatedResult<PlatformUser>> {
+  const query = new URLSearchParams();
+  if (params?.page) query.set("page", String(params.page));
+  if (params?.limit) query.set("limit", String(params.limit));
+  if (params?.status) query.set("status", params.status);
+  if (params?.search) query.set("search", params.search);
+
+  const qs = query.toString();
+  return api.get<PaginatedResult<PlatformUser>>(`/platform/users${qs ? `?${qs}` : ""}`, { signal });
+}
+
+export async function getPlatformUser(id: string, signal?: AbortSignal): Promise<PlatformUser> {
+  return api.get<PlatformUser>(`/platform/users/${id}`, { signal });
+}
+
+export async function updatePlatformUserStatus(
+  userId: string,
+  status: "PENDING_VERIFICATION" | "ACTIVE" | "SUSPENDED" | "DEACTIVATED",
+): Promise<PlatformUser> {
+  return api.patch<PlatformUser>(`/platform/users/${userId}/status`, { status });
 }
 
 export async function activateStaffMember(

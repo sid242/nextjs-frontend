@@ -36,6 +36,24 @@ export const updateStaffSchema = z.object({
 export type UpdateStaffInput = z.infer<typeof updateStaffSchema>;
 
 // ==========================================
+// 1b. Customer Users (Platform Inspection)
+// ==========================================
+
+export const platformUserSchema = z.object({
+  id: z.string().uuid(),
+  email: z.string().email(),
+  name: z.string(),
+  status: z.enum(["PENDING_VERIFICATION", "ACTIVE", "SUSPENDED", "DEACTIVATED"]),
+  emailVerified: z.boolean().default(false),
+  phoneNumber: z.string().nullable().optional(),
+  lastLoginAt: z.string().nullable().optional(),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+});
+
+export type PlatformUser = z.infer<typeof platformUserSchema>;
+
+// ==========================================
 // 2. Platform Roles & Canonical Permissions
 // ==========================================
 

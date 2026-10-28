@@ -1,11 +1,7 @@
-// Contract with the backend. Hand-written for now; generate from OpenAPI once the backend publishes it.
-export type Role = "USER" | "ADMIN";
-
 export interface User {
   id: string;
   email: string;
   name: string;
-  role: Role;
   createdAt: string;
 }
 

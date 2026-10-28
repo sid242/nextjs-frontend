@@ -9,7 +9,6 @@ import {
   PaletteIcon,
   ShieldIcon,
   UserIcon,
-  UsersIcon,
 } from "lucide-react";
 
 import {
@@ -20,11 +19,7 @@ import {
 } from "@/features/tenants";
 import { cn } from "@/lib/utils";
 
-interface SettingsNavProps {
-  isAdmin?: boolean;
-}
-
-export function SettingsNav({ isAdmin }: SettingsNavProps) {
+export function SettingsNav() {
   const pathname = usePathname();
   const { activeTenant } = useActiveTenant();
   const { data: tenantContext } = useTenantContext(activeTenant?.id);
@@ -72,13 +67,6 @@ export function SettingsNav({ isAdmin }: SettingsNavProps) {
       icon: ShieldIcon,
       active: pathname === "/settings/security",
       visible: true,
-    },
-    {
-      href: "/settings/admin",
-      label: "Administration",
-      icon: UsersIcon,
-      active: pathname === "/settings/admin",
-      visible: Boolean(isAdmin),
     },
   ];
 

@@ -13,16 +13,16 @@ export const metadata: Metadata = {
 };
 
 export default async function SettingsLayout({ children }: { children: ReactNode }) {
-  const user = await requireUser();
+  await requireUser();
 
   return (
     <div className="grid gap-6">
       <PageHeader
-        title="Settings & Administration"
+        title="Settings"
         description="Manage your profile credentials, workspace configuration, SMTP email server, and security sessions."
       />
 
-      <SettingsNav isAdmin={user?.role === "ADMIN"} />
+      <SettingsNav />
 
       <div>{children}</div>
     </div>

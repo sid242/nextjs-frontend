@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   LifeBuoy,
   ShieldCheck,
+  UserCheck,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -60,6 +61,13 @@ export const PLATFORM_NAV_GROUPS: NavGroup[] = [
         description: "Manage internal operator accounts & status",
         icon: Users,
         permission: PLATFORM_PERMISSION_KEYS.STAFF_READ,
+      },
+      {
+        href: "/platform/users",
+        label: "User Accounts",
+        description: "Customer accounts, status & suspension",
+        icon: UserCheck,
+        permission: PLATFORM_PERMISSION_KEYS.USERS_READ,
       },
       {
         href: "/platform/roles",

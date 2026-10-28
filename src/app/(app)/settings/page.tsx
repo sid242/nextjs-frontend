@@ -11,7 +11,6 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
   if (tab === "workspace") redirect("/settings/workspace");
   if (tab === "smtp" || tab === "email") redirect("/settings/email");
   if (tab === "security") redirect("/settings/security");
-  if (tab === "admin") redirect("/settings/admin");
 
   redirect("/settings/profile");
 }

@@ -17,6 +17,8 @@ import {
   getPlatformTenant,
   getPlatformTenants,
   getPlatformTwoFactorStatus,
+  getPlatformUser,
+  getPlatformUsers,
   getStaffMembers,
   getSupportSessions,
   getTenantMembers,
@@ -31,6 +33,7 @@ import {
   updatePlatformRole,
   updatePlatformTenant,
   updatePlatformTenantSubscription,
+  updatePlatformUserStatus,
   updateStaffMember,
   verifyPlatformTwoFactor,
 } from "./api";
@@ -119,6 +122,54 @@ export function useResetStaffPassword() {
       resetStaffMemberPassword(id, newPassword),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: platformKeys.staff() });
+    },
+  });
+}
+
+// ==========================================
+// 1b. Customer Users Management Hooks
+// ==========================================
+
+export const platformUsersQueryOptions = (params?: {
+  page?: number;
+  limit?: number;
+  status?: string;
+  search?: string;
+}) =>
+  queryOptions({
+    queryKey: platformKeys.usersList(params),
+    queryFn: ({ signal }) => getPlatformUsers(params, signal),
+  });
+
+export function usePlatformUsers(params?: {
+  page?: number;
+  limit?: number;
+  status?: string;
+  search?: string;
+}) {
+  return useQuery(platformUsersQueryOptions(params));
+}
+
+export function usePlatformUser(id: string) {
+  return useQuery({
+    queryKey: platformKeys.userDetail(id),
+    queryFn: ({ signal }) => getPlatformUser(id, signal),
+    enabled: Boolean(id),
+  });
+}
+
+export function useUpdatePlatformUserStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      userId,
+      status,
+    }: {
+      userId: string;
+      status: "PENDING_VERIFICATION" | "ACTIVE" | "SUSPENDED" | "DEACTIVATED";
+    }) => updatePlatformUserStatus(userId, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: platformKeys.users() });
     },
   });
 }

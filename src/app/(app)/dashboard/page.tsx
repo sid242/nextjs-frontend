@@ -30,11 +30,11 @@ export default async function DashboardPage() {
           <Card className="border-border/60 shadow-xs">
             <CardHeader className="pb-2">
               <CardDescription className="text-xs font-medium tracking-wider uppercase">
-                Your Role
+                Account Status
               </CardDescription>
               <CardTitle className="pt-1">
                 <Badge variant="secondary" className="font-mono text-xs tracking-wide">
-                  {user.role}
+                  Active
                 </Badge>
               </CardTitle>
             </CardHeader>

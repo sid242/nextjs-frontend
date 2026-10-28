@@ -11,7 +11,7 @@ import { useSidebar } from "@/lib/context/sidebar-context";
 import { initials } from "@/lib/format";
 
 interface UserProfileFooterProps {
-  user: Pick<User, "name" | "email" | "role">;
+  user: Pick<User, "name" | "email">;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
 }
@@ -39,7 +39,7 @@ export function UserProfileFooter({
           </TooltipTrigger>
           <TooltipContent side="right">
             <p className="font-medium">{user.name}</p>
-            <p className="text-muted-foreground text-xs">{user.role}</p>
+            <p className="text-muted-foreground text-xs">{user.email}</p>
           </TooltipContent>
         </Tooltip>
 
@@ -74,9 +74,7 @@ export function UserProfileFooter({
         </Avatar>
         <div className="grid min-w-0 text-left leading-tight">
           <span className="text-foreground truncate text-xs font-semibold">{user.name}</span>
-          <span className="text-muted-foreground truncate text-[11px] capitalize">
-            {user.role.toLowerCase()}
-          </span>
+          <span className="text-muted-foreground truncate text-[11px]">{user.email}</span>
         </div>
       </Link>
 

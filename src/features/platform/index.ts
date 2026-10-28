@@ -5,6 +5,10 @@ export {
   useStaffList,
   useCreateStaff,
   useUpdateStaff,
+  platformUsersQueryOptions,
+  usePlatformUsers,
+  usePlatformUser,
+  useUpdatePlatformUserStatus,
   platformRolesQueryOptions,
   usePlatformRoles,
   useCreatePlatformRole,
@@ -43,6 +47,7 @@ export {
 export { PlatformShell } from "./components/platform-shell";
 export { PlatformDashboard } from "./components/platform-dashboard";
 export { StaffTable } from "./components/staff-table";
+export { PlatformUsersTable } from "./components/users-table";
 export { RolesMatrix } from "./components/roles-matrix";
 export { SupportSessionsTable } from "./components/support-sessions-table";
 export { AuditLogsTable } from "./components/audit-logs-table";

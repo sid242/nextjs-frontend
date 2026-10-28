@@ -4,6 +4,10 @@ export const platformKeys = {
   staffList: (params?: unknown) => [...platformKeys.staff(), "list", params] as const,
   staffDetail: (id: string) => [...platformKeys.staff(), "detail", id] as const,
 
+  users: () => [...platformKeys.all, "users"] as const,
+  usersList: (params?: unknown) => [...platformKeys.users(), "list", params] as const,
+  userDetail: (id: string) => [...platformKeys.users(), "detail", id] as const,
+
   roles: () => [...platformKeys.all, "roles"] as const,
   rolesList: () => [...platformKeys.roles(), "list"] as const,
   roleDetail: (id: string) => [...platformKeys.roles(), "detail", id] as const,
