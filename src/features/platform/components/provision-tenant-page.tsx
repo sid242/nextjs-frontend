@@ -58,6 +58,12 @@ export function ProvisionTenantPage() {
       databaseMode: "shared",
       timezone: "UTC",
       notes: "",
+      databaseConfig: {
+        databaseName: "",
+        poolLimit: 5,
+        databaseKey: "",
+        connectionUrl: "",
+      },
     },
   });
 
@@ -79,7 +85,21 @@ export function ProvisionTenantPage() {
   const onSubmit = async (data: ProvisionTenantInput) => {
     setErrorMsg(null);
     try {
-      const res = await provision(data);
+      const payload: ProvisionTenantInput = {
+        ...data,
+        databaseConfig:
+          data.databaseMode === "dedicated" && data.databaseConfig
+            ? {
+                databaseName: data.databaseConfig.databaseName?.trim() || undefined,
+                databaseKey: data.databaseConfig.databaseKey?.trim() || undefined,
+                poolLimit: data.databaseConfig.poolLimit
+                  ? Number(data.databaseConfig.poolLimit)
+                  : 5,
+                connectionUrl: data.databaseConfig.connectionUrl?.trim() || undefined,
+              }
+            : undefined,
+      };
+      const res = await provision(payload);
       setProvisionResult({
         tenantId: res.tenant.id,
         tenantName: res.tenant.name,
@@ -114,6 +134,12 @@ export function ProvisionTenantPage() {
       databaseMode: "shared",
       timezone: "UTC",
       notes: "",
+      databaseConfig: {
+        databaseName: "",
+        poolLimit: 5,
+        databaseKey: "",
+        connectionUrl: "",
+      },
     });
     setProvisionResult(null);
     setErrorMsg(null);
@@ -414,55 +440,64 @@ export function ProvisionTenantPage() {
 
               {/* Dedicated Database Configuration Info */}
               {dbModeValue === "dedicated" && (
-                <div className="space-y-3 rounded-xl border border-indigo-500/30 bg-indigo-500/5 p-4">
+                <div className="space-y-4 rounded-xl border border-indigo-500/30 bg-indigo-500/5 p-4.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Database className="size-4 text-indigo-500" />
                       <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-300">
-                        Dedicated Database Architecture Configuration
+                        Enterprise Dedicated Database Configuration
                       </span>
                     </div>
                     <Badge
                       variant="outline"
                       className="border-indigo-500/30 font-mono text-[10px] text-indigo-600 dark:text-indigo-400"
                     >
-                      Isolated Schema
+                      Isolated Schema & Pool
                     </Badge>
                   </div>
 
-                  <div className="grid gap-3 pt-1 sm:grid-cols-3">
-                    <div className="bg-background/80 rounded-lg border p-2.5">
-                      <span className="text-muted-foreground text-[10px] font-semibold uppercase">
-                        Routing Key
-                      </span>
-                      <div className="text-foreground mt-0.5 truncate font-mono text-xs font-semibold">
-                        dedicated-{slugValue || "tenant-id"}
-                      </div>
-                    </div>
+                  <p className="text-muted-foreground text-xs leading-relaxed">
+                    Upon provisioning, an isolated PostgreSQL database will be automatically
+                    initialized with its own dedicated connection budget, and all Drizzle migrations
+                    will be executed.
+                  </p>
 
-                    <div className="bg-background/80 rounded-lg border p-2.5">
-                      <span className="text-muted-foreground text-[10px] font-semibold uppercase">
-                        PostgreSQL DB Name
-                      </span>
-                      <div className="text-foreground mt-0.5 truncate font-mono text-xs font-semibold">
-                        tenant_{(slugValue || "id").replace(/[^a-z0-9_]/gi, "_")}
-                      </div>
-                    </div>
+                  <div className="grid gap-3 pt-1 sm:grid-cols-2">
+                    <ControlledInput
+                      name="databaseConfig.databaseName"
+                      label="PostgreSQL Database Name"
+                      placeholder={`tenant_${(slugValue || "acme").replace(/[^a-z0-9_]/gi, "_")}`}
+                      hint="Optional custom identifier"
+                      description="Must start with a letter/underscore (alphanumeric & underscores)."
+                    />
 
-                    <div className="bg-background/80 rounded-lg border p-2.5">
-                      <span className="text-muted-foreground text-[10px] font-semibold uppercase">
-                        Pool Limit Budget
-                      </span>
-                      <div className="text-foreground mt-0.5 text-xs font-semibold">
-                        5 Connections (Isolated)
-                      </div>
-                    </div>
+                    <ControlledInput
+                      name="databaseConfig.databaseKey"
+                      label="Cluster Routing Key"
+                      placeholder={`dedicated-${slugValue || "acme"}`}
+                      hint="Optional custom routing key"
+                      description="Dynamic router identifier used by multi-tenant connection pools."
+                    />
                   </div>
 
-                  <p className="text-muted-foreground text-[11px] leading-relaxed">
-                    Upon provisioning, the system will initialize an independent PostgreSQL database
-                    with its own connection pool budget and run all database schema migrations.
-                  </p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <ControlledInput
+                      name="databaseConfig.poolLimit"
+                      label="Connection Pool Budget"
+                      type="number"
+                      placeholder="5"
+                      hint="Default: 5 (1 - 50)"
+                      description="Maximum concurrent connections allocated for this tenant replica."
+                    />
+
+                    <ControlledInput
+                      name="databaseConfig.connectionUrl"
+                      label="External PostgreSQL URL (Optional)"
+                      placeholder="postgresql://user:pass@host:5432/db"
+                      hint="Optional external cluster"
+                      description="Leave empty to provision inside the primary PostgreSQL cluster."
+                    />
+                  </div>
                 </div>
               )}
             </CardContent>

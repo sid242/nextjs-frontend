@@ -256,6 +256,14 @@ export const provisionTenantSchema = z.object({
   timezone: z.string().trim().min(1, "Timezone is required"),
   databaseMode: z.enum(["shared", "dedicated"]),
   notes: z.string().trim().max(500).optional(),
+  databaseConfig: z
+    .object({
+      databaseName: z.string().trim().max(63).optional(),
+      poolLimit: z.coerce.number().int().min(1).max(50).optional(),
+      databaseKey: z.string().trim().max(100).optional(),
+      connectionUrl: z.string().trim().url().or(z.literal("")).optional(),
+    })
+    .optional(),
 });
 
 export type ProvisionTenantInput = z.infer<typeof provisionTenantSchema>;

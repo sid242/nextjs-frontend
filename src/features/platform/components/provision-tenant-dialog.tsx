@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Check, Copy, ExternalLink, Sparkles } from "lucide-react";
+import { Check, Copy, Database, ExternalLink, Sparkles } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
 
 import { ControlledInput, ControlledSelect, FormWrapper } from "@/components/molecules/forms";
 import { SubmitButton } from "@/components/molecules/submit-button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -47,11 +48,18 @@ export function ProvisionTenantDialog({ open, onOpenChange }: ProvisionTenantDia
       databaseMode: "shared",
       timezone: "UTC",
       notes: "",
+      databaseConfig: {
+        databaseName: "",
+        poolLimit: 5,
+        databaseKey: "",
+        connectionUrl: "",
+      },
     },
   });
 
   // Automatically derive URL slug from workspace name if not manually modified
   const nameValue = useWatch({ control: form.control, name: "name" });
+  const slugValue = useWatch({ control: form.control, name: "slug" });
   const dbModeValue = useWatch({ control: form.control, name: "databaseMode" });
 
   useEffect(() => {
@@ -71,7 +79,21 @@ export function ProvisionTenantDialog({ open, onOpenChange }: ProvisionTenantDia
   }, [dbModeValue, form]);
 
   const handleClose = () => {
-    form.reset();
+    form.reset({
+      name: "",
+      slug: "",
+      ownerEmail: "",
+      plan: "FREE",
+      databaseMode: "shared",
+      timezone: "UTC",
+      notes: "",
+      databaseConfig: {
+        databaseName: "",
+        poolLimit: 5,
+        databaseKey: "",
+        connectionUrl: "",
+      },
+    });
     setErrorMsg(null);
     setProvisionResult(null);
     setCopied(false);
@@ -81,7 +103,21 @@ export function ProvisionTenantDialog({ open, onOpenChange }: ProvisionTenantDia
   const onSubmit = async (data: ProvisionTenantInput) => {
     setErrorMsg(null);
     try {
-      const res = await provision(data);
+      const payload: ProvisionTenantInput = {
+        ...data,
+        databaseConfig:
+          data.databaseMode === "dedicated" && data.databaseConfig
+            ? {
+                databaseName: data.databaseConfig.databaseName?.trim() || undefined,
+                databaseKey: data.databaseConfig.databaseKey?.trim() || undefined,
+                poolLimit: data.databaseConfig.poolLimit
+                  ? Number(data.databaseConfig.poolLimit)
+                  : 5,
+                connectionUrl: data.databaseConfig.connectionUrl?.trim() || undefined,
+              }
+            : undefined,
+      };
+      const res = await provision(payload);
       setProvisionResult({
         tenantName: res.tenant.name,
         ownerEmail: res.owner.email,
@@ -227,6 +263,45 @@ export function ProvisionTenantDialog({ open, onOpenChange }: ProvisionTenantDia
                 ]}
               />
             </div>
+
+            {dbModeValue === "dedicated" && (
+              <div className="space-y-3 rounded-lg border border-indigo-500/30 bg-indigo-500/5 p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Database className="size-3.5 text-indigo-500" />
+                    <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-300">
+                      Dedicated Database Configuration
+                    </span>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className="border-indigo-500/30 font-mono text-[10px] text-indigo-600 dark:text-indigo-400"
+                  >
+                    Isolated Pool
+                  </Badge>
+                </div>
+
+                <div className="grid gap-2.5 sm:grid-cols-2">
+                  <ControlledInput
+                    name="databaseConfig.databaseName"
+                    label="Database Name"
+                    placeholder={`tenant_${(slugValue || "acme").replace(/[^a-z0-9_]/gi, "_")}`}
+                  />
+                  <ControlledInput
+                    name="databaseConfig.poolLimit"
+                    label="Pool Limit Budget"
+                    type="number"
+                    placeholder="5"
+                  />
+                </div>
+
+                <ControlledInput
+                  name="databaseConfig.databaseKey"
+                  label="Cluster Routing Key"
+                  placeholder={`dedicated-${slugValue || "acme"}`}
+                />
+              </div>
+            )}
 
             <ControlledInput
               name="notes"
