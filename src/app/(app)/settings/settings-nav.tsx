@@ -12,7 +12,12 @@ import {
   UsersIcon,
 } from "lucide-react";
 
-import { hasTenantPermission, TENANT_PERMISSIONS, useTenantContext } from "@/features/tenants";
+import {
+  hasTenantPermission,
+  TENANT_PERMISSIONS,
+  useActiveTenant,
+  useTenantContext,
+} from "@/features/tenants";
 import { cn } from "@/lib/utils";
 
 interface SettingsNavProps {
@@ -21,7 +26,8 @@ interface SettingsNavProps {
 
 export function SettingsNav({ isAdmin }: SettingsNavProps) {
   const pathname = usePathname();
-  const { data: tenantContext } = useTenantContext();
+  const { activeTenant } = useActiveTenant();
+  const { data: tenantContext } = useTenantContext(activeTenant?.id);
   const permissions = tenantContext?.permissions;
 
   const allTabs = [

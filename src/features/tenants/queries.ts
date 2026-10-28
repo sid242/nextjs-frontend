@@ -159,7 +159,9 @@ export function useTenantContext(
   tenantId?: string | null,
   options?: QueryOverrides<TenantContext>,
 ) {
-  return useAppQuery<TenantContext>(tenantContextQueryOptions(tenantId ?? ""), options);
+  const storeActiveId = useTenantStore((s) => s.activeTenantId);
+  const resolvedTenantId = tenantId !== undefined ? tenantId : storeActiveId;
+  return useAppQuery<TenantContext>(tenantContextQueryOptions(resolvedTenantId ?? ""), options);
 }
 
 export function useActiveTenant(options?: QueryOverrides<Tenant[]>) {

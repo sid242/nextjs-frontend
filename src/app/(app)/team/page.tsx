@@ -26,7 +26,7 @@ import {
 
 export default function TeamPage() {
   const { activeTenant, activeTenantId } = useActiveTenant();
-  const { data: tenantContext } = useTenantContext();
+  const { data: tenantContext } = useTenantContext(activeTenantId);
   const permissions = tenantContext?.permissions;
   const isCurrentUserOwner = Boolean(tenantContext?.membership?.roles?.includes("OWNER"));
   const canInvite = hasTenantPermission(permissions, TENANT_PERMISSIONS.MEMBERS_INVITE);
