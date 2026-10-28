@@ -192,7 +192,7 @@ export function RolesMatrix() {
                   </div>
                 </CardHeader>
 
-                <CardContent className="max-h-[600px] space-y-6 overflow-y-auto pt-5">
+                <CardContent className="max-h-150 space-y-6 overflow-y-auto pt-5">
                   {Object.entries(groupedPermissions).map(([resource, perms]) => (
                     <div key={resource} className="space-y-2.5">
                       <div className="flex items-center gap-2 border-b pb-1.5">

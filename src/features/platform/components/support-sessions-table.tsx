@@ -212,7 +212,7 @@ export function SupportSessionsTable() {
         );
       case "actions":
         return (
-          <TableCell key="actions" className="w-[260px] min-w-[260px] pr-4 text-right">
+          <TableCell key="actions" className="w-65 min-w-65 pr-4 text-right">
             {isActive && (
               <div className="flex items-center justify-end gap-1.5">
                 <Button
@@ -371,9 +371,7 @@ export function SupportSessionsTable() {
                       <TableHead
                         key={colId}
                         className={
-                          colId === "actions"
-                            ? "w-[260px] min-w-[260px] pr-4 text-right"
-                            : undefined
+                          colId === "actions" ? "w-65 min-w-65 pr-4 text-right" : undefined
                         }
                       >
                         {colId === "actions" ? (

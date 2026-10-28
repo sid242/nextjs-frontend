@@ -249,7 +249,7 @@ export function FilePreviewDialog({ file, open, onOpenChange }: FilePreviewDialo
         </DialogHeader>
 
         {/* Preview Content Area */}
-        <div className="bg-muted/20 relative flex max-h-[calc(92vh-100px)] min-h-[360px] items-center justify-center overflow-auto p-4">
+        <div className="bg-muted/20 relative flex max-h-[calc(92vh-100px)] min-h-90 items-center justify-center overflow-auto p-4">
           {loading ? (
             <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
               <Spinner className="size-8" />

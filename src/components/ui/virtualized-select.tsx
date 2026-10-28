@@ -389,7 +389,7 @@ export function VirtualizedSelect<T extends string | number = string>({
                   className="bg-muted text-foreground inline-flex h-6 items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium"
                 >
                   {opt?.icon}
-                  <span className="max-w-[120px] truncate">{opt?.label}</span>
+                  <span className="max-w-30 truncate">{opt?.label}</span>
                   {!disabled && (
                     <button
                       type="button"
@@ -460,7 +460,7 @@ export function VirtualizedSelect<T extends string | number = string>({
                     }
                   }}
                   placeholder={(selectedOptions?.length ?? 0) === 0 ? placeholder : ""}
-                  className="placeholder:text-muted-foreground min-w-[50px] flex-1 bg-transparent py-0.5 text-sm outline-none"
+                  className="placeholder:text-muted-foreground min-w-12.5 flex-1 bg-transparent py-0.5 text-sm outline-none"
                 />
               ) : (selectedOptions?.length ?? 0) === 0 ? (
                 <span className="text-muted-foreground">{placeholder}</span>

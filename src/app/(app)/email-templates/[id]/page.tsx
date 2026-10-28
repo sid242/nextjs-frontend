@@ -45,7 +45,7 @@ export default function EmailTemplateDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[400px] flex-col items-center justify-center space-y-3">
+      <div className="flex min-h-100 flex-col items-center justify-center space-y-3">
         <Spinner className="text-primary size-7" />
         <span className="text-muted-foreground text-sm font-medium">
           Loading email template details...
@@ -128,7 +128,7 @@ export default function EmailTemplateDetailPage() {
           <span>Email Templates</span>
         </Link>
         <span className="text-border">/</span>
-        <span className="text-foreground max-w-[200px] truncate font-semibold sm:max-w-none">
+        <span className="text-foreground max-w-50 truncate font-semibold sm:max-w-none">
           {template?.name}
         </span>
       </nav>
@@ -379,7 +379,7 @@ export default function EmailTemplateDetailPage() {
             senderName={template?.senderName ?? undefined}
             fromEmail={template?.fromEmail ?? undefined}
             replyTo={template?.replyTo ?? undefined}
-            bodyMaxHeight="min-h-[380px] sm:min-h-[500px] max-h-[750px]"
+            bodyMaxHeight="min-h-95 sm:min-h-125 max-h-187.5"
           />
         </div>
       </div>

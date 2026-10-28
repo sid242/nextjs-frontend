@@ -178,19 +178,19 @@ export function TemplatesTable() {
   const getHeaderClass = (id: TemplateColumnId) => {
     switch (id) {
       case "name":
-        return "w-[240px] min-w-[200px]";
+        return "w-60 min-w-50";
       case "subject":
-        return "min-w-[220px]";
+        return "min-w-55";
       case "category":
-        return "w-[130px] min-w-[120px]";
+        return "w-32.5 min-w-30";
       case "status":
-        return "w-[120px] min-w-[110px]";
+        return "w-30 min-w-27.5";
       case "variables":
-        return "w-[140px] min-w-[130px]";
+        return "w-35 min-w-32.5";
       case "updatedAt":
-        return "w-[180px] min-w-[160px]";
+        return "w-45 min-w-40";
       case "actions":
-        return "w-[90px] min-w-[90px] pr-4 text-right";
+        return "w-24 min-w-24 pr-4 text-right";
     }
   };
 
@@ -281,7 +281,7 @@ export function TemplatesTable() {
 
       case "actions":
         return (
-          <TableCell key={colId} className="w-[90px] min-w-[90px] pr-4 text-right">
+          <TableCell key={colId} className="w-24 min-w-24 pr-4 text-right">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="size-8">
@@ -343,7 +343,7 @@ export function TemplatesTable() {
       {/* Filter and Search Bar: BrixUI Elevated Card */}
       <div className="border-border/80 bg-card flex flex-col gap-3 rounded-2xl border p-3.5 shadow-xs sm:p-4">
         <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
-          <div className="relative min-w-[200px] flex-1">
+          <div className="relative min-w-50 flex-1">
             <SearchIcon className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
             <Input
               value={searchInput}
@@ -368,7 +368,7 @@ export function TemplatesTable() {
 
           <div className="flex flex-wrap items-center gap-2">
             <Select value={categoryFilter} onValueChange={handleCategoryChange}>
-              <SelectTrigger className="h-10 w-full rounded-xl text-xs sm:w-[150px]">
+              <SelectTrigger className="h-10 w-full rounded-xl text-xs sm:w-37.5">
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent>
@@ -381,7 +381,7 @@ export function TemplatesTable() {
             </Select>
 
             <Select value={statusFilter} onValueChange={handleStatusChange}>
-              <SelectTrigger className="h-10 w-full rounded-xl text-xs sm:w-[130px]">
+              <SelectTrigger className="h-10 w-full rounded-xl text-xs sm:w-32.5">
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
               <SelectContent>

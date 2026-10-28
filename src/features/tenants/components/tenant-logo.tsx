@@ -109,7 +109,7 @@ export function TenantLogo({
         <div
           className={cn(
             "relative flex shrink-0 items-center justify-center overflow-hidden",
-            variant === "icon" ? "size-8 rounded-md" : "h-7 max-w-[140px]",
+            variant === "icon" ? "size-8 rounded-md" : "h-7 max-w-35",
           )}
         >
           {/* Light mode logo */}
@@ -123,7 +123,7 @@ export function TenantLogo({
               className={cn(
                 "object-contain",
                 darkLogo && darkLogo !== lightLogo && "dark:hidden",
-                variant === "icon" ? "size-full rounded-md" : "h-7 w-auto max-w-[140px]",
+                variant === "icon" ? "size-full rounded-md" : "h-7 w-auto max-w-35",
               )}
             />
           )}
@@ -138,7 +138,7 @@ export function TenantLogo({
               onError={() => setFailedUrls((prev) => ({ ...prev, [darkLogo]: true }))}
               className={cn(
                 "hidden object-contain dark:block",
-                variant === "icon" ? "size-full rounded-md" : "h-7 w-auto max-w-[140px]",
+                variant === "icon" ? "size-full rounded-md" : "h-7 w-auto max-w-35",
               )}
             />
           )}

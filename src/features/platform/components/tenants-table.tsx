@@ -337,7 +337,7 @@ export function TenantsTable() {
         );
       case "actions":
         return (
-          <TableCell key="actions" className="w-[110px] min-w-[110px] pr-4 text-right">
+          <TableCell key="actions" className="w-28 min-w-28 pr-4 text-right">
             <div className="flex items-center justify-end">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -522,7 +522,7 @@ export function TenantsTable() {
                       colId === "workspace"
                         ? "pl-6"
                         : colId === "actions"
-                          ? "w-[110px] min-w-[110px] pr-4 text-right"
+                          ? "w-28 min-w-28 pr-4 text-right"
                           : undefined
                     }
                   >

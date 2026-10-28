@@ -28,7 +28,7 @@ See [AGENTS.md](./AGENTS.md) for full architecture and engineering guidelines.
    - Filter sidebar navigation dynamically using `hasPlatformPermission` or `hasTenantPermission`.
    - Gate full pages with `<PlatformPermissionGate />` or `<TenantPermissionGate />`. Direct URL access without permission must display a clear "Access Restricted" alert card with the active role and required capability.
    - Map platform endpoints (e.g. `/platform/*`, `/plans/platform*`) to `platform_staff_token` in BFF proxy, and redirect platform 401s to `/platform/login` without triggering tenant refresh tokens.
-8. **Tailwind CSS v4 Continuous Scale & Modern Standards**:
-   - Prefer native continuous numeric scale utilities over arbitrary bracket syntax. Any integer multiple of 4px (`0.25rem`) is a native utility (e.g., use `min-h-105` instead of `min-h-[420px]`, `w-100` instead of `w-[400px]`, `max-w-120` instead of `max-w-[480px]`).
-   - Use arbitrary brackets (`[...]`) only for values not divisible by 4px or for dynamic CSS functions (`calc(...)`).
-   - Use modern v4 features: OKLCH color system, `@theme` tokens, native `@container` queries, and `text-wrap: balance/pretty`.
+8. **Tailwind CSS v4 Continuous Scale & BrixUI Foundations**:
+   - **Zero Arbitrary Pixel Policy**: Tailwind CSS v4 supports a continuous numeric scale where any integer multiple of 4px (`0.25rem`) or half-step (`0.125rem` = 2px) is a native class. Never write arbitrary bracket pixels when a native utility exists (e.g., use `w-45 min-w-40` instead of `w-[180px] min-w-[160px]`, `w-24 min-w-24` instead of `w-[90px] min-w-[90px]`, `rounded-4xl` instead of `rounded-[32px]`).
+   - Use arbitrary brackets (`[...]`) strictly for values not divisible by 4px/2px or dynamic CSS functions (`calc(...)`).
+   - Adhere to the BrixUI Design System foundations (`.agents/rules/brix-design-foundation.md`) for typography hierarchy, responsive 12-col grids, 40px standard component sizing (`h-10 rounded-xl`), and sub-pixel border elevations.

@@ -199,12 +199,12 @@ export function DevicePreview({
       {/* Email Body Frame: Responsive Simulated Canvas with Fluid Device Viewport */}
       <div
         className={`flex flex-1 items-start justify-center overflow-y-auto bg-neutral-100/90 p-3 transition-all sm:p-6 dark:bg-neutral-950/60 ${
-          bodyMaxHeight || "max-h-[700px] min-h-[360px] sm:min-h-[480px]"
+          bodyMaxHeight || "max-h-175 min-h-90 sm:min-h-120"
         }`}
       >
         {device === "mobile" ? (
           /* Mobile Frame Silhouette */
-          <div className="w-full max-w-[375px] overflow-hidden rounded-[32px] border-4 border-neutral-800 bg-white shadow-2xl transition-all duration-300 dark:border-neutral-700">
+          <div className="w-full max-w-94 overflow-hidden rounded-4xl border-4 border-neutral-800 bg-white shadow-2xl transition-all duration-300 dark:border-neutral-700">
             {/* Phone Speaker Notch */}
             <div className="mx-auto mb-1 flex h-4 w-28 items-center justify-center rounded-b-xl bg-neutral-800 dark:bg-neutral-700">
               <div className="mr-1.5 size-1 rounded-full bg-neutral-900/80" />
@@ -218,7 +218,7 @@ export function DevicePreview({
           </div>
         ) : (
           /* Desktop Browser Viewport Frame */
-          <div className="w-full max-w-[640px] overflow-hidden rounded-xl border border-neutral-200/90 bg-white shadow-sm transition-all duration-300 dark:border-neutral-800">
+          <div className="w-full max-w-160 overflow-hidden rounded-xl border border-neutral-200/90 bg-white shadow-sm transition-all duration-300 dark:border-neutral-800">
             {/* Browser Top Window Bar */}
             <div className="flex items-center gap-1.5 border-b border-neutral-200 bg-neutral-100 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-800/80">
               <div className="size-2.5 rounded-full bg-rose-400" />

@@ -118,14 +118,15 @@ src/features/<feature-name>/
   - **Route Gates**: Wrap entire page bodies with `<PlatformPermissionGate permission={...} />` or `<TenantPermissionGate permission={...} />` to render an accessible "Access Restricted" state on unauthorized direct URL navigation.
   - **Action Controls**: Use `hideInsteadOfBanner` on gates to hide unauthorized action buttons, or disable mutating form controls.
   - **BFF Route Classification**: In `src/app/api/proxy/[...path]/route.ts`, map all platform-scoped routes (including `/plans/platform*`) to `PLATFORM_STAFF_COOKIE`. Route 401s on platform surfaces directly to `/platform/login` without triggering tenant refresh tokens.
-- **Tailwind CSS v4 Continuous Scale & Modern Standards**:
-  - **Prefer Native Scale over Arbitrary Bracket Syntax**: Tailwind CSS v4 supports a continuous numeric scale where any integer multiple of `0.25rem` (4px) is a native class. Always prefer standard scale utilities:
-    - Write `min-h-105` instead of `min-h-[420px]` (`105 * 4px = 420px`).
-    - Write `w-100` instead of `w-[400px]` (`100 * 4px = 400px`).
-    - Write `max-w-120` instead of `max-w-[480px]` (`120 * 4px = 480px`).
-    - Write `h-80` instead of `h-[320px]` (`80 * 4px = 320px`).
-  - Reserve arbitrary bracket syntax (`[...]`) strictly for values that are not divisible by 4px or for dynamic CSS functions (`calc(...)`).
-  - Modern v4 features: leverage `@theme` design tokens, OKLCH colors, native `@container` queries, and `text-wrap: balance/pretty`.
+- **Tailwind CSS v4 Continuous Scale & BrixUI Foundation Standards**:
+  - **Zero Arbitrary Pixel Policy**: Tailwind CSS v4 supports a continuous numeric scale where any integer multiple of `0.25rem` (4px) or half-step (`0.125rem` = 2px) is a native class. Never write arbitrary bracket pixels when a native utility exists:
+    - Write `w-45 min-w-40` instead of `w-[180px] min-w-[160px]`.
+    - Write `w-24 min-w-24` (or `w-22.5 min-w-22.5`) instead of `w-[90px] min-w-[90px]`.
+    - Write `min-h-100` instead of `min-h-[400px]`, `min-h-90` instead of `min-h-[360px]`, `min-h-120` instead of `min-h-[480px]`.
+    - Write `max-h-175` instead of `max-h-[700px]`, `max-h-150` instead of `max-h-[600px]`.
+    - Write `rounded-4xl` instead of `rounded-[32px]`, `rounded-2xl` instead of `rounded-[16px]`.
+  - Reserve arbitrary bracket syntax (`[...]`) strictly for values that are not divisible by 4px/2px or dynamic CSS functions (`calc(...)`).
+  - **BrixUI Design Tokens & Foundations**: Follow the BrixUI multi-brand guidelines in `.agents/rules/brix-design-foundation.md` and `.agents/skills/design-system/SKILL.md` (12-column responsive layout, 40px `h-10 rounded-xl` default inputs/triggers, sub-pixel `border-border/80`, `shadow-xs` elevated surfaces, and `text-balance` headings).
 - **Platform Control Plane & Dashboards**:
   - The central platform command center is mounted at `/platform/dashboard` via `PlatformDashboard`, displaying key workspace aggregates, active staff counters, subscription tiers, infrastructure health indicators, and live operator audit actions.
   - The customer tenant dashboard combines `DashboardWidgets` (real-time team capacity progress bar, subscription tier status) and `DashboardQuickActions` (immediate shortcuts to invite members, upload assets, brand styling, and audit logs).

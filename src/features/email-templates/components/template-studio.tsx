@@ -522,7 +522,7 @@ export function TemplateStudio({ initialTemplate }: TemplateStudioProps) {
                   senderName={senderName}
                   fromEmail={fromEmail}
                   replyTo={replyTo}
-                  bodyMaxHeight="min-h-[580px] max-h-[640px]"
+                  bodyMaxHeight="min-h-145 max-h-160"
                 />
               </div>
             </div>
@@ -585,7 +585,7 @@ export function TemplateStudio({ initialTemplate }: TemplateStudioProps) {
                 senderName={senderName}
                 fromEmail={fromEmail}
                 replyTo={replyTo}
-                bodyMaxHeight="min-h-[450px]"
+                bodyMaxHeight="min-h-112.5"
               />
             </div>
           )}
