@@ -54,9 +54,10 @@ export default function TeamPage() {
         email,
         role,
       });
-      if (result?.inviteUrl) {
+      const showDevTokens = process.env.NEXT_PUBLIC_SHOW_DEV_TOKENS === "true";
+      if (showDevTokens && result?.inviteUrl) {
         toast.success(`Invitation sent to ${email}`, {
-          description: "Magic invite link generated! You can copy it directly to test.",
+          description: "Developer testing invite link generated.",
           action: {
             label: "Copy Link",
             onClick: () => {

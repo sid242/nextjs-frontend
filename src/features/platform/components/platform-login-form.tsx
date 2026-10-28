@@ -9,7 +9,6 @@ import {
   KeyRound,
   Lock,
   Mail,
-  Radio,
   ShieldAlert,
   ShieldCheck,
 } from "lucide-react";
@@ -42,8 +41,8 @@ export function PlatformLoginForm({ next }: { next?: string }) {
   const methods = useForm<PlatformLoginInput>({
     resolver: zodResolver(platformLoginSchema),
     defaultValues: {
-      email: "sid.superadmin@yopmail.com",
-      password: "Password@123456",
+      email: "",
+      password: "",
     },
   });
 
@@ -265,20 +264,6 @@ export function PlatformLoginForm({ next }: { next?: string }) {
               <ArrowRight className="h-4 w-4" />
             </SubmitButton>
           </FormWrapper>
-
-          {/* Seed Defaults Reminder */}
-          <div className="bg-muted/40 border-border/60 text-muted-foreground mt-4 space-y-1 rounded-lg border p-3 font-mono text-[11px]">
-            <div className="text-foreground flex items-center gap-1.5 font-semibold">
-              <Radio className="h-3 w-3 animate-pulse text-emerald-500" />
-              Default Super Administrator:
-            </div>
-            <div className="text-muted-foreground text-[10px]">
-              Email: <span className="text-foreground">sid.superadmin@yopmail.com</span>
-            </div>
-            <div className="text-muted-foreground text-[10px]">
-              Pass: <span className="text-foreground">Password@123456</span>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>

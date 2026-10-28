@@ -31,9 +31,12 @@ function createInstance(baseURL: string): AxiosInstance {
   // End-to-end tracing: the BFF forwards this id to the backend, so one id spans browser -> Next -> API logs.
   instance.interceptors.request.use((config) => {
     if (!config.headers.has("x-request-id")) config.headers.set("x-request-id", createId());
-    const tenantId = tenantStorage.get();
-    if (tenantId && !config.headers.has("x-tenant-id")) {
-      config.headers.set("x-tenant-id", tenantId);
+    const isPlatformUrl = config.url ? /^\/?platform(\/|$)/.test(config.url) : false;
+    if (!isPlatformUrl) {
+      const tenantId = tenantStorage.get();
+      if (tenantId && !config.headers.has("x-tenant-id")) {
+        config.headers.set("x-tenant-id", tenantId);
+      }
     }
     return config;
   });
