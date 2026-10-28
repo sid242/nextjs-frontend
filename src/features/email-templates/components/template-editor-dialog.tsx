@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 
+import { CATEGORY_SELECT_OPTIONS, STATUS_SELECT_OPTIONS } from "../constants";
 import { useCreateEmailTemplate, useUpdateEmailTemplate } from "../queries";
 import type {
   CreateEmailTemplateInput,
@@ -333,10 +334,11 @@ function TemplateEditorDialogContent({
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="MARKETING">Marketing</SelectItem>
-                  <SelectItem value="TRANSACTIONAL">Transactional</SelectItem>
-                  <SelectItem value="NOTIFICATION">Notification</SelectItem>
-                  <SelectItem value="CUSTOM">Custom</SelectItem>
+                  {CATEGORY_SELECT_OPTIONS?.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -347,9 +349,11 @@ function TemplateEditorDialogContent({
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="DRAFT">Draft</SelectItem>
-                  <SelectItem value="PUBLISHED">Published</SelectItem>
-                  <SelectItem value="ARCHIVED">Archived</SelectItem>
+                  {STATUS_SELECT_OPTIONS?.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

@@ -28,7 +28,7 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import { DEFAULT_STARTER_HTML } from "../constants";
+import { CATEGORY_SELECT_OPTIONS, DEFAULT_STARTER_HTML, STATUS_SELECT_OPTIONS } from "../constants";
 import { useCreateEmailTemplate, useUpdateEmailTemplate } from "../queries";
 import type {
   CreateEmailTemplateInput,
@@ -388,10 +388,11 @@ export function TemplateStudio({ initialTemplate }: TemplateStudioProps) {
                 <SelectValue placeholder="Select Category" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="MARKETING">Marketing Campaign</SelectItem>
-                <SelectItem value="TRANSACTIONAL">Transactional</SelectItem>
-                <SelectItem value="NOTIFICATION">Notification Alert</SelectItem>
-                <SelectItem value="CUSTOM">Custom SMT/CRM</SelectItem>
+                {CATEGORY_SELECT_OPTIONS?.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -404,9 +405,11 @@ export function TemplateStudio({ initialTemplate }: TemplateStudioProps) {
                 <SelectValue placeholder="Select Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="DRAFT">Draft</SelectItem>
-                <SelectItem value="PUBLISHED">Published</SelectItem>
-                <SelectItem value="ARCHIVED">Archived</SelectItem>
+                {STATUS_SELECT_OPTIONS?.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

@@ -55,7 +55,12 @@ import {
   type TableColumnDef,
 } from "@/lib/hooks";
 
-import { CATEGORY_LABELS, STATUS_COLORS } from "../constants";
+import {
+  CATEGORY_FILTER_OPTIONS,
+  CATEGORY_LABELS,
+  STATUS_COLORS,
+  STATUS_FILTER_OPTIONS,
+} from "../constants";
 import { useDeleteEmailTemplate, useEmailTemplates } from "../queries";
 import type { EmailTemplate, EmailTemplateCategory, EmailTemplateStatus } from "../types";
 import { TestSendDialog } from "./test-send-dialog";
@@ -372,11 +377,11 @@ export function TemplatesTable() {
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">All Categories</SelectItem>
-                <SelectItem value="MARKETING">Marketing</SelectItem>
-                <SelectItem value="TRANSACTIONAL">Transactional</SelectItem>
-                <SelectItem value="NOTIFICATION">Notification</SelectItem>
-                <SelectItem value="CUSTOM">Custom</SelectItem>
+                {CATEGORY_FILTER_OPTIONS?.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
 
@@ -385,10 +390,11 @@ export function TemplatesTable() {
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">All Statuses</SelectItem>
-                <SelectItem value="PUBLISHED">Published</SelectItem>
-                <SelectItem value="DRAFT">Draft</SelectItem>
-                <SelectItem value="ARCHIVED">Archived</SelectItem>
+                {STATUS_FILTER_OPTIONS?.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
 

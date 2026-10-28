@@ -1,3 +1,5 @@
+import type { EmailTemplateCategory, EmailTemplateStatus } from "./types";
+
 export interface MergeVariable {
   key: string;
   label: string;
@@ -72,12 +74,40 @@ export const STANDARD_VARIABLES: MergeVariable[] = [
   { key: "org_phone", label: "Office Phone", sample: "+91 22 26000000", category: "Organization" },
 ];
 
+export interface SelectOption<T = string> {
+  label: string;
+  value: T;
+}
+
 export const CATEGORY_LABELS: Record<string, string> = {
   MARKETING: "Marketing",
   TRANSACTIONAL: "Transactional",
   NOTIFICATION: "Notification",
   CUSTOM: "Custom",
 };
+
+export const CATEGORY_SELECT_OPTIONS: SelectOption<EmailTemplateCategory>[] = [
+  { label: "Marketing", value: "MARKETING" },
+  { label: "Transactional", value: "TRANSACTIONAL" },
+  { label: "Notification", value: "NOTIFICATION" },
+  { label: "Custom", value: "CUSTOM" },
+];
+
+export const STATUS_SELECT_OPTIONS: SelectOption<EmailTemplateStatus>[] = [
+  { label: "Draft", value: "DRAFT" },
+  { label: "Published", value: "PUBLISHED" },
+  { label: "Archived", value: "ARCHIVED" },
+];
+
+export const CATEGORY_FILTER_OPTIONS: SelectOption<EmailTemplateCategory | "ALL">[] = [
+  { label: "All Categories", value: "ALL" },
+  ...CATEGORY_SELECT_OPTIONS,
+];
+
+export const STATUS_FILTER_OPTIONS: SelectOption<EmailTemplateStatus | "ALL">[] = [
+  { label: "All Statuses", value: "ALL" },
+  ...STATUS_SELECT_OPTIONS,
+];
 
 export const STATUS_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   PUBLISHED: {
