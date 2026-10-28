@@ -12,9 +12,11 @@ import {
   MailIcon,
   MoreVerticalIcon,
   PlusIcon,
+  RotateCcwIcon,
   SearchIcon,
   SendIcon,
   Trash2Icon,
+  XIcon,
 } from "lucide-react";
 
 import { ColumnConfigDropdown } from "@/components/molecules/column-config-dropdown";
@@ -98,6 +100,17 @@ export function TemplatesTable() {
 
   const categoryFilter = get("category") ?? "ALL";
   const statusFilter = get("status") ?? "ALL";
+  const hasActiveFilters = Boolean(
+    searchInput.trim() || categoryFilter !== "ALL" || statusFilter !== "ALL",
+  );
+
+  const clearFilters = () => {
+    setSearchInput("");
+    setParams(
+      { q: null, category: null, status: null, page: null },
+      { mode: "replace", scroll: false },
+    );
+  };
 
   const handleCategoryChange = (val: string) => {
     setParams(
@@ -169,15 +182,15 @@ export function TemplatesTable() {
       case "subject":
         return "min-w-[220px]";
       case "category":
-        return "w-[120px] min-w-[110px]";
-      case "status":
-        return "w-[110px] min-w-[100px]";
-      case "variables":
         return "w-[130px] min-w-[120px]";
+      case "status":
+        return "w-[120px] min-w-[110px]";
+      case "variables":
+        return "w-[140px] min-w-[130px]";
       case "updatedAt":
-        return "w-[110px] min-w-[100px]";
+        return "w-[180px] min-w-[160px]";
       case "actions":
-        return "w-[80px] text-right";
+        return "w-[90px] min-w-[90px] pr-4 text-right";
     }
   };
 
@@ -268,7 +281,7 @@ export function TemplatesTable() {
 
       case "actions":
         return (
-          <TableCell key={colId} className="text-right">
+          <TableCell key={colId} className="w-[90px] min-w-[90px] pr-4 text-right">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="size-8">
@@ -310,16 +323,16 @@ export function TemplatesTable() {
   };
 
   return (
-    <div className="space-y-4">
-      {/* Top Header & Actions */}
-      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-        <div>
-          <h2 className="text-xl font-bold tracking-tight">Email Templates</h2>
-          <p className="text-muted-foreground text-xs">
-            Create, manage, and dispatch responsive email templates with dynamic merge variables
+    <div className="space-y-5">
+      {/* Top Header & Actions: BrixUI Elevated Action Bar */}
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div className="space-y-1">
+          <h1 className="text-foreground text-2xl font-bold tracking-tight">Email Templates</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm">
+            Create, manage, and dispatch responsive email templates with dynamic merge variables.
           </p>
         </div>
-        <Button asChild className="gap-1.5 shadow-sm">
+        <Button asChild className="h-10 shrink-0 gap-2 rounded-xl px-4 font-semibold shadow-xs">
           <Link href="/email-templates/new">
             <PlusIcon className="size-4" />
             <span>New Email Template</span>
@@ -327,74 +340,151 @@ export function TemplatesTable() {
         </Button>
       </div>
 
-      {/* Filter and Search Bar (Fully Responsive) */}
-      <div className="border-border bg-card flex flex-col gap-2.5 rounded-lg border p-3 sm:flex-row sm:items-center">
-        <div className="relative min-w-[200px] flex-1">
-          <SearchIcon className="text-muted-foreground absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
-          <Input
-            value={searchInput}
-            onChange={handleSearchChange}
-            placeholder="Search templates by name, slug or subject..."
-            className="h-9 pl-8 text-xs"
-          />
+      {/* Filter and Search Bar: BrixUI Elevated Card */}
+      <div className="border-border/80 bg-card flex flex-col gap-3 rounded-2xl border p-3.5 shadow-xs sm:p-4">
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
+          <div className="relative min-w-[200px] flex-1">
+            <SearchIcon className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+            <Input
+              value={searchInput}
+              onChange={handleSearchChange}
+              placeholder="Search templates by name, slug or subject..."
+              className="h-10 rounded-xl pr-8 pl-9 text-xs sm:text-sm"
+            />
+            {searchInput && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchInput("");
+                  syncSearchParam.run("");
+                }}
+                className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2.5 -translate-y-1/2 p-1"
+                title="Clear search"
+              >
+                <XIcon className="size-3.5" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={categoryFilter} onValueChange={handleCategoryChange}>
+              <SelectTrigger className="h-10 w-full rounded-xl text-xs sm:w-[150px]">
+                <SelectValue placeholder="All Categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Categories</SelectItem>
+                <SelectItem value="MARKETING">Marketing</SelectItem>
+                <SelectItem value="TRANSACTIONAL">Transactional</SelectItem>
+                <SelectItem value="NOTIFICATION">Notification</SelectItem>
+                <SelectItem value="CUSTOM">Custom</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={statusFilter} onValueChange={handleStatusChange}>
+              <SelectTrigger className="h-10 w-full rounded-xl text-xs sm:w-[130px]">
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Statuses</SelectItem>
+                <SelectItem value="PUBLISHED">Published</SelectItem>
+                <SelectItem value="DRAFT">Draft</SelectItem>
+                <SelectItem value="ARCHIVED">Archived</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <ColumnConfigDropdown tableColumns={tableColumns} />
+
+            {hasActiveFilters && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="text-muted-foreground hover:text-foreground h-10 gap-1.5 rounded-xl text-xs"
+              >
+                <RotateCcwIcon className="size-3.5" />
+                <span>Reset</span>
+              </Button>
+            )}
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Select value={categoryFilter} onValueChange={handleCategoryChange}>
-            <SelectTrigger className="h-9 w-full text-xs sm:w-[150px]">
-              <SelectValue placeholder="All Categories" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All Categories</SelectItem>
-              <SelectItem value="MARKETING">Marketing</SelectItem>
-              <SelectItem value="TRANSACTIONAL">Transactional</SelectItem>
-              <SelectItem value="NOTIFICATION">Notification</SelectItem>
-              <SelectItem value="CUSTOM">Custom</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={statusFilter} onValueChange={handleStatusChange}>
-            <SelectTrigger className="h-9 w-full text-xs sm:w-[130px]">
-              <SelectValue placeholder="All Statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All Statuses</SelectItem>
-              <SelectItem value="PUBLISHED">Published</SelectItem>
-              <SelectItem value="DRAFT">Draft</SelectItem>
-              <SelectItem value="ARCHIVED">Archived</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <ColumnConfigDropdown tableColumns={tableColumns} />
-        </div>
+        {/* Active Filters Summary Chips */}
+        {hasActiveFilters && (
+          <div className="border-border/50 flex flex-wrap items-center gap-2 border-t pt-2 text-xs">
+            <span className="text-muted-foreground text-[11px] font-medium">Active Filters:</span>
+            {searchInput && (
+              <Badge variant="secondary" className="gap-1 text-[11px] font-normal">
+                Query: &ldquo;{searchInput}&rdquo;
+                <XIcon
+                  className="size-3 cursor-pointer"
+                  onClick={() => {
+                    setSearchInput("");
+                    syncSearchParam.run("");
+                  }}
+                />
+              </Badge>
+            )}
+            {categoryFilter !== "ALL" && (
+              <Badge variant="secondary" className="gap-1 text-[11px] font-normal">
+                Category: {categoryFilter}
+                <XIcon
+                  className="size-3 cursor-pointer"
+                  onClick={() => handleCategoryChange("ALL")}
+                />
+              </Badge>
+            )}
+            {statusFilter !== "ALL" && (
+              <Badge variant="secondary" className="gap-1 text-[11px] font-normal">
+                Status: {statusFilter}
+                <XIcon
+                  className="size-3 cursor-pointer"
+                  onClick={() => handleStatusChange("ALL")}
+                />
+              </Badge>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Table Container with Horizontal Scroll Container */}
-      <div className="border-border bg-card overflow-hidden rounded-lg border shadow-xs">
+      {/* Table Container: BrixUI Elevated Table with Horizontal Overflow Wrapper */}
+      <div className="border-border/80 bg-card overflow-hidden rounded-2xl border shadow-xs">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center space-y-2 p-12">
             <Spinner className="text-primary size-6" />
-            <span className="text-muted-foreground text-xs">Loading templates...</span>
+            <span className="text-muted-foreground text-xs font-medium">Loading templates...</span>
           </div>
         ) : templates?.length === 0 ? (
           <div className="flex flex-col items-center justify-center space-y-3 p-12 text-center">
-            <div className="bg-muted text-muted-foreground flex size-12 items-center justify-center rounded-full">
+            <div className="bg-primary/10 text-primary flex size-12 items-center justify-center rounded-2xl">
               <MailIcon className="size-6" />
             </div>
             <div>
               <h3 className="text-sm font-semibold">No email templates found</h3>
               <p className="text-muted-foreground mt-0.5 text-xs">
-                {searchInput || categoryFilter !== "ALL" || statusFilter !== "ALL"
-                  ? "Try adjusting your search query or filters"
-                  : "Get started by creating your first personalized email template"}
+                {hasActiveFilters
+                  ? "No templates match your search criteria. Try resetting filters."
+                  : "Get started by creating your first personalized email template."}
               </p>
             </div>
-            <Button asChild variant="outline" size="sm" className="mt-2 gap-1.5">
-              <Link href="/email-templates/new">
-                <PlusIcon className="size-3.5" />
-                <span>Create Template</span>
-              </Link>
-            </Button>
+            {hasActiveFilters ? (
+              <Button
+                onClick={clearFilters}
+                variant="outline"
+                size="sm"
+                className="mt-2 gap-1.5 rounded-xl"
+              >
+                <RotateCcwIcon className="size-3.5" />
+                <span>Reset Filters</span>
+              </Button>
+            ) : (
+              <Button asChild variant="outline" size="sm" className="mt-2 gap-1.5 rounded-xl">
+                <Link href="/email-templates/new">
+                  <PlusIcon className="size-3.5" />
+                  <span>Create Template</span>
+                </Link>
+              </Button>
+            )}
           </div>
         ) : (
           <>
