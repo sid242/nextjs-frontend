@@ -45,6 +45,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { formatDate } from "@/lib/format";
 import {
   useDebouncedCallback,
   useSearchQueryParams,
@@ -261,7 +262,7 @@ export function TemplatesTable() {
       case "updatedAt":
         return (
           <TableCell key={colId} className="text-muted-foreground text-xs">
-            {tpl?.updatedAt ? new Date(tpl.updatedAt).toLocaleDateString() : "—"}
+            {formatDate(tpl?.updatedAt)}
           </TableCell>
         );
 

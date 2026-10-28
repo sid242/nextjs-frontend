@@ -56,6 +56,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { formatDate } from "@/lib/format";
 import {
   useDebouncedCallback,
   useSearchQueryParams,
@@ -331,7 +332,7 @@ export function TenantsTable() {
       case "createdAt":
         return (
           <TableCell key="createdAt" className="text-muted-foreground text-xs">
-            {new Date(t.createdAt).toLocaleDateString()}
+            {formatDate(t.createdAt)}
           </TableCell>
         );
       case "actions":

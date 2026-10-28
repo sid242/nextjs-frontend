@@ -46,6 +46,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getErrorMessage } from "@/lib/api/errors";
+import { formatDate } from "@/lib/format";
 import { useSearchQueryParams, useTableColumns, type TableColumnDef } from "@/lib/hooks";
 
 import { PLATFORM_PERMISSION_KEYS } from "../permissions";
@@ -205,8 +206,8 @@ export function SupportSessionsTable() {
         );
       case "started":
         return (
-          <TableCell key="started" className="text-muted-foreground font-mono text-[11px]">
-            {new Date(session.startedAt).toLocaleString()}
+          <TableCell key="started" className="text-muted-foreground text-xs">
+            {formatDate(session.startedAt)}
           </TableCell>
         );
       case "actions":

@@ -34,6 +34,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getErrorMessage } from "@/lib/api/errors";
+import { formatDate } from "@/lib/format";
 import { useSearchQueryParams } from "@/lib/hooks";
 
 import { useTenantInvoices } from "../queries";
@@ -59,19 +60,6 @@ function formatCurrency(cents: number, currency = "USD"): string {
     style: "currency",
     currency: currency.toUpperCase(),
   }).format(cents / 100);
-}
-
-function formatDate(dateStr?: string | null): string {
-  if (!dateStr) return "—";
-  try {
-    return new Intl.DateTimeFormat("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    }).format(new Date(dateStr));
-  } catch {
-    return dateStr;
-  }
 }
 
 export function InvoicesTable() {

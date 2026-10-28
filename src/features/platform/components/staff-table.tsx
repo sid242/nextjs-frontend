@@ -59,6 +59,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getErrorMessage } from "@/lib/api/errors";
+import { formatDate } from "@/lib/format";
 import {
   useDebouncedCallback,
   useSearchQueryParams,
@@ -235,14 +236,14 @@ export function StaffTable() {
         );
       case "lastLogin":
         return (
-          <TableCell key="lastLogin" className="text-muted-foreground font-mono text-[11px]">
-            {member.lastLoginAt ? new Date(member.lastLoginAt).toLocaleString() : "Never"}
+          <TableCell key="lastLogin" className="text-muted-foreground text-xs">
+            {formatDate(member.lastLoginAt, undefined, "Never")}
           </TableCell>
         );
       case "createdAt":
         return (
-          <TableCell key="createdAt" className="text-muted-foreground font-mono text-[11px]">
-            {member.createdAt ? new Date(member.createdAt).toLocaleDateString() : "—"}
+          <TableCell key="createdAt" className="text-muted-foreground text-xs">
+            {formatDate(member.createdAt)}
           </TableCell>
         );
       case "actions":

@@ -30,6 +30,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getErrorMessage } from "@/lib/api/errors";
+import { formatDate } from "@/lib/format";
 
 import {
   useDisablePlatformTwoFactor,
@@ -227,7 +228,7 @@ export function PlatformTwoFactorDialog({ open, onOpenChange }: PlatformTwoFacto
                     {statusLoading
                       ? "Checking status..."
                       : isEnabled
-                        ? `Active since ${status?.enabledAt ? new Date(status.enabledAt).toLocaleDateString() : "recently"}`
+                        ? `Active since ${status?.enabledAt ? formatDate(status.enabledAt) : "recently"}`
                         : "Mandatory for elevated platform operators"}
                   </p>
                 </div>

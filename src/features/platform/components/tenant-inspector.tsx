@@ -44,7 +44,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { TenantLogo } from "@/features/tenants";
 import { getErrorMessage } from "@/lib/api/errors";
-import { initials } from "@/lib/format";
+import { formatDate, initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import {
@@ -375,7 +375,7 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
                   Trial Window Active
                 </span>
                 <p className="text-muted-foreground mt-0.5 text-[11px]">
-                  Ends on {new Date(tenant.subscription.trialEndsAt).toLocaleDateString()}
+                  Ends on {formatDate(tenant.subscription.trialEndsAt)}
                 </p>
               </div>
             )}
@@ -475,7 +475,7 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground text-xs">
-                        {member.joinedAt ? new Date(member.joinedAt).toLocaleDateString() : "—"}
+                        {formatDate(member.joinedAt)}
                       </TableCell>
                       <TableCell className="text-right">
                         <Button

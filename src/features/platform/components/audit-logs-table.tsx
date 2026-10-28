@@ -33,6 +33,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getErrorMessage } from "@/lib/api/errors";
+import { formatDate } from "@/lib/format";
 import {
   useDebouncedCallback,
   useSearchQueryParams,
@@ -176,11 +177,8 @@ export function AuditLogsTable() {
     switch (colId) {
       case "timestamp":
         return (
-          <TableCell
-            key="timestamp"
-            className="text-muted-foreground font-mono text-[11px] whitespace-nowrap"
-          >
-            {new Date(log.createdAt).toLocaleString()}
+          <TableCell key="timestamp" className="text-muted-foreground text-xs whitespace-nowrap">
+            {formatDate(log.createdAt)}
           </TableCell>
         );
       case "actor":

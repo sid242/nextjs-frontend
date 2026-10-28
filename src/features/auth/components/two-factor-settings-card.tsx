@@ -6,6 +6,7 @@ import { Loader2Icon, ShieldAlertIcon, ShieldCheckIcon, SmartphoneIcon } from "l
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatDate } from "@/lib/format";
 
 import { useTwoFactorStatus } from "../queries";
 import { TwoFactorDisableDialog } from "./two-factor-disable-dialog";
@@ -58,7 +59,7 @@ export function TwoFactorSettingsCard() {
               </p>
               <p className="text-muted-foreground text-xs">
                 {isEnabled
-                  ? `Active on your account${status?.enabledAt ? ` since ${new Date(status.enabledAt).toLocaleDateString()}` : ""}.`
+                  ? `Active on your account${status?.enabledAt ? ` since ${formatDate(status.enabledAt)}` : ""}.`
                   : "Use Google Authenticator, Authy, or Microsoft Authenticator to generate verification codes."}
               </p>
             </div>

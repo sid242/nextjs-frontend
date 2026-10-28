@@ -24,6 +24,7 @@ import {
   useDeleteEmailTemplate,
   useEmailTemplate,
 } from "@/features/email-templates";
+import { formatDate } from "@/lib/format";
 
 export default function EmailTemplateDetailPage() {
   const params = useParams<{ id: string }>();
@@ -210,7 +211,7 @@ export default function EmailTemplateDetailPage() {
                   <span className="text-muted-foreground text-[11px]">Last Updated</span>
                 </div>
                 <span className="text-foreground font-medium">
-                  {template?.updatedAt ? new Date(template.updatedAt).toLocaleDateString() : "—"}
+                  {formatDate(template?.updatedAt)}
                 </span>
               </div>
             </div>
