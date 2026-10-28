@@ -134,6 +134,10 @@ src/features/<feature-name>/
   - Member invitation workflows (`InviteMemberDialog`) must strictly enforce seat limits. When `remainingSeats <= 0`, disable invitations and display an upgrade warning banner directing to `/settings/billing`.
   - Display non-blocking capacity warnings when remaining seats are low (`<= 2`).
   - Team members list (`TeamMembersList`) supports multi-tab status filtering (**All**, **Active**, **Pending Invites**, **Suspended**) and resend invite actions.
+- **Cohesive State Grouping (No Fragmented States)**:
+  - Do NOT create separate individual `useState` hooks for properties of the same logical domain.
+  - Group table pagination (`{ page, pageSize }`), table filters (`{ search, category, status }`), and sorting (`{ sortBy, sortOrder }`) into cohesive state objects.
+  - Group modal operations (`{ isOpen, item, email, phone, step }`) into a single state object instead of maintaining separate open flags, entity pointers, and temporary form inputs. See `.agents/rules/cohesive-state.md`.
 
 ---
 

@@ -36,9 +36,16 @@ export default function EmailTemplateDetailPage() {
   const id = params?.id;
   const router = useRouter();
 
-  const [testSendOpen, setTestSendOpen] = useState(false);
-  const [copiedSlug, setCopiedSlug] = useState(false);
-  const [copiedVariable, setCopiedVariable] = useState<string | null>(null);
+  const [modalState, setModalState] = useState<{ isTestSendOpen: boolean }>({
+    isTestSendOpen: false,
+  });
+  const [clipboardState, setClipboardState] = useState<{
+    copiedSlug: boolean;
+    copiedVariable: string | null;
+  }>({
+    copiedSlug: false,
+    copiedVariable: null,
+  });
 
   const { data: template, isLoading, isError } = useEmailTemplate(id);
   const deleteMutation = useDeleteEmailTemplate();
@@ -92,18 +99,18 @@ export default function EmailTemplateDetailPage() {
   const copySlug = async () => {
     if (template?.slug) {
       await navigator.clipboard.writeText(template.slug);
-      setCopiedSlug(true);
+      setClipboardState((prev) => ({ ...prev, copiedSlug: true }));
       toast.success(`Slug "/${template.slug}" copied to clipboard`);
-      setTimeout(() => setCopiedSlug(false), 2000);
+      setTimeout(() => setClipboardState((prev) => ({ ...prev, copiedSlug: false })), 2000);
     }
   };
 
   const copyVariable = async (variable: string) => {
     const token = `{{${variable}}}`;
     await navigator.clipboard.writeText(token);
-    setCopiedVariable(variable);
+    setClipboardState((prev) => ({ ...prev, copiedVariable: variable }));
     toast.success(`Copied ${token} to clipboard`);
-    setTimeout(() => setCopiedVariable(null), 2000);
+    setTimeout(() => setClipboardState((prev) => ({ ...prev, copiedVariable: null })), 2000);
   };
 
   const statusStyle = STATUS_COLORS[template?.status] ??
@@ -179,7 +186,7 @@ export default function EmailTemplateDetailPage() {
                   title="Click to copy slug"
                 >
                   <span>/{template?.slug}</span>
-                  {copiedSlug ? (
+                  {clipboardState.copiedSlug ? (
                     <CheckIcon className="size-3 text-emerald-600" />
                   ) : (
                     <CopyIcon className="size-3 opacity-60 group-hover:opacity-100" />
@@ -198,7 +205,7 @@ export default function EmailTemplateDetailPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setTestSendOpen(true)}
+              onClick={() => setModalState({ isTestSendOpen: true })}
               className="hover:border-primary/50 flex-1 gap-1.5 text-xs font-medium shadow-2xs sm:flex-initial"
             >
               <SendIcon className="text-primary size-3.5" />
@@ -340,7 +347,7 @@ export default function EmailTemplateDetailPage() {
             <div className="mt-3.5 flex flex-wrap gap-2">
               {template?.variables && template.variables.length > 0 ? (
                 template.variables.map((v) => {
-                  const isCopied = copiedVariable === v;
+                  const isCopied = clipboardState.copiedVariable === v;
                   return (
                     <button
                       key={v}
@@ -385,7 +392,11 @@ export default function EmailTemplateDetailPage() {
       </div>
 
       {/* Test Send Dialog */}
-      <TestSendDialog template={template} open={testSendOpen} onOpenChange={setTestSendOpen} />
+      <TestSendDialog
+        template={template}
+        open={modalState.isTestSendOpen}
+        onOpenChange={(open) => setModalState({ isTestSendOpen: open })}
+      />
     </div>
   );
 }

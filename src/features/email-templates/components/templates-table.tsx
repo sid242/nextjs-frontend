@@ -131,8 +131,13 @@ export function TemplatesTable() {
     );
   };
 
-  const [testSendOpen, setTestSendOpen] = useState(false);
-  const [testSendTemplate, setTestSendTemplate] = useState<EmailTemplate | null>(null);
+  const [testSendModal, setTestSendModal] = useState<{
+    isOpen: boolean;
+    template: EmailTemplate | null;
+  }>({
+    isOpen: false,
+    template: null,
+  });
 
   const tableColumns = useTableColumns({
     columns: TEMPLATE_COLUMNS,
@@ -148,8 +153,7 @@ export function TemplatesTable() {
   const deleteMutation = useDeleteEmailTemplate();
 
   const handleTestSend = (tpl: EmailTemplate) => {
-    setTestSendTemplate(tpl);
-    setTestSendOpen(true);
+    setTestSendModal({ isOpen: true, template: tpl });
   };
 
   const handleDelete = async (id: string, name: string) => {
@@ -533,9 +537,9 @@ export function TemplatesTable() {
 
       {/* Test Send Dialog */}
       <TestSendDialog
-        template={testSendTemplate}
-        open={testSendOpen}
-        onOpenChange={setTestSendOpen}
+        template={testSendModal.template}
+        open={testSendModal.isOpen}
+        onOpenChange={(open) => setTestSendModal((prev) => ({ ...prev, isOpen: open }))}
       />
     </div>
   );

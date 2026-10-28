@@ -32,3 +32,7 @@ See [AGENTS.md](./AGENTS.md) for full architecture and engineering guidelines.
    - **Zero Arbitrary Pixel Policy**: Tailwind CSS v4 supports a continuous numeric scale where any integer multiple of 4px (`0.25rem`) or half-step (`0.125rem` = 2px) is a native class. Never write arbitrary bracket pixels when a native utility exists (e.g., use `w-45 min-w-40` instead of `w-[180px] min-w-[160px]`, `w-24 min-w-24` instead of `w-[90px] min-w-[90px]`, `rounded-4xl` instead of `rounded-[32px]`).
    - Use arbitrary brackets (`[...]`) strictly for values not divisible by 4px/2px or dynamic CSS functions (`calc(...)`).
    - Adhere to the BrixUI Design System foundations (`.agents/rules/brix-design-foundation.md`) for typography hierarchy, responsive 12-col grids, 40px standard component sizing (`h-10 rounded-xl`), and sub-pixel border elevations.
+9. **Cohesive State Grouping (No Fragmented States)**:
+   - Never create separate, fragmented `useState` hooks for properties belonging to the same logical domain or operation.
+   - Consolidate pagination (`{ page, pageSize }`), filters (`{ search, category, status }`), and sorting into cohesive state objects.
+   - Consolidate modal operations (`{ isOpen, item, email, phone, step }`) into a single state object instead of scattered open booleans and target item states. Follow `.agents/rules/cohesive-state.md`.
