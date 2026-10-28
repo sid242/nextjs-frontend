@@ -26,21 +26,34 @@ import {
   type TenantPlan,
 } from "@/features/tenants";
 
+interface TenantSettingsFormState {
+  orgName: string;
+  selectedPlan: TenantPlan;
+}
+
+const TENANT_PLAN_SELECT_OPTIONS: Array<{ value: TenantPlan; label: string }> = [
+  { value: "FREE", label: "Free Tier (Community)" },
+  { value: "PRO", label: "Pro Tier (Growth & Collaboration)" },
+  { value: "ENTERPRISE", label: "Enterprise (Dedicated Resources)" },
+];
+
 export function TenantSettingsCard() {
   const { activeTenant, activeTenantId } = useActiveTenant();
   const updateTenantMutation = useUpdateTenant(activeTenantId ?? "");
   const { data: modules = [], isLoading: modulesLoading } = useTenantModules(activeTenantId);
   const toggleModuleMutation = useToggleTenantModule(activeTenantId ?? "");
 
-  const [orgName, setOrgName] = useState(activeTenant?.name ?? "");
-  const [selectedPlan, setSelectedPlan] = useState<TenantPlan>(activeTenant?.plan ?? "PRO");
+  const [formState, setFormState] = useState<TenantSettingsFormState>({
+    orgName: activeTenant?.name ?? "",
+    selectedPlan: (activeTenant?.plan ?? "PRO") as TenantPlan,
+  });
 
   const handleUpdate = async () => {
-    if (!orgName.trim() || !activeTenantId) return;
+    if (!formState.orgName.trim() || !activeTenantId) return;
     try {
       await updateTenantMutation.mutateAsync({
-        name: orgName.trim(),
-        plan: selectedPlan,
+        name: formState.orgName.trim(),
+        plan: formState.selectedPlan,
       });
       toast.success("Workspace profile updated successfully!");
     } catch {
@@ -60,7 +73,7 @@ export function TenantSettingsCard() {
 
   return (
     <div className="grid gap-6">
-      <Card className="border-border/60 shadow-xs">
+      <Card className="border-border/80 rounded-2xl shadow-xs">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base font-semibold">
             <Building2Icon className="text-primary size-4" /> Organization Workspace Details
@@ -71,28 +84,39 @@ export function TenantSettingsCard() {
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-2">
-            <Label htmlFor="org-name-input">Organization Name</Label>
+            <Label htmlFor="org-name-input" className="text-muted-foreground text-xs font-medium">
+              Organization Name
+            </Label>
             <Input
               id="org-name-input"
-              value={orgName}
-              onChange={(e) => setOrgName(e?.target?.value ?? "")}
+              value={formState.orgName}
+              onChange={(e) =>
+                setFormState((prev) => ({ ...prev, orgName: e?.target?.value ?? "" }))
+              }
               placeholder="e.g. Acme Corporation"
+              className="border-border/80 h-10 rounded-xl text-xs"
             />
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="plan-select">Subscription Plan</Label>
+            <Label htmlFor="plan-select" className="text-muted-foreground text-xs font-medium">
+              Subscription Plan
+            </Label>
             <Select
-              value={selectedPlan}
-              onValueChange={(val) => setSelectedPlan(val as TenantPlan)}
+              value={formState.selectedPlan}
+              onValueChange={(val) =>
+                setFormState((prev) => ({ ...prev, selectedPlan: val as TenantPlan }))
+              }
             >
-              <SelectTrigger id="plan-select">
+              <SelectTrigger id="plan-select" className="border-border/80 h-10 rounded-xl text-xs">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="FREE">Free Tier (Community)</SelectItem>
-                <SelectItem value="PRO">Pro Tier (Growth & Collaboration)</SelectItem>
-                <SelectItem value="ENTERPRISE">Enterprise (Dedicated Resources)</SelectItem>
+              <SelectContent className="border-border/80 rounded-xl shadow-md">
+                {TENANT_PLAN_SELECT_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -104,8 +128,8 @@ export function TenantSettingsCard() {
             </div>
             <Button
               onClick={handleUpdate}
-              disabled={updateTenantMutation.isPending || !orgName.trim()}
-              className="gap-2 shadow-xs"
+              disabled={updateTenantMutation.isPending || !formState.orgName.trim()}
+              className="h-10 gap-2 rounded-xl text-xs shadow-xs"
             >
               <SparklesIcon className="size-3.5" />
               {updateTenantMutation.isPending ? "Updating…" : "Save Changes"}
@@ -114,7 +138,7 @@ export function TenantSettingsCard() {
         </CardContent>
       </Card>
 
-      <Card className="border-border/60 shadow-xs">
+      <Card className="border-border/80 rounded-2xl shadow-xs">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base font-semibold">
             <LayersIcon className="size-4 text-blue-500" /> Feature Entitlements & Modules

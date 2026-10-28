@@ -33,7 +33,6 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           headerSlot={<ConnectionStatus />}
           topBanner={topBanner}
           navigationSlot={<TenantSidebarNav />}
-          mobileNavigationSlot={({ onNavigate }) => <TenantSidebarNav onNavigate={onNavigate} />}
         >
           {children}
         </AppShell>

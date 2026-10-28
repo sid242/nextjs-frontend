@@ -32,6 +32,7 @@ import {
   type NavItem,
   type NavSection,
 } from "@/config/site";
+import { useSidebar } from "@/lib/context/sidebar-context";
 import { cn } from "@/lib/utils";
 
 const ICONS: Record<NavIcon, LucideIcon> = {
@@ -90,6 +91,8 @@ export function SidebarNav({
   permissions,
 }: SidebarNavProps) {
   const pathname = usePathname();
+  const sidebar = useSidebar();
+  const handleNavigate = onNavigate ?? (sidebar?.isMobile ? sidebar.toggle : undefined);
   // Track user manual toggle overrides without needing an effect
   const [toggledItems, setToggledItems] = useState<Record<string, boolean>>({});
 
@@ -133,7 +136,7 @@ export function SidebarNav({
             <Link
               key={item.href ?? item.title}
               href={item.href ?? "#"}
-              onClick={onNavigate}
+              onClick={handleNavigate}
               aria-current={active ? "page" : undefined}
               className={cn(
                 "hover:bg-accent/80 hover:text-accent-foreground flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
@@ -228,7 +231,7 @@ export function SidebarNav({
                               <DropdownMenuItem key={subItem?.href ?? subItem?.title} asChild>
                                 <Link
                                   href={subItem?.href ?? "#"}
-                                  onClick={onNavigate}
+                                  onClick={handleNavigate}
                                   className={cn(
                                     "flex cursor-pointer items-center gap-2.5 rounded-sm px-2 py-1.5 text-xs font-medium",
                                     subActive
@@ -267,7 +270,7 @@ export function SidebarNav({
                       <TooltipTrigger asChild>
                         <Link
                           href={item.href ?? "#"}
-                          onClick={onNavigate}
+                          onClick={handleNavigate}
                           aria-current={active ? "page" : undefined}
                           className={cn(
                             "hover:bg-accent/80 hover:text-accent-foreground relative mx-auto flex size-9 items-center justify-center rounded-md text-sm font-medium transition-all duration-150",
@@ -338,7 +341,7 @@ export function SidebarNav({
                               <Link
                                 key={subItem.href ?? subItem.title}
                                 href={subItem.href ?? "#"}
-                                onClick={onNavigate}
+                                onClick={handleNavigate}
                                 aria-current={subActive ? "page" : undefined}
                                 className={cn(
                                   "group hover:bg-accent/80 hover:text-accent-foreground relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-all duration-150",
@@ -383,7 +386,7 @@ export function SidebarNav({
                   <Link
                     key={itemKey}
                     href={item.href ?? "#"}
-                    onClick={onNavigate}
+                    onClick={handleNavigate}
                     aria-current={active ? "page" : undefined}
                     className={cn(
                       "group hover:bg-accent/80 hover:text-accent-foreground relative flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all duration-150",

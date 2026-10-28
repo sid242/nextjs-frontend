@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ChangeEvent } from "react";
 import Link from "next/link";
 import {
   Building2,
@@ -12,6 +12,7 @@ import {
   Plus,
   Power,
   PowerOff,
+  RotateCcw,
   Search,
   ShieldAlert,
 } from "lucide-react";
@@ -99,6 +100,28 @@ const TENANT_COLUMN_LABELS: Record<TenantColumnId, string> = {
   actions: "Actions",
 };
 
+const TENANT_STATUS_OPTIONS: Array<{ label: string; value: string }> = [
+  { label: "All Statuses", value: "ALL" },
+  { label: "Active", value: "ACTIVE" },
+  { label: "Suspended", value: "SUSPENDED" },
+  { label: "Trialing", value: "TRIALING" },
+  { label: "Deactivated", value: "DEACTIVATED" },
+];
+
+const TENANT_PLAN_OPTIONS: Array<{ label: string; value: string }> = [
+  { label: "All Plans", value: "ALL" },
+  { label: "Free", value: "FREE" },
+  { label: "Starter", value: "STARTER" },
+  { label: "Pro", value: "PRO" },
+  { label: "Enterprise", value: "ENTERPRISE" },
+];
+
+interface TenantModalState {
+  type: "suspend" | "activate" | "support" | "provision" | null;
+  tenant: PlatformTenant | null;
+  reason: string;
+}
+
 export function TenantsTable() {
   const { get, getNumber, setParam, setParams } = useSearchQueryParams();
   const [searchInput, setSearchInput] = useState<string>(() => get("q") ?? "");
@@ -107,7 +130,7 @@ export function TenantsTable() {
     setParams({ q: val.trim() || null, page: null }, { mode: "replace", scroll: false });
   }, 250);
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
     const val = e?.target?.value ?? "";
     setSearchInput(val);
     syncSearchParam.run(val);
@@ -115,6 +138,17 @@ export function TenantsTable() {
 
   const statusFilter = get("status") ?? "ALL";
   const planFilter = get("plan") ?? "ALL";
+  const hasActiveFilters = Boolean(
+    searchInput.trim() || statusFilter !== "ALL" || planFilter !== "ALL",
+  );
+
+  const clearFilters = () => {
+    setSearchInput("");
+    setParams(
+      { q: null, status: null, plan: null, page: null },
+      { mode: "replace", scroll: false },
+    );
+  };
 
   const handleStatusChange = (val: string) => {
     setParams(
@@ -127,7 +161,13 @@ export function TenantsTable() {
     setParams({ plan: val === "ALL" ? null : val, page: null }, { mode: "replace", scroll: false });
   };
 
-  const [provisionOpen, setProvisionOpen] = useState(false);
+  // Cohesive modal state replacing scattered targets & open flags
+  const [modalState, setModalState] = useState<TenantModalState>({
+    type: null,
+    tenant: null,
+    reason: "",
+  });
+
   const rawPage = getNumber("page", 1) ?? 1;
   const page = Math.max(1, rawPage);
   const rawLimit = getNumber("limit", 10) ?? 10;
@@ -139,13 +179,6 @@ export function TenantsTable() {
       { mode: "replace", scroll: false },
     );
   };
-
-  // Modals for tenant actions
-  const [suspendTarget, setSuspendTarget] = useState<PlatformTenant | null>(null);
-  const [suspendReason, setSuspendReason] = useState("");
-  const [activateTarget, setActivateTarget] = useState<PlatformTenant | null>(null);
-  const [supportTarget, setSupportTarget] = useState<PlatformTenant | null>(null);
-  const [supportReason, setSupportReason] = useState("");
 
   const { data: tenantsData, isLoading } = usePlatformTenants();
   const { mutateAsync: suspendTenant, isPending: isSuspending } = useSuspendTenant();
@@ -192,32 +225,31 @@ export function TenantsTable() {
   const dedicatedCount = tenants.filter((t) => t?.databaseMode === "dedicated").length;
 
   const handleSuspend = async () => {
-    if (!suspendTarget || !suspendReason.trim()) return;
+    if (!modalState.tenant || !modalState.reason.trim()) return;
     try {
-      await suspendTenant({ id: suspendTarget.id, reason: suspendReason.trim() });
-      setSuspendTarget(null);
-      setSuspendReason("");
+      await suspendTenant({ id: modalState.tenant.id, reason: modalState.reason.trim() });
+      setModalState({ type: null, tenant: null, reason: "" });
     } catch {
       /* handled by error toast in boundary */
     }
   };
 
   const handleActivate = async () => {
-    if (!activateTarget) return;
+    if (!modalState.tenant) return;
     try {
-      await activateTenant({ id: activateTarget.id, reason: "Reactivated by operator" });
-      setActivateTarget(null);
+      await activateTenant({ id: modalState.tenant.id, reason: "Reactivated by operator" });
+      setModalState({ type: null, tenant: null, reason: "" });
     } catch {
       /* handled */
     }
   };
 
   const handleStartSupport = async () => {
-    if (!supportTarget || !supportReason.trim()) return;
+    if (!modalState.tenant || !modalState.reason.trim()) return;
     try {
       const res = await startSupportSession({
-        tenantId: supportTarget.id,
-        reason: supportReason.trim(),
+        tenantId: modalState.tenant.id,
+        reason: modalState.reason.trim(),
         durationMinutes: 30,
       });
       if (res?.sessionId) {
@@ -230,8 +262,7 @@ export function TenantsTable() {
             accessToken: res.accessToken,
           }),
         });
-        setSupportTarget(null);
-        setSupportReason("");
+        setModalState({ type: null, tenant: null, reason: "" });
         // eslint-disable-next-line @next/next/no-location-assign-relative-destination
         window.location.assign("/dashboard");
       }
@@ -358,7 +389,10 @@ export function TenantsTable() {
                     </Link>
                   </DropdownMenuItem>
                   {canStartSupport ? (
-                    <DropdownMenuItem onClick={() => setSupportTarget(t)} className="gap-2">
+                    <DropdownMenuItem
+                      onClick={() => setModalState({ type: "support", tenant: t, reason: "" })}
+                      className="gap-2"
+                    >
                       <LifeBuoy className="size-3.5 text-blue-500" /> Start Support Session
                     </DropdownMenuItem>
                   ) : null}
@@ -368,14 +402,14 @@ export function TenantsTable() {
                       <DropdownMenuSeparator />
                       {t.status === "ACTIVE" ? (
                         <DropdownMenuItem
-                          onClick={() => setSuspendTarget(t)}
+                          onClick={() => setModalState({ type: "suspend", tenant: t, reason: "" })}
                           className="gap-2 text-red-600 dark:text-red-400"
                         >
                           <PowerOff className="size-3.5" /> Suspend Workspace
                         </DropdownMenuItem>
                       ) : (
                         <DropdownMenuItem
-                          onClick={() => setActivateTarget(t)}
+                          onClick={() => setModalState({ type: "activate", tenant: t, reason: "" })}
                           className="gap-2 text-emerald-600 dark:text-emerald-400"
                         >
                           <Power className="size-3.5" /> Reactivate Workspace
@@ -395,7 +429,7 @@ export function TenantsTable() {
     <div className="space-y-6">
       {/* Metric summary cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="shadow-xs">
+        <Card className="border-border/80 rounded-2xl shadow-xs">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-muted-foreground text-xs font-medium">
               Total Workspaces
@@ -403,12 +437,12 @@ export function TenantsTable() {
             <Building2 className="text-muted-foreground size-4" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{tenants.length}</div>
-            <p className="text-muted-foreground text-[11px]">Across all database tiers</p>
+            <div className="text-2xl font-bold tracking-tight">{tenants?.length ?? 0}</div>
+            <p className="text-muted-foreground text-xs">Across all database tiers</p>
           </CardContent>
         </Card>
 
-        <Card className="shadow-xs">
+        <Card className="border-border/80 rounded-2xl shadow-xs">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-muted-foreground text-xs font-medium">
               Active Tenants
@@ -416,12 +450,12 @@ export function TenantsTable() {
             <CheckCircle2 className="size-4 text-emerald-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{activeCount}</div>
-            <p className="text-muted-foreground text-[11px]">Operational & serving requests</p>
+            <div className="text-2xl font-bold tracking-tight">{activeCount}</div>
+            <p className="text-muted-foreground text-xs">Operational & serving requests</p>
           </CardContent>
         </Card>
 
-        <Card className="shadow-xs">
+        <Card className="border-border/80 rounded-2xl shadow-xs">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-muted-foreground text-xs font-medium">
               Suspended Organizations
@@ -429,12 +463,12 @@ export function TenantsTable() {
             <ShieldAlert className="size-4 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{suspendedCount}</div>
-            <p className="text-muted-foreground text-[11px]">Access blocked by policy or billing</p>
+            <div className="text-2xl font-bold tracking-tight">{suspendedCount}</div>
+            <p className="text-muted-foreground text-xs">Access blocked by policy or billing</p>
           </CardContent>
         </Card>
 
-        <Card className="shadow-xs">
+        <Card className="border-border/80 rounded-2xl shadow-xs">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-muted-foreground text-xs font-medium">
               Dedicated DB Tenants
@@ -442,18 +476,20 @@ export function TenantsTable() {
             <Database className="size-4 text-indigo-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{dedicatedCount}</div>
-            <p className="text-muted-foreground text-[11px]">Isolated enterprise database pools</p>
+            <div className="text-2xl font-bold tracking-tight">{dedicatedCount}</div>
+            <p className="text-muted-foreground text-xs">Isolated enterprise database pools</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Main filterable table card */}
-      <Card className="shadow-xs">
-        <CardHeader className="pb-3">
+      <Card className="border-border/80 rounded-2xl shadow-xs">
+        <CardHeader className="pb-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <CardTitle className="text-base font-semibold">Tenant Organizations</CardTitle>
+              <CardTitle className="text-lg font-semibold tracking-tight">
+                Tenant Organizations
+              </CardTitle>
               <CardDescription className="text-xs">
                 Manage customer workspace lifecycles, database routing modes, and subscription
                 tiers.
@@ -463,7 +499,7 @@ export function TenantsTable() {
               permission={PLATFORM_PERMISSION_KEYS.TENANTS_MANAGE}
               hideInsteadOfBanner
             >
-              <Button asChild className="gap-2 shadow-xs">
+              <Button asChild className="h-10 gap-2 rounded-xl shadow-xs">
                 <Link href="/platform/tenants/new">
                   <Plus className="size-4" />
                   Provision Organization
@@ -479,109 +515,127 @@ export function TenantsTable() {
                 placeholder="Search organizations by name, slug, or owner email…"
                 value={searchInput}
                 onChange={handleSearchChange}
-                className="pl-9"
+                className="h-10 rounded-xl pl-9"
               />
             </div>
 
             <Select value={statusFilter} onValueChange={handleStatusChange}>
-              <SelectTrigger className="w-full sm:w-[150px]">
+              <SelectTrigger className="h-10 w-full rounded-xl sm:w-37.5">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">All Statuses</SelectItem>
-                <SelectItem value="ACTIVE">Active</SelectItem>
-                <SelectItem value="SUSPENDED">Suspended</SelectItem>
-                <SelectItem value="TRIALING">Trialing</SelectItem>
-                <SelectItem value="DEACTIVATED">Deactivated</SelectItem>
+              <SelectContent className="rounded-xl">
+                {TENANT_STATUS_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value} className="rounded-lg">
+                    {opt.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
 
             <Select value={planFilter} onValueChange={handlePlanChange}>
-              <SelectTrigger className="w-full sm:w-[140px]">
+              <SelectTrigger className="h-10 w-full rounded-xl sm:w-35">
                 <SelectValue placeholder="Plan" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">All Plans</SelectItem>
-                <SelectItem value="FREE">Free</SelectItem>
-                <SelectItem value="STARTER">Starter</SelectItem>
-                <SelectItem value="PRO">Pro</SelectItem>
-                <SelectItem value="ENTERPRISE">Enterprise</SelectItem>
+              <SelectContent className="rounded-xl">
+                {TENANT_PLAN_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value} className="rounded-lg">
+                    {opt.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
+
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="h-10 gap-1.5 rounded-xl px-3 text-xs"
+              >
+                <RotateCcw className="size-3.5" />
+                Reset
+              </Button>
+            )}
           </div>
         </CardHeader>
 
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                {tableColumns.orderedVisibleColumns.map((colId) => (
-                  <TableHead
-                    key={colId}
-                    className={
-                      colId === "workspace"
-                        ? "pl-6"
-                        : colId === "actions"
-                          ? "w-28 min-w-28 pr-4 text-right"
-                          : undefined
-                    }
-                  >
-                    {colId === "actions" ? (
-                      <div className="flex items-center justify-end gap-1.5">
-                        <span className="text-muted-foreground text-xs font-semibold">Actions</span>
-                        <ColumnConfigDropdown
-                          tableColumns={tableColumns}
-                          variant="ghost"
-                          size="icon"
-                          className="text-muted-foreground hover:text-foreground hover:bg-muted size-8 cursor-pointer"
-                          align="end"
-                        />
-                      </div>
-                    ) : (
-                      TENANT_COLUMN_LABELS[colId]
-                    )}
-                  </TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                Array.from({ length: 4 }).map((_, i) => (
-                  <TableRow key={i}>
-                    {tableColumns.orderedVisibleColumns.map((colId) => (
-                      <TableCell
-                        key={colId}
-                        className={
-                          colId === "workspace"
-                            ? "pl-6"
-                            : colId === "actions"
-                              ? "pr-6 text-right"
-                              : undefined
-                        }
-                      >
-                        <Skeleton className={colId === "actions" ? "ml-auto size-8" : "h-4 w-24"} />
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : filteredTenants?.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={tableColumns.orderedVisibleColumns.length}
-                    className="text-muted-foreground py-10 text-center text-sm"
-                  >
-                    No customer organizations match your search filters.
-                  </TableCell>
+          <div className="w-full overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  {tableColumns.orderedVisibleColumns.map((colId) => (
+                    <TableHead
+                      key={colId}
+                      className={
+                        colId === "workspace"
+                          ? "pl-6"
+                          : colId === "actions"
+                            ? "w-28 min-w-28 pr-4 text-right"
+                            : undefined
+                      }
+                    >
+                      {colId === "actions" ? (
+                        <div className="flex items-center justify-end gap-1.5">
+                          <span className="text-muted-foreground text-xs font-semibold">
+                            Actions
+                          </span>
+                          <ColumnConfigDropdown
+                            tableColumns={tableColumns}
+                            variant="ghost"
+                            size="icon"
+                            className="text-muted-foreground hover:text-foreground hover:bg-muted size-8 cursor-pointer"
+                            align="end"
+                          />
+                        </div>
+                      ) : (
+                        TENANT_COLUMN_LABELS[colId]
+                      )}
+                    </TableHead>
+                  ))}
                 </TableRow>
-              ) : (
-                paginatedTenants.map((t) => (
-                  <TableRow key={t.id}>
-                    {tableColumns.orderedVisibleColumns.map((colId) => renderCell(colId, t))}
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  Array.from({ length: 4 }).map((_, i) => (
+                    <TableRow key={i}>
+                      {tableColumns.orderedVisibleColumns.map((colId) => (
+                        <TableCell
+                          key={colId}
+                          className={
+                            colId === "workspace"
+                              ? "pl-6"
+                              : colId === "actions"
+                                ? "pr-6 text-right"
+                                : undefined
+                          }
+                        >
+                          <Skeleton
+                            className={colId === "actions" ? "ml-auto size-8" : "h-4 w-24"}
+                          />
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : filteredTenants?.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={tableColumns.orderedVisibleColumns.length}
+                      className="text-muted-foreground py-10 text-center text-sm"
+                    >
+                      No customer organizations match your search filters.
+                    </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  paginatedTenants.map((t) => (
+                    <TableRow key={t.id}>
+                      {tableColumns.orderedVisibleColumns.map((colId) => renderCell(colId, t))}
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
 
           <TablePagination
             currentPage={safePage}
@@ -598,18 +652,28 @@ export function TenantsTable() {
         </CardContent>
       </Card>
 
-      <ProvisionTenantDialog open={provisionOpen} onOpenChange={setProvisionOpen} />
+      <ProvisionTenantDialog
+        open={modalState.type === "provision"}
+        onOpenChange={(open) =>
+          setModalState({ type: open ? "provision" : null, tenant: null, reason: "" })
+        }
+      />
 
       {/* Suspend Confirmation Dialog */}
-      <Dialog open={Boolean(suspendTarget)} onOpenChange={() => setSuspendTarget(null)}>
-        <DialogContent>
+      <Dialog
+        open={modalState.type === "suspend"}
+        onOpenChange={(open) =>
+          setModalState({ type: open ? "suspend" : null, tenant: null, reason: "" })
+        }
+      >
+        <DialogContent className="border-border/80 rounded-2xl shadow-xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-red-600">
+            <DialogTitle className="flex items-center gap-2 text-rose-600">
               <ShieldAlert className="size-5" /> Suspend Tenant Organization
             </DialogTitle>
             <DialogDescription>
-              Suspending <strong>{suspendTarget?.name}</strong> will immediately block member access
-              across API gateways and WebSocket connections.
+              Suspending <strong>{modalState.tenant?.name}</strong> will immediately block member
+              access across API gateways and WebSocket connections.
             </DialogDescription>
           </DialogHeader>
 
@@ -620,20 +684,25 @@ export function TenantsTable() {
             <Textarea
               id="suspend-reason"
               placeholder="e.g. Terms of Service violation, overdue invoices, or customer dispute"
-              value={suspendReason}
-              onChange={(e) => setSuspendReason(e?.target?.value ?? "")}
+              value={modalState.reason}
+              onChange={(e) =>
+                setModalState((prev) => ({ ...prev, reason: e?.target?.value ?? "" }))
+              }
               rows={3}
             />
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSuspendTarget(null)}>
+            <Button
+              variant="outline"
+              onClick={() => setModalState({ type: null, tenant: null, reason: "" })}
+            >
               Cancel
             </Button>
             <Button
               variant="destructive"
               onClick={handleSuspend}
-              disabled={!suspendReason.trim() || isSuspending}
+              disabled={!modalState.reason.trim() || isSuspending}
             >
               {isSuspending ? "Suspending…" : "Confirm Suspension"}
             </Button>
@@ -642,20 +711,28 @@ export function TenantsTable() {
       </Dialog>
 
       {/* Activate Confirmation Dialog */}
-      <Dialog open={Boolean(activateTarget)} onOpenChange={() => setActivateTarget(null)}>
-        <DialogContent>
+      <Dialog
+        open={modalState.type === "activate"}
+        onOpenChange={(open) =>
+          setModalState({ type: open ? "activate" : null, tenant: null, reason: "" })
+        }
+      >
+        <DialogContent className="border-border/80 rounded-2xl shadow-xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-emerald-600">
               <CheckCircle2 className="size-5" /> Reactivate Organization
             </DialogTitle>
             <DialogDescription>
               Are you sure you want to restore active status for{" "}
-              <strong>{activateTarget?.name}</strong>? Member login and API traffic will resume.
+              <strong>{modalState.tenant?.name}</strong>? Member login and API traffic will resume.
             </DialogDescription>
           </DialogHeader>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setActivateTarget(null)}>
+            <Button
+              variant="outline"
+              onClick={() => setModalState({ type: null, tenant: null, reason: "" })}
+            >
               Cancel
             </Button>
             <Button
@@ -670,15 +747,20 @@ export function TenantsTable() {
       </Dialog>
 
       {/* Support Session Dialog */}
-      <Dialog open={Boolean(supportTarget)} onOpenChange={() => setSupportTarget(null)}>
-        <DialogContent>
+      <Dialog
+        open={modalState.type === "support"}
+        onOpenChange={(open) =>
+          setModalState({ type: open ? "support" : null, tenant: null, reason: "" })
+        }
+      >
+        <DialogContent className="border-border/80 rounded-2xl shadow-xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-blue-600">
               <LifeBuoy className="size-5" /> Start Audited Support Delegation
             </DialogTitle>
             <DialogDescription>
               Initiate a 30-minute time-bound troubleshooting delegation for{" "}
-              <strong>{supportTarget?.name}</strong>. All operator actions will be logged in
+              <strong>{modalState.tenant?.name}</strong>. All operator actions will be logged in
               compliance audit trails.
             </DialogDescription>
           </DialogHeader>
@@ -690,19 +772,24 @@ export function TenantsTable() {
             <Textarea
               id="support-reason"
               placeholder="e.g. Troubleshooting tenant billing and member role misconfiguration"
-              value={supportReason}
-              onChange={(e) => setSupportReason(e?.target?.value ?? "")}
+              value={modalState.reason}
+              onChange={(e) =>
+                setModalState((prev) => ({ ...prev, reason: e?.target?.value ?? "" }))
+              }
               rows={3}
             />
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSupportTarget(null)}>
+            <Button
+              variant="outline"
+              onClick={() => setModalState({ type: null, tenant: null, reason: "" })}
+            >
               Cancel
             </Button>
             <Button
               onClick={handleStartSupport}
-              disabled={!supportReason.trim() || isStartingSupport}
+              disabled={!modalState.reason.trim() || isStartingSupport}
             >
               {isStartingSupport ? "Starting Delegation…" : "Start Support Session"}
             </Button>

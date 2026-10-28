@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { Loader2Icon, ShieldAlertIcon } from "lucide-react";
 import { toast } from "sonner";
 
@@ -26,35 +26,42 @@ interface TwoFactorDisableDialogProps {
   onSuccess: () => void;
 }
 
+interface DisableFormState {
+  password: string;
+  code: string;
+  errorMsg: string | null;
+}
+
 export function TwoFactorDisableDialog({
   open,
   onOpenChange,
   onSuccess,
 }: TwoFactorDisableDialogProps) {
-  const [password, setPassword] = useState("");
-  const [code, setCode] = useState("");
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [formState, setFormState] = useState<DisableFormState>({
+    password: "",
+    code: "",
+    errorMsg: null,
+  });
 
   const disableMutation = useDisableTwoFactor();
 
-  const handleDisable = async (e: React.FormEvent) => {
+  const handleDisable = async (e: FormEvent) => {
     e.preventDefault();
-    setErrorMsg(null);
+    setFormState((prev) => ({ ...prev, errorMsg: null }));
 
     try {
       await disableMutation.mutateAsync({
-        password,
-        code,
+        password: formState.password,
+        code: formState.code,
       });
 
       toast.success("Two-factor authentication disabled successfully");
-      setPassword("");
-      setCode("");
+      setFormState({ password: "", code: "", errorMsg: null });
       onSuccess();
       onOpenChange(false);
     } catch (err) {
       const message = getErrorMessage(err);
-      setErrorMsg(message);
+      setFormState((prev) => ({ ...prev, errorMsg: message }));
       toast.error(message);
     }
   };
@@ -64,34 +71,32 @@ export function TwoFactorDisableDialog({
       open={open}
       onOpenChange={(nextOpen) => {
         if (!nextOpen) {
-          setPassword("");
-          setCode("");
-          setErrorMsg(null);
+          setFormState({ password: "", code: "", errorMsg: null });
         }
         onOpenChange(nextOpen);
       }}
     >
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="border-border/80 rounded-2xl shadow-xl sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-destructive flex items-center gap-2">
+          <DialogTitle className="text-destructive flex items-center gap-2 text-base font-semibold">
             <ShieldAlertIcon className="size-5" />
             Disable Two-Factor Authentication
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-xs">
             Disabling two-factor authentication makes your account less secure. To confirm this
             action, enter your account password and the 6-digit code from your authenticator app.
           </DialogDescription>
         </DialogHeader>
 
-        {errorMsg ? (
-          <Alert variant="destructive">
-            <AlertDescription className="text-xs">{errorMsg}</AlertDescription>
+        {formState.errorMsg ? (
+          <Alert variant="destructive" className="rounded-xl">
+            <AlertDescription className="text-xs">{formState.errorMsg}</AlertDescription>
           </Alert>
         ) : null}
 
         <form onSubmit={handleDisable} className="space-y-4 py-2">
           <div className="space-y-1.5">
-            <Label htmlFor="disable-password" className="text-xs font-medium">
+            <Label htmlFor="disable-password" className="text-muted-foreground text-xs font-medium">
               Current Account Password
             </Label>
             <Input
@@ -99,14 +104,17 @@ export function TwoFactorDisableDialog({
               type="password"
               autoComplete="current-password"
               placeholder="••••••••••••"
-              value={password}
-              onChange={(e) => setPassword(e?.target?.value ?? "")}
+              value={formState.password}
+              onChange={(e) =>
+                setFormState((prev) => ({ ...prev, password: e?.target?.value ?? "" }))
+              }
+              className="border-border/80 h-10 rounded-xl text-xs"
               required
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="disable-code" className="text-xs font-medium">
+            <Label htmlFor="disable-code" className="text-muted-foreground text-xs font-medium">
               6-Digit Authenticator Code
             </Label>
             <Input
@@ -117,9 +125,14 @@ export function TwoFactorDisableDialog({
               maxLength={6}
               autoComplete="one-time-code"
               placeholder="123456"
-              value={code}
-              onChange={(e) => setCode(e?.target?.value?.replace(/\D/g, "") ?? "")}
-              className="text-center font-mono text-base tracking-widest"
+              value={formState.code}
+              onChange={(e) =>
+                setFormState((prev) => ({
+                  ...prev,
+                  code: e?.target?.value?.replace(/\D/g, "") ?? "",
+                }))
+              }
+              className="border-border/80 h-10 rounded-xl text-center font-mono text-base tracking-widest"
               required
             />
           </div>
@@ -130,13 +143,17 @@ export function TwoFactorDisableDialog({
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={disableMutation.isPending}
+              className="border-border/80 h-10 rounded-xl text-xs"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               variant="destructive"
-              disabled={disableMutation.isPending || !password || code.length !== 6}
+              disabled={
+                disableMutation.isPending || !formState.password || formState.code.length !== 6
+              }
+              className="h-10 rounded-xl text-xs"
             >
               {disableMutation.isPending ? (
                 <>

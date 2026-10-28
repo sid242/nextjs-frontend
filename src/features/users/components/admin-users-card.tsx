@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ChangeEvent } from "react";
 import {
   MoreVerticalIcon,
   SearchIcon,
@@ -51,7 +51,7 @@ export function AdminUsersCard() {
     setParams({ q: val.trim() || null, page: null }, { mode: "replace", scroll: false });
   }, 250);
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
     const val = e?.target?.value ?? "";
     setSearchInput(val);
     syncSearchParam.run(val);
@@ -114,7 +114,7 @@ export function AdminUsersCard() {
   const safePage = Math.min(page, totalPages);
 
   return (
-    <Card className="border-border/60 shadow-xs">
+    <Card className="border-border/80 rounded-2xl shadow-xs">
       <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <CardTitle className="flex items-center gap-2 text-base font-semibold">
@@ -126,12 +126,12 @@ export function AdminUsersCard() {
         </div>
 
         <div className="relative w-full sm:w-60">
-          <SearchIcon className="text-muted-foreground absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
+          <SearchIcon className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
           <Input
             placeholder="Search platform users…"
             value={searchInput}
             onChange={handleSearchChange}
-            className="h-9 pl-9 text-xs"
+            className="border-border/80 h-9 rounded-xl pl-9 text-xs"
           />
         </div>
       </CardHeader>

@@ -90,7 +90,7 @@ export function TeamMembersList({
   }, [members, searchQuery, statusFilter]);
 
   return (
-    <Card className="border-border/60 shadow-xs">
+    <Card className="border-border/80 rounded-2xl shadow-xs">
       <CardHeader className="flex flex-col gap-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -100,27 +100,27 @@ export function TeamMembersList({
             </CardDescription>
           </div>
           <div className="relative w-full sm:w-64">
-            <SearchIcon className="text-muted-foreground absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
+            <SearchIcon className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
             <Input
               placeholder="Search by name or email…"
               value={searchQuery}
               onChange={(e) => onSearchChange(e?.target?.value ?? "")}
-              className="h-9 pl-9 text-xs"
+              className="border-border/80 h-9 rounded-xl pl-9 text-xs"
             />
           </div>
         </div>
 
         {/* Status Filter Tabs */}
-        <div className="border-border/40 flex flex-wrap items-center gap-1.5 border-t pt-3">
+        <div className="border-border/60 flex flex-wrap items-center gap-1.5 border-t pt-3">
           <Button
             type="button"
             variant={statusFilter === "ALL" ? "secondary" : "ghost"}
             size="sm"
-            className="h-7 gap-1.5 px-2.5 text-xs font-medium"
+            className="h-7.5 gap-1.5 rounded-lg px-2.5 text-xs font-medium"
             onClick={() => setStatusFilter("ALL")}
           >
             <Users className="size-3.5" /> All Members
-            <Badge variant="outline" className="ml-0.5 px-1 py-0 text-[10px]">
+            <Badge variant="outline" className="ml-0.5 rounded-md px-1 py-0 text-[10px]">
               {counts.all}
             </Badge>
           </Button>
@@ -129,13 +129,13 @@ export function TeamMembersList({
             type="button"
             variant={statusFilter === "ACTIVE" ? "secondary" : "ghost"}
             size="sm"
-            className="h-7 gap-1.5 px-2.5 text-xs font-medium"
+            className="h-7.5 gap-1.5 rounded-lg px-2.5 text-xs font-medium"
             onClick={() => setStatusFilter("ACTIVE")}
           >
             <UserCheck className="size-3.5 text-emerald-500" /> Active
             <Badge
               variant="outline"
-              className="ml-0.5 border-emerald-500/30 px-1 py-0 text-[10px] text-emerald-500"
+              className="ml-0.5 rounded-md border-emerald-500/30 px-1 py-0 text-[10px] text-emerald-500"
             >
               {counts.active}
             </Badge>
@@ -145,13 +145,13 @@ export function TeamMembersList({
             type="button"
             variant={statusFilter === "INVITED" ? "secondary" : "ghost"}
             size="sm"
-            className="h-7 gap-1.5 px-2.5 text-xs font-medium"
+            className="h-7.5 gap-1.5 rounded-lg px-2.5 text-xs font-medium"
             onClick={() => setStatusFilter("INVITED")}
           >
             <Clock className="size-3.5 text-amber-500" /> Pending Invites
             <Badge
               variant="outline"
-              className="ml-0.5 border-amber-500/30 px-1 py-0 text-[10px] text-amber-500"
+              className="ml-0.5 rounded-md border-amber-500/30 px-1 py-0 text-[10px] text-amber-500"
             >
               {counts.invited}
             </Badge>

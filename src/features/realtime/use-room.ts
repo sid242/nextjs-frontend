@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import { useEffect } from "react";
 
 import { useRealtimeStore } from "./store";
 import { useSocket } from "./use-socket";
@@ -13,7 +13,7 @@ export function useRoom(roomId: string | null) {
   const socket = useSocket();
   const status = useRealtimeStore((state) => state.status);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!socket || !roomId || status !== "connected") return;
     socket.emit("room:join", { roomId });
     return () => {

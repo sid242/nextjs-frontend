@@ -68,7 +68,7 @@ export function RecentFilesCard() {
 
   return (
     <>
-      <Card className="col-span-full">
+      <Card className="border-border/80 col-span-full rounded-2xl shadow-xs">
         <CardHeader className="flex flex-row items-center justify-between pb-3">
           <div>
             <CardTitle className="text-base font-semibold">Recent Files</CardTitle>
@@ -76,7 +76,7 @@ export function RecentFilesCard() {
               Latest documents and uploads in your workspace
             </CardDescription>
           </div>
-          <Button asChild variant="ghost" size="sm" className="h-8 gap-1 text-xs">
+          <Button asChild variant="ghost" size="sm" className="h-8 gap-1 rounded-lg text-xs">
             <Link href="/files">
               <span>View all files</span>
               <ArrowRightIcon className="size-3.5" />
@@ -88,7 +88,7 @@ export function RecentFilesCard() {
           {isPending ? (
             <div className="grid gap-2.5">
               {Array.from({ length: 3 }, (_, i) => (
-                <Skeleton key={i} className="h-12 w-full rounded-md" />
+                <Skeleton key={i} className="h-12 w-full rounded-xl" />
               ))}
             </div>
           ) : isError ? (
@@ -106,7 +106,7 @@ export function RecentFilesCard() {
                   Upload your documents and images to access them anytime.
                 </p>
               </div>
-              <Button asChild size="sm" variant="outline" className="mt-1 h-7 text-xs">
+              <Button asChild size="sm" variant="outline" className="mt-1 h-7 rounded-lg text-xs">
                 <Link href="/files">
                   <UploadIcon className="mr-1.5 size-3" />
                   Upload a file
@@ -114,7 +114,7 @@ export function RecentFilesCard() {
               </Button>
             </div>
           ) : (
-            <div className="divide-border divide-y rounded-md border">
+            <div className="divide-border/80 border-border/80 divide-y overflow-hidden rounded-xl border">
               {recentFiles.map((file) => (
                 <div
                   key={file?.id}

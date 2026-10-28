@@ -48,10 +48,13 @@ const PLAN_COLUMN_LABELS: Record<PlanColumnId, string> = {
   actions: "Actions",
 };
 
+interface PlanModalState {
+  type: "create" | "edit" | null;
+  plan: Plan | null;
+}
+
 export function PlatformPlansTable() {
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [selectedPlanForEdit, setSelectedPlanForEdit] = useState<Plan | null>(null);
+  const [modalState, setModalState] = useState<PlanModalState>({ type: null, plan: null });
   const { getNumber, setParam, setParams } = useSearchQueryParams();
   const rawPage = getNumber("page", 1) ?? 1;
   const page = Math.max(1, rawPage);
@@ -177,10 +180,9 @@ export function PlatformPlansTable() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="hover:bg-accent h-7 gap-1.5 px-2 text-xs font-medium"
+                className="hover:bg-accent h-7.5 gap-1.5 rounded-lg px-2 text-xs font-medium"
                 onClick={() => {
-                  setSelectedPlanForEdit(plan);
-                  setEditDialogOpen(true);
+                  setModalState({ type: "edit", plan });
                 }}
               >
                 <Pencil className="h-3.5 w-3.5" />
@@ -196,7 +198,7 @@ export function PlatformPlansTable() {
     <div className="space-y-6">
       {/* Metrics Row */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card className="border-border/80 bg-card/50 backdrop-blur">
+        <Card className="border-border/80 bg-card/50 rounded-2xl shadow-xs backdrop-blur">
           <CardHeader className="pb-2">
             <CardDescription className="font-mono text-xs uppercase">
               Configured SaaS Tiers
@@ -208,7 +210,7 @@ export function PlatformPlansTable() {
           </CardHeader>
         </Card>
 
-        <Card className="border-border/80 bg-card/50 backdrop-blur">
+        <Card className="border-border/80 bg-card/50 rounded-2xl shadow-xs backdrop-blur">
           <CardHeader className="pb-2">
             <CardDescription className="font-mono text-xs text-emerald-500 uppercase">
               Active Public Plans
@@ -220,7 +222,7 @@ export function PlatformPlansTable() {
           </CardHeader>
         </Card>
 
-        <Card className="border-border/80 bg-card/50 backdrop-blur">
+        <Card className="border-border/80 bg-card/50 rounded-2xl shadow-xs backdrop-blur">
           <CardHeader className="pb-2">
             <CardDescription className="font-mono text-xs text-amber-500 uppercase">
               Seat Limit Max Tier
@@ -234,7 +236,7 @@ export function PlatformPlansTable() {
       </div>
 
       {/* Main Table Card */}
-      <Card className="border-border/80">
+      <Card className="border-border/80 rounded-2xl shadow-xs">
         <CardHeader className="pb-4">
           <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
             <div>
@@ -254,8 +256,8 @@ export function PlatformPlansTable() {
               >
                 <Button
                   size="sm"
-                  onClick={() => setCreateDialogOpen(true)}
-                  className="gap-1.5 text-xs shadow-sm"
+                  onClick={() => setModalState({ type: "create", plan: null })}
+                  className="h-9 gap-1.5 rounded-xl text-xs shadow-xs"
                 >
                   <Plus className="h-3.5 w-3.5" />
                   Provision New Tier
@@ -268,9 +270,9 @@ export function PlatformPlansTable() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="space-y-3 p-6">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full rounded-xl" />
+              <Skeleton className="h-10 w-full rounded-xl" />
+              <Skeleton className="h-10 w-full rounded-xl" />
             </div>
           ) : error ? (
             <div className="text-destructive p-8 text-center text-sm">
@@ -282,27 +284,29 @@ export function PlatformPlansTable() {
             </div>
           ) : (
             <div>
-              <Table>
-                <TableHeader>
-                  <TableRow className="font-mono text-xs uppercase">
-                    {tableColumns.orderedVisibleColumns.map((colId) => (
-                      <TableHead
-                        key={colId}
-                        className={colId === "status" ? "text-right" : undefined}
-                      >
-                        {PLAN_COLUMN_LABELS[colId]}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedPlans.map((plan: Plan) => (
-                    <TableRow key={plan?.id} className="text-xs">
-                      {tableColumns.orderedVisibleColumns.map((colId) => renderCell(colId, plan))}
+              <div className="w-full overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="font-mono text-xs uppercase">
+                      {tableColumns.orderedVisibleColumns.map((colId) => (
+                        <TableHead
+                          key={colId}
+                          className={colId === "status" ? "text-right" : undefined}
+                        >
+                          {PLAN_COLUMN_LABELS[colId]}
+                        </TableHead>
+                      ))}
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedPlans.map((plan: Plan) => (
+                      <TableRow key={plan?.id} className="text-xs">
+                        {tableColumns.orderedVisibleColumns.map((colId) => renderCell(colId, plan))}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
               <TablePagination
                 currentPage={safePage}
                 totalPages={totalPages}
@@ -320,11 +324,14 @@ export function PlatformPlansTable() {
         </CardContent>
       </Card>
 
-      <CreatePlanDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
+      <CreatePlanDialog
+        open={modalState.type === "create"}
+        onOpenChange={(open) => !open && setModalState({ type: null, plan: null })}
+      />
       <EditPlanDialog
-        open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
-        plan={selectedPlanForEdit}
+        open={modalState.type === "edit"}
+        onOpenChange={(open) => !open && setModalState({ type: null, plan: null })}
+        plan={modalState.plan}
       />
     </div>
   );

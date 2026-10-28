@@ -31,6 +31,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { usePlatformPlans, type Plan } from "@/features/plans";
+import { formatDate } from "@/lib/format";
 
 import {
   usePlatformAuditLogs,
@@ -85,12 +86,12 @@ export function PlatformDashboard() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button asChild size="sm" variant="outline" className="gap-1.5 text-xs">
+          <Button asChild size="sm" variant="outline" className="h-10 gap-1.5 rounded-xl text-xs">
             <Link href="/platform/support-sessions">
               <LifeBuoy className="h-3.5 w-3.5" /> Start Support Session
             </Link>
           </Button>
-          <Button asChild size="sm" className="gap-1.5 text-xs shadow-sm">
+          <Button asChild size="sm" className="h-10 gap-1.5 rounded-xl text-xs shadow-xs">
             <Link href="/platform/tenants/new">
               <Plus className="h-3.5 w-3.5" /> Provision Workspace
             </Link>
@@ -101,13 +102,13 @@ export function PlatformDashboard() {
       {/* KPI Cards Row */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* Workspaces Card */}
-        <Card className="border-border/80 shadow-xs">
+        <Card className="border-border/80 rounded-2xl shadow-xs">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardDescription className="font-mono text-xs uppercase">Workspaces</CardDescription>
               <Building2 className="text-muted-foreground/60 h-4 w-4" />
             </div>
-            <CardTitle className="text-2xl font-bold">
+            <CardTitle className="text-2xl font-bold tracking-tight">
               {isTenantsLoading ? (
                 <Skeleton className="h-7 w-12" />
               ) : (
@@ -135,7 +136,7 @@ export function PlatformDashboard() {
         </Card>
 
         {/* Staff Operators Card */}
-        <Card className="border-border/80 shadow-xs">
+        <Card className="border-border/80 rounded-2xl shadow-xs">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardDescription className="font-mono text-xs uppercase">
@@ -143,7 +144,7 @@ export function PlatformDashboard() {
               </CardDescription>
               <Users className="text-muted-foreground/60 h-4 w-4" />
             </div>
-            <CardTitle className="text-2xl font-bold">
+            <CardTitle className="text-2xl font-bold tracking-tight">
               {isStaffLoading ? (
                 <Skeleton className="h-7 w-12" />
               ) : (
@@ -165,13 +166,13 @@ export function PlatformDashboard() {
         </Card>
 
         {/* Commercial Plans Card */}
-        <Card className="border-border/80 shadow-xs">
+        <Card className="border-border/80 rounded-2xl shadow-xs">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardDescription className="font-mono text-xs uppercase">SaaS Tiers</CardDescription>
               <Layers className="text-muted-foreground/60 h-4 w-4" />
             </div>
-            <CardTitle className="text-2xl font-bold">
+            <CardTitle className="text-2xl font-bold tracking-tight">
               {isPlansLoading ? <Skeleton className="h-7 w-12" /> : planList.length}
             </CardTitle>
           </CardHeader>
@@ -191,7 +192,7 @@ export function PlatformDashboard() {
         </Card>
 
         {/* Support Sessions Card */}
-        <Card className="border-border/80 shadow-xs">
+        <Card className="border-border/80 rounded-2xl shadow-xs">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardDescription className="font-mono text-xs uppercase">
@@ -199,7 +200,7 @@ export function PlatformDashboard() {
               </CardDescription>
               <LifeBuoy className="text-muted-foreground/60 h-4 w-4" />
             </div>
-            <CardTitle className="text-2xl font-bold">
+            <CardTitle className="text-2xl font-bold tracking-tight">
               {isSessionsLoading ? <Skeleton className="h-7 w-12" /> : activeSessions}
             </CardTitle>
           </CardHeader>
@@ -220,7 +221,7 @@ export function PlatformDashboard() {
       {/* Second Row: Infrastructure Status + Quick Links */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* System & Architecture Health */}
-        <Card className="border-border/80 shadow-xs lg:col-span-1">
+        <Card className="border-border/80 rounded-2xl shadow-xs lg:col-span-1">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-sm font-semibold">
@@ -239,7 +240,7 @@ export function PlatformDashboard() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="space-y-2 text-xs">
-              <div className="border-border/60 bg-muted/20 flex items-center justify-between rounded-lg border p-2.5">
+              <div className="border-border/60 bg-muted/20 flex items-center justify-between rounded-xl border p-2.5">
                 <div className="flex items-center gap-2">
                   <Server className="text-primary h-4 w-4" />
                   <div>
@@ -254,7 +255,7 @@ export function PlatformDashboard() {
                 </Badge>
               </div>
 
-              <div className="border-border/60 bg-muted/20 flex items-center justify-between rounded-lg border p-2.5">
+              <div className="border-border/60 bg-muted/20 flex items-center justify-between rounded-xl border p-2.5">
                 <div className="flex items-center gap-2">
                   <Cpu className="h-4 w-4 text-amber-500" />
                   <div>
@@ -269,7 +270,7 @@ export function PlatformDashboard() {
                 </Badge>
               </div>
 
-              <div className="border-border/60 bg-muted/20 flex items-center justify-between rounded-lg border p-2.5">
+              <div className="border-border/60 bg-muted/20 flex items-center justify-between rounded-xl border p-2.5">
                 <div className="flex items-center gap-2">
                   <Database className="h-4 w-4 text-blue-500" />
                   <div>
@@ -284,7 +285,7 @@ export function PlatformDashboard() {
                 </Badge>
               </div>
 
-              <div className="border-border/60 bg-muted/20 flex items-center justify-between rounded-lg border p-2.5">
+              <div className="border-border/60 bg-muted/20 flex items-center justify-between rounded-xl border p-2.5">
                 <div className="flex items-center gap-2">
                   <Radio className="h-4 w-4 text-purple-500" />
                   <div>
@@ -303,7 +304,7 @@ export function PlatformDashboard() {
         </Card>
 
         {/* Recent Platform Audit Trail */}
-        <Card className="border-border/80 shadow-xs lg:col-span-2">
+        <Card className="border-border/80 rounded-2xl shadow-xs lg:col-span-2">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div>
@@ -333,46 +334,45 @@ export function PlatformDashboard() {
                 No platform audit events recorded yet.
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow className="font-mono text-[11px] uppercase">
-                    <TableHead>Actor</TableHead>
-                    <TableHead>Action</TableHead>
-                    <TableHead>Target</TableHead>
-                    <TableHead className="text-right">Time</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody className="text-xs">
-                  {recentLogs.map((log: PlatformAuditLog) => (
-                    <TableRow key={log?.id}>
-                      <TableCell className="font-medium">
-                        <div className="text-foreground">{log?.staffDisplayName ?? "Operator"}</div>
-                        <div className="text-muted-foreground font-mono text-[10px]">
-                          {log?.staffEmail ?? "System"}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="font-mono text-[10px]">
-                          {log?.action}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground font-mono text-[11px]">
-                        {log?.targetType
-                          ? `${log.targetType} (${log?.targetId?.slice(0, 8) ?? ""})`
-                          : "Global"}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-right font-mono text-[11px]">
-                        {log?.createdAt
-                          ? new Date(log.createdAt).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })
-                          : "—"}
-                      </TableCell>
+              <div className="w-full overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="font-mono text-[11px] uppercase">
+                      <TableHead>Actor</TableHead>
+                      <TableHead>Action</TableHead>
+                      <TableHead>Target</TableHead>
+                      <TableHead className="text-right">Time</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody className="text-xs">
+                    {recentLogs.map((log: PlatformAuditLog) => (
+                      <TableRow key={log?.id}>
+                        <TableCell className="font-medium">
+                          <div className="text-foreground">
+                            {log?.staffDisplayName ?? "Operator"}
+                          </div>
+                          <div className="text-muted-foreground font-mono text-[10px]">
+                            {log?.staffEmail ?? "System"}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="font-mono text-[10px]">
+                            {log?.action}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground font-mono text-[11px]">
+                          {log?.targetType
+                            ? `${log.targetType} (${log?.targetId?.slice(0, 8) ?? ""})`
+                            : "Global"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-right font-mono text-[11px]">
+                          {formatDate(log?.createdAt)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>

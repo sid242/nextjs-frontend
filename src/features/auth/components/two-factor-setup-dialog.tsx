@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import {
   CheckIcon,
   CopyIcon,
@@ -34,27 +34,37 @@ interface TwoFactorSetupDialogProps {
   onSuccess: () => void;
 }
 
+interface TwoFactorSetupState {
+  step: "scan" | "recovery";
+  qrDataUrl: string | null;
+  secret: string;
+  code: string;
+  copiedSecret: boolean;
+  copiedRecovery: boolean;
+  recoveryCodes: string[];
+  errorMsg: string | null;
+}
+
+const INITIAL_SETUP_STATE: TwoFactorSetupState = {
+  step: "scan",
+  qrDataUrl: null,
+  secret: "",
+  code: "",
+  copiedSecret: false,
+  copiedRecovery: false,
+  recoveryCodes: [],
+  errorMsg: null,
+};
+
 export function TwoFactorSetupDialog({ open, onOpenChange, onSuccess }: TwoFactorSetupDialogProps) {
-  const [step, setStep] = useState<"scan" | "recovery">("scan");
-  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
-  const [secret, setSecret] = useState<string>("");
-  const [code, setCode] = useState<string>("");
-  const [copiedSecret, setCopiedSecret] = useState(false);
-  const [copiedRecovery, setCopiedRecovery] = useState(false);
-  const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [setupState, setSetupState] = useState<TwoFactorSetupState>(INITIAL_SETUP_STATE);
 
   const setupMutation = useSetupTwoFactor();
   const { mutateAsync: runSetup } = setupMutation;
   const enableMutation = useEnableTwoFactor();
 
   const resetState = () => {
-    setStep("scan");
-    setCode("");
-    setErrorMsg(null);
-    setQrDataUrl(null);
-    setSecret("");
-    setRecoveryCodes([]);
+    setSetupState(INITIAL_SETUP_STATE);
   };
 
   const handleOpenChange = (nextOpen: boolean) => {
@@ -73,7 +83,7 @@ export function TwoFactorSetupDialog({ open, onOpenChange, onSuccess }: TwoFacto
         if (!isMounted) return;
         const uri = res?.otpauthUri;
         const rawSecret = res?.secret ?? "";
-        setSecret(rawSecret);
+        setSetupState((prev) => ({ ...prev, secret: rawSecret }));
 
         if (uri) {
           try {
@@ -85,7 +95,7 @@ export function TwoFactorSetupDialog({ open, onOpenChange, onSuccess }: TwoFacto
                 light: "#ffffff",
               },
             });
-            if (isMounted) setQrDataUrl(dataUrl);
+            if (isMounted) setSetupState((prev) => ({ ...prev, qrDataUrl: dataUrl }));
           } catch {
             // Fallback gracefully to secret key display only
           }
@@ -93,7 +103,7 @@ export function TwoFactorSetupDialog({ open, onOpenChange, onSuccess }: TwoFacto
       })
       .catch((err) => {
         if (!isMounted) return;
-        setErrorMsg(getErrorMessage(err));
+        setSetupState((prev) => ({ ...prev, errorMsg: getErrorMessage(err) }));
       });
 
     return () => {
@@ -102,23 +112,23 @@ export function TwoFactorSetupDialog({ open, onOpenChange, onSuccess }: TwoFacto
   }, [open, runSetup]);
 
   const handleCopySecret = async () => {
-    if (!secret) return;
-    await navigator.clipboard.writeText(secret);
-    setCopiedSecret(true);
+    if (!setupState.secret) return;
+    await navigator.clipboard.writeText(setupState.secret);
+    setSetupState((prev) => ({ ...prev, copiedSecret: true }));
     toast.success("Secret copied to clipboard");
-    setTimeout(() => setCopiedSecret(false), 2000);
+    setTimeout(() => setSetupState((prev) => ({ ...prev, copiedSecret: false })), 2000);
   };
 
   const handleCopyRecoveryCodes = async () => {
-    if (!recoveryCodes?.length) return;
-    await navigator.clipboard.writeText(recoveryCodes.join("\n"));
-    setCopiedRecovery(true);
+    if (!setupState.recoveryCodes?.length) return;
+    await navigator.clipboard.writeText(setupState.recoveryCodes.join("\n"));
+    setSetupState((prev) => ({ ...prev, copiedRecovery: true }));
     toast.success("Recovery codes copied to clipboard");
-    setTimeout(() => setCopiedRecovery(false), 2000);
+    setTimeout(() => setSetupState((prev) => ({ ...prev, copiedRecovery: false })), 2000);
   };
 
   const handleDownloadRecoveryCodes = () => {
-    if (!recoveryCodes?.length) return;
+    if (!setupState.recoveryCodes?.length) return;
     const content = [
       "Two-Factor Authentication Recovery Codes",
       "Created: " + new Date().toISOString(),
@@ -126,7 +136,7 @@ export function TwoFactorSetupDialog({ open, onOpenChange, onSuccess }: TwoFacto
       "Treat these recovery codes like your password.",
       "Each code can only be used once if you lose access to your authenticator device.",
       "",
-      ...recoveryCodes,
+      ...setupState.recoveryCodes,
       "",
     ].join("\n");
 
@@ -142,23 +152,29 @@ export function TwoFactorSetupDialog({ open, onOpenChange, onSuccess }: TwoFacto
     toast.success("Recovery codes downloaded");
   };
 
-  const handleConfirmCode = async (e: React.FormEvent) => {
+  const handleConfirmCode = async (e: FormEvent) => {
     e.preventDefault();
-    if (!code || code.length !== 6) {
-      setErrorMsg("Please enter a valid 6-digit verification code");
+    if (!setupState.code || setupState.code.length !== 6) {
+      setSetupState((prev) => ({
+        ...prev,
+        errorMsg: "Please enter a valid 6-digit verification code",
+      }));
       return;
     }
 
-    setErrorMsg(null);
+    setSetupState((prev) => ({ ...prev, errorMsg: null }));
     try {
-      const res = await enableMutation.mutateAsync({ code });
+      const res = await enableMutation.mutateAsync({ code: setupState.code });
       const codes = res?.recoveryCodes ?? [];
-      setRecoveryCodes(codes);
-      setStep("recovery");
+      setSetupState((prev) => ({
+        ...prev,
+        recoveryCodes: codes,
+        step: "recovery",
+      }));
       toast.success("Two-factor authentication enabled successfully!");
     } catch (err) {
       const msg = getErrorMessage(err);
-      setErrorMsg(msg);
+      setSetupState((prev) => ({ ...prev, errorMsg: msg }));
       toast.error(msg);
     }
   };
@@ -170,26 +186,28 @@ export function TwoFactorSetupDialog({ open, onOpenChange, onSuccess }: TwoFacto
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="border-border/80 rounded-2xl shadow-xl sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-base font-semibold">
             <ShieldCheckIcon className="text-primary size-5" />
-            {step === "scan" ? "Set Up Two-Factor Authentication" : "Save Recovery Codes"}
+            {setupState.step === "scan"
+              ? "Set Up Two-Factor Authentication"
+              : "Save Recovery Codes"}
           </DialogTitle>
-          <DialogDescription>
-            {step === "scan"
+          <DialogDescription className="text-xs">
+            {setupState.step === "scan"
               ? "Scan the QR code with your authenticator app (such as Google Authenticator, Authy, or 1Password)."
               : "Store these single-use recovery codes in a safe place. You will need them if you lose access to your authenticator app."}
           </DialogDescription>
         </DialogHeader>
 
-        {errorMsg ? (
-          <Alert variant="destructive" className="my-2">
-            <AlertDescription className="text-xs">{errorMsg}</AlertDescription>
+        {setupState.errorMsg ? (
+          <Alert variant="destructive" className="my-2 rounded-xl">
+            <AlertDescription className="text-xs">{setupState.errorMsg}</AlertDescription>
           </Alert>
         ) : null}
 
-        {step === "scan" ? (
+        {setupState.step === "scan" ? (
           <div className="space-y-4 py-2">
             {setupMutation.isPending ? (
               <div className="flex flex-col items-center justify-center gap-2 py-10">
@@ -198,16 +216,16 @@ export function TwoFactorSetupDialog({ open, onOpenChange, onSuccess }: TwoFacto
               </div>
             ) : (
               <>
-                <div className="border-border/80 bg-muted/30 flex flex-col items-center justify-center gap-2 rounded-lg border p-4">
-                  {qrDataUrl ? (
+                <div className="border-border/80 bg-muted/30 flex flex-col items-center justify-center gap-2 rounded-xl border p-4">
+                  {setupState.qrDataUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element -- Data URL generated dynamically
                     <img
-                      src={qrDataUrl}
+                      src={setupState.qrDataUrl}
                       alt="Two Factor QR Code"
-                      className="size-48 rounded-md bg-white p-2 shadow-xs"
+                      className="size-48 rounded-xl bg-white p-2 shadow-xs"
                     />
                   ) : (
-                    <div className="bg-muted text-muted-foreground flex size-48 items-center justify-center rounded-md">
+                    <div className="bg-muted text-muted-foreground flex size-48 items-center justify-center rounded-xl">
                       <QrCodeIcon className="size-12 opacity-40" />
                     </div>
                   )}
@@ -217,19 +235,19 @@ export function TwoFactorSetupDialog({ open, onOpenChange, onSuccess }: TwoFacto
                   </p>
 
                   <div className="flex w-full max-w-xs items-center gap-2">
-                    <code className="bg-background flex-1 truncate rounded border px-2 py-1 text-center font-mono text-xs select-all">
-                      {secret || "••••••••••••••••"}
+                    <code className="bg-background border-border/80 flex-1 truncate rounded-xl border px-2.5 py-1.5 text-center font-mono text-xs select-all">
+                      {setupState.secret || "••••••••••••••••"}
                     </code>
                     <Button
                       type="button"
                       variant="outline"
                       size="icon"
                       onClick={handleCopySecret}
-                      disabled={!secret}
+                      disabled={!setupState.secret}
                       title="Copy secret key"
-                      className="size-8 shrink-0"
+                      className="border-border/80 size-8.5 shrink-0 rounded-xl"
                     >
-                      {copiedSecret ? (
+                      {setupState.copiedSecret ? (
                         <CheckIcon className="size-3.5 text-emerald-500" />
                       ) : (
                         <CopyIcon className="size-3.5" />
@@ -240,7 +258,10 @@ export function TwoFactorSetupDialog({ open, onOpenChange, onSuccess }: TwoFacto
 
                 <form onSubmit={handleConfirmCode} className="space-y-3">
                   <div className="space-y-1">
-                    <Label htmlFor="twoFactorCode" className="text-xs font-medium">
+                    <Label
+                      htmlFor="twoFactorCode"
+                      className="text-muted-foreground text-xs font-medium"
+                    >
                       Enter 6-Digit Code from App
                     </Label>
                     <Input
@@ -251,9 +272,14 @@ export function TwoFactorSetupDialog({ open, onOpenChange, onSuccess }: TwoFacto
                       maxLength={6}
                       autoComplete="one-time-code"
                       placeholder="123456"
-                      value={code}
-                      onChange={(e) => setCode(e?.target?.value?.replace(/\D/g, "") ?? "")}
-                      className="text-center font-mono text-base tracking-widest"
+                      value={setupState.code}
+                      onChange={(e) =>
+                        setSetupState((prev) => ({
+                          ...prev,
+                          code: e?.target?.value?.replace(/\D/g, "") ?? "",
+                        }))
+                      }
+                      className="border-border/80 h-10 rounded-xl text-center font-mono text-base tracking-widest"
                       required
                     />
                   </div>
@@ -264,10 +290,15 @@ export function TwoFactorSetupDialog({ open, onOpenChange, onSuccess }: TwoFacto
                       variant="outline"
                       onClick={() => onOpenChange(false)}
                       disabled={enableMutation.isPending}
+                      className="border-border/80 h-10 rounded-xl text-xs"
                     >
                       Cancel
                     </Button>
-                    <Button type="submit" disabled={enableMutation.isPending || code.length !== 6}>
+                    <Button
+                      type="submit"
+                      disabled={enableMutation.isPending || setupState.code.length !== 6}
+                      className="h-10 rounded-xl text-xs"
+                    >
                       {enableMutation.isPending ? (
                         <>
                           <Loader2Icon className="mr-2 size-4 animate-spin" />
@@ -284,18 +315,18 @@ export function TwoFactorSetupDialog({ open, onOpenChange, onSuccess }: TwoFacto
           </div>
         ) : (
           <div className="space-y-4 py-2">
-            <Alert className="border-amber-500/20 bg-amber-500/10 text-amber-800 dark:text-amber-300">
+            <Alert className="rounded-xl border-amber-500/20 bg-amber-500/10 text-amber-800 dark:text-amber-300">
               <AlertDescription className="text-xs">
                 These recovery codes will <strong>never be shown again</strong>. Download or copy
                 them now to avoid being locked out of your account.
               </AlertDescription>
             </Alert>
 
-            <div className="border-border/80 bg-muted/40 grid grid-cols-2 gap-2 rounded-lg border p-4 font-mono text-sm">
-              {recoveryCodes?.map((recCode, idx) => (
+            <div className="border-border/80 bg-muted/40 grid grid-cols-2 gap-2 rounded-xl border p-4 font-mono text-sm">
+              {setupState.recoveryCodes?.map((recCode, idx) => (
                 <div
                   key={idx}
-                  className="border-border/40 bg-background/80 rounded border px-2.5 py-1 text-center font-semibold tracking-wider select-all"
+                  className="border-border/60 bg-background/80 rounded-lg border px-2.5 py-1 text-center font-semibold tracking-wider select-all"
                 >
                   {recCode}
                 </div>
@@ -308,9 +339,9 @@ export function TwoFactorSetupDialog({ open, onOpenChange, onSuccess }: TwoFacto
                 variant="outline"
                 size="sm"
                 onClick={handleCopyRecoveryCodes}
-                className="flex-1"
+                className="border-border/80 h-9 flex-1 rounded-xl text-xs"
               >
-                {copiedRecovery ? (
+                {setupState.copiedRecovery ? (
                   <>
                     <CheckIcon className="mr-1.5 size-3.5 text-emerald-500" />
                     Copied
@@ -327,7 +358,7 @@ export function TwoFactorSetupDialog({ open, onOpenChange, onSuccess }: TwoFacto
                 variant="outline"
                 size="sm"
                 onClick={handleDownloadRecoveryCodes}
-                className="flex-1"
+                className="border-border/80 h-9 flex-1 rounded-xl text-xs"
               >
                 <DownloadIcon className="mr-1.5 size-3.5" />
                 Download .txt
@@ -335,7 +366,11 @@ export function TwoFactorSetupDialog({ open, onOpenChange, onSuccess }: TwoFacto
             </div>
 
             <DialogFooter className="pt-3">
-              <Button type="button" onClick={handleFinish} className="w-full">
+              <Button
+                type="button"
+                onClick={handleFinish}
+                className="h-10 w-full rounded-xl text-xs"
+              >
                 I Have Saved My Recovery Codes
               </Button>
             </DialogFooter>

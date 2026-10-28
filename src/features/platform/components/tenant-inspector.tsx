@@ -71,14 +71,17 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
   const { mutateAsync: startSupportSession, isPending: isStartingSupport } =
     useStartSupportSession();
 
-  const [suspendOpen, setSuspendOpen] = useState(false);
-  const [suspendReason, setSuspendReason] = useState("");
-  const [supportOpen, setSupportOpen] = useState(false);
-  const [supportReason, setSupportReason] = useState("");
-  const [targetMember, setTargetMember] = useState<PlatformTenantMember | null>(null);
-
-  const [editSeatsOpen, setEditSeatsOpen] = useState(false);
-  const [newSeatCount, setNewSeatCount] = useState<number>(tenant?.subscription?.seatCount ?? 5);
+  const [modalState, setModalState] = useState<{
+    type: "suspend" | "support" | "editSeats" | null;
+    reason: string;
+    targetMember: PlatformTenantMember | null;
+    seatCount: number;
+  }>({
+    type: null,
+    reason: "",
+    targetMember: null,
+    seatCount: 5,
+  });
 
   if (isLoading) {
     return (
@@ -112,11 +115,10 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
   }
 
   const handleSuspend = async () => {
-    if (!suspendReason.trim()) return;
+    if (!modalState.reason.trim()) return;
     try {
-      await suspendTenant({ id: tenant.id, reason: suspendReason.trim() });
-      setSuspendOpen(false);
-      setSuspendReason("");
+      await suspendTenant({ id: tenant.id, reason: modalState.reason.trim() });
+      setModalState({ type: null, reason: "", targetMember: null, seatCount: 5 });
     } catch {
       /* handled */
     }
@@ -131,24 +133,30 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
   };
 
   const handleOpenGeneralSupport = () => {
-    setTargetMember(null);
-    setSupportReason(`Troubleshooting tenant workspace for ${tenant.name}`);
-    setSupportOpen(true);
+    setModalState({
+      type: "support",
+      reason: `Troubleshooting tenant workspace for ${tenant.name}`,
+      targetMember: null,
+      seatCount: tenant?.subscription?.seatCount ?? 5,
+    });
   };
 
   const handleOpenMemberSupport = (member: PlatformTenantMember) => {
-    setTargetMember(member);
-    setSupportReason(`Troubleshooting customer user session for ${member.name ?? member.email}`);
-    setSupportOpen(true);
+    setModalState({
+      type: "support",
+      reason: `Troubleshooting customer user session for ${member.name ?? member.email}`,
+      targetMember: member,
+      seatCount: tenant?.subscription?.seatCount ?? 5,
+    });
   };
 
   const handleStartSupport = async () => {
-    if (!supportReason.trim()) return;
+    if (!modalState.reason.trim()) return;
     try {
       const res = await startSupportSession({
         tenantId: tenant.id,
-        targetUserId: targetMember?.userId,
-        reason: supportReason.trim(),
+        targetUserId: modalState.targetMember?.userId,
+        reason: modalState.reason.trim(),
         durationMinutes: 30,
       });
 
@@ -164,12 +172,10 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
         });
 
         toast.success(
-          `Entering ${tenant.name} as ${targetMember?.name ?? targetMember?.email ?? "tenant user"}…`,
+          `Entering ${tenant.name} as ${modalState.targetMember?.name ?? modalState.targetMember?.email ?? "tenant user"}…`,
         );
 
-        setSupportOpen(false);
-        setSupportReason("");
-        setTargetMember(null);
+        setModalState({ type: null, reason: "", targetMember: null, seatCount: 5 });
 
         // Full page navigation into the tenant dashboard with support banner active!
         // eslint-disable-next-line @next/next/no-location-assign-relative-destination
@@ -182,8 +188,8 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
 
   const handleSaveSeats = async () => {
     try {
-      await updateSubscription({ seatCount: Number(newSeatCount) });
-      setEditSeatsOpen(false);
+      await updateSubscription({ seatCount: Number(modalState.seatCount) });
+      setModalState((prev) => ({ ...prev, type: null }));
     } catch {
       /* handled */
     }
@@ -226,7 +232,11 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleOpenGeneralSupport} className="gap-2 shadow-xs">
+          <Button
+            variant="outline"
+            onClick={handleOpenGeneralSupport}
+            className="h-10 gap-2 rounded-xl shadow-xs"
+          >
             <LifeBuoy className="size-4 text-blue-500" />
             Support Session
           </Button>
@@ -234,8 +244,8 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
           {tenant.status === "ACTIVE" ? (
             <Button
               variant="destructive"
-              onClick={() => setSuspendOpen(true)}
-              className="gap-2 shadow-xs"
+              onClick={() => setModalState((prev) => ({ ...prev, type: "suspend" }))}
+              className="h-10 gap-2 rounded-xl shadow-xs"
             >
               <PowerOff className="size-4" />
               Suspend Workspace
@@ -244,7 +254,7 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
             <Button
               onClick={handleActivate}
               disabled={isActivating}
-              className="gap-2 bg-emerald-600 text-white shadow-xs hover:bg-emerald-700"
+              className="h-10 gap-2 rounded-xl bg-emerald-600 text-white shadow-xs hover:bg-emerald-700"
             >
               <Power className="size-4" />
               {isActivating ? "Reactivating…" : "Reactivate Workspace"}
@@ -255,7 +265,7 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Organization Overview */}
-        <Card className="shadow-xs lg:col-span-2">
+        <Card className="border-border/80 rounded-2xl shadow-xs lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base font-semibold">
               <Building2 className="text-primary size-4" /> Organization Details
@@ -265,7 +275,7 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-lg border p-3">
+            <div className="border-border/70 rounded-xl border p-3">
               <span className="text-muted-foreground text-[11px] font-semibold uppercase">
                 Database Architecture
               </span>
@@ -283,7 +293,7 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
               </p>
             </div>
 
-            <div className="rounded-lg border p-3">
+            <div className="border-border/70 rounded-xl border p-3">
               <span className="text-muted-foreground text-[11px] font-semibold uppercase">
                 Active Member Roster
               </span>
@@ -296,17 +306,17 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
               </p>
             </div>
 
-            <div className="rounded-lg border p-3">
+            <div className="border-border/70 rounded-xl border p-3">
               <span className="text-muted-foreground text-[11px] font-semibold uppercase">
                 Creation & Provisioning
               </span>
               <div className="mt-1 flex items-center gap-2 text-xs">
                 <Clock className="text-muted-foreground size-3.5" />
-                <span>{new Date(tenant.createdAt).toLocaleString()}</span>
+                <span>{formatDate(tenant?.createdAt)}</span>
               </div>
             </div>
 
-            <div className="rounded-lg border p-3">
+            <div className="border-border/70 rounded-xl border p-3">
               <span className="text-muted-foreground text-[11px] font-semibold uppercase">
                 Custom Domain Resolution
               </span>
@@ -326,7 +336,7 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
         </Card>
 
         {/* Subscription & Entitlements Card */}
-        <Card className="shadow-xs">
+        <Card className="border-border/80 rounded-2xl shadow-xs">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base font-semibold">
               <Layers className="text-primary size-4" /> Subscription & Tier
@@ -336,7 +346,7 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between rounded-lg border p-3">
+            <div className="border-border/70 flex items-center justify-between rounded-xl border p-3">
               <div>
                 <span className="text-muted-foreground text-[10px] font-semibold uppercase">
                   Current Plan
@@ -348,7 +358,7 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
               </Badge>
             </div>
 
-            <div className="flex items-center justify-between rounded-lg border p-3">
+            <div className="border-border/70 flex items-center justify-between rounded-xl border p-3">
               <div>
                 <span className="text-muted-foreground text-[10px] font-semibold uppercase">
                   Seat Capacity
@@ -360,9 +370,13 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
               <Button
                 variant="outline"
                 size="sm"
+                className="h-8 rounded-lg"
                 onClick={() => {
-                  setNewSeatCount(tenant.subscription?.seatCount ?? 5);
-                  setEditSeatsOpen(true);
+                  setModalState((prev) => ({
+                    ...prev,
+                    type: "editSeats",
+                    seatCount: tenant.subscription?.seatCount ?? 5,
+                  }));
                 }}
               >
                 Change Seats
@@ -370,7 +384,7 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
             </div>
 
             {tenant.subscription?.trialEndsAt && (
-              <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-xs">
+              <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 text-xs">
                 <span className="font-semibold text-amber-700 dark:text-amber-300">
                   Trial Window Active
                 </span>
@@ -384,7 +398,7 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
       </div>
 
       {/* Tenant Members & Audited Impersonation Card */}
-      <Card className="shadow-xs">
+      <Card className="border-border/80 rounded-2xl shadow-xs">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2 text-base font-semibold">
@@ -411,7 +425,7 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
               No members found in this tenant workspace.
             </div>
           ) : (
-            <div className="rounded-md border">
+            <div className="border-border/70 w-full overflow-x-auto rounded-xl border">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/30">
@@ -482,7 +496,7 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
                           size="sm"
                           variant="outline"
                           onClick={() => handleOpenMemberSupport(member)}
-                          className="hover:border-primary/50 h-8 gap-1.5 text-xs font-semibold shadow-2xs"
+                          className="hover:border-primary/50 h-8 gap-1.5 rounded-lg text-xs font-semibold shadow-2xs"
                         >
                           <VenetianMask className="text-primary size-3.5" />
                           Impersonate User
@@ -498,7 +512,7 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
       </Card>
 
       {/* White-Label Branding Card */}
-      <Card className="shadow-xs">
+      <Card className="border-border/80 rounded-2xl shadow-xs">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base font-semibold">
             <Palette className="text-primary size-4" /> White-Label Brand Tokens
@@ -508,7 +522,7 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-4">
-          <div className="rounded-lg border p-3">
+          <div className="border-border/70 rounded-xl border p-3">
             <span className="text-muted-foreground text-[11px] font-semibold uppercase">
               Brand Identity & Logo
             </span>
@@ -529,7 +543,7 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
             </div>
           </div>
 
-          <div className="rounded-lg border p-3">
+          <div className="border-border/70 rounded-xl border p-3">
             <span className="text-muted-foreground text-[11px] font-semibold uppercase">
               Primary & Accent Colors
             </span>
@@ -557,7 +571,7 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
             </div>
           </div>
 
-          <div className="rounded-lg border p-3">
+          <div className="border-border/70 rounded-xl border p-3">
             <span className="text-muted-foreground text-[11px] font-semibold uppercase">
               Border Radius Curvature
             </span>
@@ -566,7 +580,7 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
             </div>
           </div>
 
-          <div className="rounded-lg border p-3">
+          <div className="border-border/70 rounded-xl border p-3">
             <span className="text-muted-foreground text-[11px] font-semibold uppercase">
               Support Communication Email
             </span>
@@ -578,8 +592,13 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
       </Card>
 
       {/* Suspend Confirmation Dialog */}
-      <Dialog open={suspendOpen} onOpenChange={setSuspendOpen}>
-        <DialogContent>
+      <Dialog
+        open={modalState.type === "suspend"}
+        onOpenChange={(open) =>
+          setModalState((prev) => ({ ...prev, type: open ? "suspend" : null }))
+        }
+      >
+        <DialogContent className="border-border/80 rounded-2xl shadow-xl">
           <DialogHeader>
             <DialogTitle className="text-destructive flex items-center gap-2">
               <PowerOff className="size-5" /> Suspend Customer Workspace
@@ -597,20 +616,28 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
             <Textarea
               id="suspend-reason"
               placeholder="e.g. Terms of Service violation, overdue invoices, or security investigation"
-              value={suspendReason}
-              onChange={(e) => setSuspendReason(e?.target?.value ?? "")}
+              value={modalState.reason}
+              onChange={(e) =>
+                setModalState((prev) => ({ ...prev, reason: e?.target?.value ?? "" }))
+              }
               rows={3}
+              className="rounded-xl"
             />
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSuspendOpen(false)}>
+            <Button
+              variant="outline"
+              className="h-10 rounded-xl"
+              onClick={() => setModalState((prev) => ({ ...prev, type: null }))}
+            >
               Cancel
             </Button>
             <Button
               variant="destructive"
+              className="h-10 rounded-xl"
               onClick={handleSuspend}
-              disabled={!suspendReason.trim() || isSuspending}
+              disabled={!modalState.reason.trim() || isSuspending}
             >
               {isSuspending ? "Suspending…" : "Confirm Suspension"}
             </Button>
@@ -619,20 +646,25 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
       </Dialog>
 
       {/* Support Session Dialog */}
-      <Dialog open={supportOpen} onOpenChange={setSupportOpen}>
-        <DialogContent>
+      <Dialog
+        open={modalState.type === "support"}
+        onOpenChange={(open) =>
+          setModalState((prev) => ({ ...prev, type: open ? "support" : null }))
+        }
+      >
+        <DialogContent className="border-border/80 rounded-2xl shadow-xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-blue-600">
               <LifeBuoy className="size-5" /> Initiate Audited Support Session
             </DialogTitle>
             <DialogDescription>
-              {targetMember ? (
+              {modalState.targetMember ? (
                 <span>
                   Enter workspace <strong>{tenant.name}</strong> impersonating member{" "}
                   <strong className="text-foreground">
-                    {targetMember.name ?? targetMember.email}
+                    {modalState.targetMember.name ?? modalState.targetMember.email}
                   </strong>{" "}
-                  ({targetMember.roleName}).
+                  ({modalState.targetMember.roleName}).
                 </span>
               ) : (
                 <span>
@@ -650,23 +682,31 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
             <Textarea
               id="support-reason"
               placeholder="e.g. Troubleshooting customer dashboard and RBAC permission mismatch"
-              value={supportReason}
-              onChange={(e) => setSupportReason(e?.target?.value ?? "")}
+              value={modalState.reason}
+              onChange={(e) =>
+                setModalState((prev) => ({ ...prev, reason: e?.target?.value ?? "" }))
+              }
               rows={3}
+              className="rounded-xl"
             />
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSupportOpen(false)}>
+            <Button
+              variant="outline"
+              className="h-10 rounded-xl"
+              onClick={() => setModalState((prev) => ({ ...prev, type: null }))}
+            >
               Cancel
             </Button>
             <Button
+              className="h-10 rounded-xl"
               onClick={handleStartSupport}
-              disabled={!supportReason.trim() || isStartingSupport}
+              disabled={!modalState.reason.trim() || isStartingSupport}
             >
               {isStartingSupport
                 ? "Starting Session…"
-                : targetMember
+                : modalState.targetMember
                   ? "Impersonate & Enter Dashboard"
                   : "Start Support Session"}
             </Button>
@@ -675,8 +715,13 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
       </Dialog>
 
       {/* Edit Seats Dialog */}
-      <Dialog open={editSeatsOpen} onOpenChange={setEditSeatsOpen}>
-        <DialogContent>
+      <Dialog
+        open={modalState.type === "editSeats"}
+        onOpenChange={(open) =>
+          setModalState((prev) => ({ ...prev, type: open ? "editSeats" : null }))
+        }
+      >
+        <DialogContent className="border-border/80 rounded-2xl shadow-xl">
           <DialogHeader>
             <DialogTitle>Update Seat Allocation</DialogTitle>
             <DialogDescription>
@@ -693,16 +738,23 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
               type="number"
               min={1}
               max={1000}
-              value={newSeatCount}
-              onChange={(e) => setNewSeatCount(Number(e?.target?.value ?? 1))}
+              value={modalState.seatCount}
+              onChange={(e) =>
+                setModalState((prev) => ({ ...prev, seatCount: Number(e?.target?.value ?? 1) }))
+              }
+              className="h-10 rounded-xl"
             />
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditSeatsOpen(false)}>
+            <Button
+              variant="outline"
+              className="h-10 rounded-xl"
+              onClick={() => setModalState((prev) => ({ ...prev, type: null }))}
+            >
               Cancel
             </Button>
-            <Button onClick={handleSaveSeats} disabled={isUpdatingSub}>
+            <Button className="h-10 rounded-xl" onClick={handleSaveSeats} disabled={isUpdatingSub}>
               {isUpdatingSub ? "Saving…" : "Save Allocation"}
             </Button>
           </DialogFooter>

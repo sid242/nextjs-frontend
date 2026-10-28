@@ -43,7 +43,7 @@ import { VariableHelper } from "./variable-helper";
 const MonacoEditor = dynamic(() => import("@monaco-editor/react").then((mod) => mod.default), {
   ssr: false,
   loading: () => (
-    <div className="bg-muted/20 flex h-[480px] w-full items-center justify-center">
+    <div className="bg-muted/20 flex h-120 w-full items-center justify-center">
       <Spinner className="text-primary size-6" />
       <span className="text-muted-foreground ml-2 text-xs">Loading Monaco Code Editor...</span>
     </div>
@@ -54,7 +54,7 @@ const MonacoEditor = dynamic(() => import("@monaco-editor/react").then((mod) => 
 const EmailEditor = dynamic(() => import("react-email-editor").then((mod) => mod.default), {
   ssr: false,
   loading: () => (
-    <div className="bg-muted/20 flex h-[580px] w-full items-center justify-center">
+    <div className="bg-muted/20 flex h-145 w-full items-center justify-center">
       <Spinner className="text-primary size-6" />
       <span className="text-muted-foreground ml-2 text-xs">Loading Visual Email Builder...</span>
     </div>
@@ -70,37 +70,41 @@ export interface TemplateStudioProps {
   initialTemplate?: EmailTemplate | null;
 }
 
+interface StudioState {
+  editorMode: "code" | "visual";
+  mobileTab: "editor" | "preview";
+  name: string;
+  slug: string;
+  subject: string;
+  category: EmailTemplateCategory;
+  status: EmailTemplateStatus;
+  description: string;
+  senderName: string;
+  fromEmail: string;
+  replyTo: string;
+  htmlContent: string;
+}
+
 export function TemplateStudio({ initialTemplate }: TemplateStudioProps) {
   const router = useRouter();
   const { resolvedTheme } = useTheme();
 
   const isEditing = Boolean(initialTemplate?.id);
 
-  // Editor mode: Monaco Code vs Visual Builder
-  const [editorMode, setEditorMode] = useState<"code" | "visual">(() =>
-    initialTemplate?.designJson ? "visual" : "code",
-  );
-
-  // Mobile viewport tab: Editor vs Preview
-  const [mobileTab, setMobileTab] = useState<"editor" | "preview">("editor");
-
-  // Form states
-  const [name, setName] = useState<string>(() => initialTemplate?.name ?? "");
-  const [slug, setSlug] = useState<string>(() => initialTemplate?.slug ?? "");
-  const [subject, setSubject] = useState<string>(() => initialTemplate?.subject ?? "");
-  const [category, setCategory] = useState<EmailTemplateCategory>(
-    () => initialTemplate?.category ?? "CUSTOM",
-  );
-  const [status, setStatus] = useState<EmailTemplateStatus>(
-    () => initialTemplate?.status ?? "DRAFT",
-  );
-  const [description, setDescription] = useState<string>(() => initialTemplate?.description ?? "");
-  const [senderName, setSenderName] = useState<string>(() => initialTemplate?.senderName ?? "");
-  const [fromEmail, setFromEmail] = useState<string>(() => initialTemplate?.fromEmail ?? "");
-  const [replyTo, setReplyTo] = useState<string>(() => initialTemplate?.replyTo ?? "");
-  const [htmlContent, setHtmlContent] = useState<string>(
-    () => initialTemplate?.htmlContent ?? DEFAULT_STARTER_HTML,
-  );
+  const [studioState, setStudioState] = useState<StudioState>({
+    editorMode: initialTemplate?.designJson ? "visual" : "code",
+    mobileTab: "editor",
+    name: initialTemplate?.name ?? "",
+    slug: initialTemplate?.slug ?? "",
+    subject: initialTemplate?.subject ?? "",
+    category: initialTemplate?.category ?? "CUSTOM",
+    status: initialTemplate?.status ?? "DRAFT",
+    description: initialTemplate?.description ?? "",
+    senderName: initialTemplate?.senderName ?? "",
+    fromEmail: initialTemplate?.fromEmail ?? "",
+    replyTo: initialTemplate?.replyTo ?? "",
+    htmlContent: initialTemplate?.htmlContent ?? DEFAULT_STARTER_HTML,
+  });
 
   const emailEditorRef = useRef<EditorRef | null>(null);
 
@@ -119,19 +123,27 @@ export function TemplateStudio({ initialTemplate }: TemplateStudioProps) {
   const isSaving = createMutation.isPending || updateMutation.isPending;
 
   const handleNameChange = (val: string) => {
-    setName(val);
-    if (!isEditing) {
-      const generatedSlug = val
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "");
-      setSlug(generatedSlug);
-    }
+    setStudioState((prev) => {
+      const generatedSlug = !isEditing
+        ? val
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/(^-|-$)/g, "")
+        : prev.slug;
+      return {
+        ...prev,
+        name: val,
+        slug: generatedSlug,
+      };
+    });
   };
 
   const handleInsertVariable = (variableKey: string) => {
     const mergeTag = `{{${variableKey}}}`;
-    setHtmlContent((prev) => prev + mergeTag);
+    setStudioState((prev) => ({
+      ...prev,
+      htmlContent: prev.htmlContent + mergeTag,
+    }));
   };
 
   const handleVisualEditorReady = () => {
@@ -146,21 +158,21 @@ export function TemplateStudio({ initialTemplate }: TemplateStudioProps) {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !subject.trim()) return;
+    if (!studioState.name.trim() || !studioState.subject.trim()) return;
 
-    if (editorMode === "visual" && emailEditorRef?.current?.editor) {
+    if (studioState.editorMode === "visual" && emailEditorRef?.current?.editor) {
       emailEditorRef.current.editor.exportHtml(async (data: UnlayerExportData) => {
         const payload: CreateEmailTemplateInput = {
-          name: name.trim(),
-          slug: slug.trim() || undefined,
-          subject: subject.trim(),
-          category,
-          status,
-          description: description.trim() || undefined,
-          senderName: senderName.trim() || undefined,
-          fromEmail: fromEmail.trim() || undefined,
-          replyTo: replyTo.trim() || undefined,
-          htmlContent: data?.html ?? htmlContent,
+          name: studioState.name.trim(),
+          slug: studioState.slug.trim() || undefined,
+          subject: studioState.subject.trim(),
+          category: studioState.category,
+          status: studioState.status,
+          description: studioState.description.trim() || undefined,
+          senderName: studioState.senderName.trim() || undefined,
+          fromEmail: studioState.fromEmail.trim() || undefined,
+          replyTo: studioState.replyTo.trim() || undefined,
+          htmlContent: data?.html ?? studioState.htmlContent,
           designJson: data?.design ?? undefined,
         };
 
@@ -172,16 +184,16 @@ export function TemplateStudio({ initialTemplate }: TemplateStudioProps) {
       });
     } else {
       const payload: CreateEmailTemplateInput = {
-        name: name.trim(),
-        slug: slug.trim() || undefined,
-        subject: subject.trim(),
-        category,
-        status,
-        description: description.trim() || undefined,
-        senderName: senderName.trim() || undefined,
-        fromEmail: fromEmail.trim() || undefined,
-        replyTo: replyTo.trim() || undefined,
-        htmlContent,
+        name: studioState.name.trim(),
+        slug: studioState.slug.trim() || undefined,
+        subject: studioState.subject.trim(),
+        category: studioState.category,
+        status: studioState.status,
+        description: studioState.description.trim() || undefined,
+        senderName: studioState.senderName.trim() || undefined,
+        fromEmail: studioState.fromEmail.trim() || undefined,
+        replyTo: studioState.replyTo.trim() || undefined,
+        htmlContent: studioState.htmlContent,
         designJson: undefined,
       };
 
@@ -194,8 +206,8 @@ export function TemplateStudio({ initialTemplate }: TemplateStudioProps) {
   };
 
   const mergeTagCount = useMemo(() => {
-    return htmlContent?.match(/\{\{([a-zA-Z0-9_]+)\}\}/g)?.length ?? 0;
-  }, [htmlContent]);
+    return studioState.htmlContent.match(/\{\{([a-zA-Z0-9_]+)\}\}/g)?.length || 0;
+  }, [studioState.htmlContent]);
 
   return (
     <form onSubmit={handleSubmit} className="flex min-h-[calc(100vh-8rem)] flex-col space-y-4">
@@ -234,13 +246,13 @@ export function TemplateStudio({ initialTemplate }: TemplateStudioProps) {
         {/* Action Controls & Mode Switcher */}
         <div className="flex flex-wrap items-center gap-2">
           {/* Editor Mode Switcher */}
-          <div className="border-border bg-muted/40 flex items-center rounded-lg border p-0.5">
+          <div className="border-border/80 bg-muted/50 flex items-center rounded-xl border p-1 shadow-xs">
             <Button
               type="button"
-              variant={editorMode === "code" ? "secondary" : "ghost"}
+              variant={studioState.editorMode === "code" ? "secondary" : "ghost"}
               size="sm"
-              onClick={() => setEditorMode("code")}
-              className="h-7 gap-1 px-2.5 text-xs font-medium"
+              onClick={() => setStudioState((prev) => ({ ...prev, editorMode: "code" }))}
+              className="h-7.5 gap-1 rounded-lg px-2.5 text-xs font-medium"
             >
               <CodeIcon className="size-3.5" />
               <span className="hidden sm:inline">Monaco Code</span>
@@ -248,10 +260,10 @@ export function TemplateStudio({ initialTemplate }: TemplateStudioProps) {
             </Button>
             <Button
               type="button"
-              variant={editorMode === "visual" ? "secondary" : "ghost"}
+              variant={studioState.editorMode === "visual" ? "secondary" : "ghost"}
               size="sm"
-              onClick={() => setEditorMode("visual")}
-              className="h-7 gap-1 px-2.5 text-xs font-medium"
+              onClick={() => setStudioState((prev) => ({ ...prev, editorMode: "visual" }))}
+              className="h-7.5 gap-1 rounded-lg px-2.5 text-xs font-medium"
             >
               <LayoutTemplateIcon className="size-3.5" />
               <span className="hidden sm:inline">Visual Builder</span>
@@ -263,7 +275,7 @@ export function TemplateStudio({ initialTemplate }: TemplateStudioProps) {
             type="button"
             variant="outline"
             size="sm"
-            className="h-8 text-xs"
+            className="border-border/80 h-9 rounded-xl text-xs"
             onClick={() => router.push("/email-templates")}
             disabled={isSaving}
           >
@@ -273,8 +285,8 @@ export function TemplateStudio({ initialTemplate }: TemplateStudioProps) {
           <Button
             type="submit"
             size="sm"
-            disabled={isSaving || !name.trim() || !subject.trim()}
-            className="h-8 gap-1.5 px-3 text-xs shadow-sm"
+            disabled={isSaving || !studioState.name.trim() || !studioState.subject.trim()}
+            className="h-9 gap-1.5 rounded-xl px-3.5 text-xs shadow-xs"
           >
             {isSaving ? (
               <>
@@ -292,102 +304,113 @@ export function TemplateStudio({ initialTemplate }: TemplateStudioProps) {
       </div>
 
       {/* Metadata Configuration Section (Fully Responsive Grid) */}
-      <div className="border-border bg-card rounded-lg border p-4 shadow-xs">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-12">
+      <div className="border-border/80 bg-card rounded-2xl border p-4 shadow-xs">
+        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-12">
           {/* Template Name */}
           <div className="space-y-1 sm:col-span-1 lg:col-span-4">
-            <Label htmlFor="studio-name" className="text-xs font-medium">
+            <Label htmlFor="studio-name" className="text-muted-foreground text-xs font-medium">
               Template Name <span className="text-destructive">*</span>
             </Label>
             <Input
               id="studio-name"
               required
               placeholder="e.g. Project Welcome Brochure"
-              className="h-8.5 text-xs"
-              value={name}
+              className="border-border/80 h-9 rounded-xl text-xs"
+              value={studioState.name}
               onChange={(e) => handleNameChange(e.target.value)}
             />
           </div>
 
           {/* Slug */}
           <div className="space-y-1 sm:col-span-1 lg:col-span-3">
-            <Label htmlFor="studio-slug" className="text-xs font-medium">
+            <Label htmlFor="studio-slug" className="text-muted-foreground text-xs font-medium">
               Slug (Unique ID)
             </Label>
             <Input
               id="studio-slug"
               placeholder="project-welcome-brochure"
-              className="h-8.5 font-mono text-xs"
-              value={slug}
-              onChange={(e) => setSlug(e.target.value)}
+              className="border-border/80 h-9 rounded-xl font-mono text-xs"
+              value={studioState.slug}
+              onChange={(e) => setStudioState((prev) => ({ ...prev, slug: e.target.value }))}
             />
           </div>
 
           {/* Subject Line */}
           <div className="space-y-1 sm:col-span-2 lg:col-span-5">
-            <Label htmlFor="studio-subject" className="text-xs font-medium">
+            <Label htmlFor="studio-subject" className="text-muted-foreground text-xs font-medium">
               Email Subject Line <span className="text-destructive">*</span>
             </Label>
             <Input
               id="studio-subject"
               required
               placeholder="e.g. Welcome to {{project_name}} — Exclusive Details Inside"
-              className="h-8.5 text-xs"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
+              className="border-border/80 h-9 rounded-xl text-xs"
+              value={studioState.subject}
+              onChange={(e) => setStudioState((prev) => ({ ...prev, subject: e.target.value }))}
             />
           </div>
 
           {/* Sender Name, From Email, Reply-To Row */}
           <div className="space-y-1 sm:col-span-1 lg:col-span-4">
-            <Label htmlFor="studio-sender-name" className="text-xs font-medium">
+            <Label
+              htmlFor="studio-sender-name"
+              className="text-muted-foreground text-xs font-medium"
+            >
               Sender Name
             </Label>
             <Input
               id="studio-sender-name"
               placeholder="e.g. Savitara Support"
-              className="h-8.5 text-xs"
-              value={senderName}
-              onChange={(e) => setSenderName(e.target.value)}
+              className="border-border/80 h-9 rounded-xl text-xs"
+              value={studioState.senderName}
+              onChange={(e) => setStudioState((prev) => ({ ...prev, senderName: e.target.value }))}
             />
           </div>
 
           <div className="space-y-1 sm:col-span-1 lg:col-span-4">
-            <Label htmlFor="studio-from-email" className="text-xs font-medium">
+            <Label
+              htmlFor="studio-from-email"
+              className="text-muted-foreground text-xs font-medium"
+            >
               From Email
             </Label>
             <Input
               id="studio-from-email"
               type="email"
               placeholder="e.g. alerts@savitara.com"
-              className="h-8.5 font-mono text-xs"
-              value={fromEmail}
-              onChange={(e) => setFromEmail(e.target.value)}
+              className="border-border/80 h-9 rounded-xl font-mono text-xs"
+              value={studioState.fromEmail}
+              onChange={(e) => setStudioState((prev) => ({ ...prev, fromEmail: e.target.value }))}
             />
           </div>
 
           <div className="space-y-1 sm:col-span-2 lg:col-span-4">
-            <Label htmlFor="studio-reply-to" className="text-xs font-medium">
+            <Label htmlFor="studio-reply-to" className="text-muted-foreground text-xs font-medium">
               Reply-To
             </Label>
             <Input
               id="studio-reply-to"
               type="email"
               placeholder="e.g. billing@savitara.com"
-              className="h-8.5 font-mono text-xs"
-              value={replyTo}
-              onChange={(e) => setReplyTo(e.target.value)}
+              className="border-border/80 h-9 rounded-xl font-mono text-xs"
+              value={studioState.replyTo}
+              onChange={(e) => setStudioState((prev) => ({ ...prev, replyTo: e.target.value }))}
             />
           </div>
 
           {/* Category */}
           <div className="space-y-1 sm:col-span-1 lg:col-span-3">
-            <Label className="text-xs font-medium">Category</Label>
-            <Select value={category} onValueChange={(v) => setCategory(v as EmailTemplateCategory)}>
-              <SelectTrigger className="h-8.5 text-xs">
+            <Label className="text-muted-foreground text-xs font-medium">Category</Label>
+            <Select
+              value={studioState.category}
+              onValueChange={(v) =>
+                setStudioState((prev) => ({ ...prev, category: v as EmailTemplateCategory }))
+              }
+            >
+              <SelectTrigger className="border-border/80 h-9 rounded-xl text-xs">
                 <SelectValue placeholder="Select Category" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="border-border/80 rounded-xl shadow-md">
                 {CATEGORY_SELECT_OPTIONS?.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
@@ -399,12 +422,17 @@ export function TemplateStudio({ initialTemplate }: TemplateStudioProps) {
 
           {/* Status */}
           <div className="space-y-1 sm:col-span-1 lg:col-span-3">
-            <Label className="text-xs font-medium">Status</Label>
-            <Select value={status} onValueChange={(v) => setStatus(v as EmailTemplateStatus)}>
-              <SelectTrigger className="h-8.5 text-xs">
+            <Label className="text-muted-foreground text-xs font-medium">Status</Label>
+            <Select
+              value={studioState.status}
+              onValueChange={(v) =>
+                setStudioState((prev) => ({ ...prev, status: v as EmailTemplateStatus }))
+              }
+            >
+              <SelectTrigger className="border-border/80 h-9 rounded-xl text-xs">
                 <SelectValue placeholder="Select Status" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="border-border/80 rounded-xl shadow-md">
                 {STATUS_SELECT_OPTIONS?.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
@@ -416,15 +444,15 @@ export function TemplateStudio({ initialTemplate }: TemplateStudioProps) {
 
           {/* Description */}
           <div className="space-y-1 sm:col-span-2 lg:col-span-6">
-            <Label htmlFor="studio-desc" className="text-xs font-medium">
+            <Label htmlFor="studio-desc" className="text-muted-foreground text-xs font-medium">
               Internal Notes / Description
             </Label>
             <Input
               id="studio-desc"
               placeholder="Usage notes, target segment or automation trigger info..."
-              className="text-muted-foreground placeholder:text-muted-foreground/60 h-8.5 text-xs"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              className="text-muted-foreground placeholder:text-muted-foreground/60 border-border/80 h-9 rounded-xl text-xs"
+              value={studioState.description}
+              onChange={(e) => setStudioState((prev) => ({ ...prev, description: e.target.value }))}
             />
           </div>
         </div>
@@ -433,16 +461,18 @@ export function TemplateStudio({ initialTemplate }: TemplateStudioProps) {
       {/* Mobile / Tablet Segmented Switcher (Visible on < lg screens) */}
       <div className="lg:hidden">
         <Tabs
-          value={mobileTab}
-          onValueChange={(v) => setMobileTab(v as "editor" | "preview")}
+          value={studioState.mobileTab}
+          onValueChange={(v) =>
+            setStudioState((prev) => ({ ...prev, mobileTab: v as "editor" | "preview" }))
+          }
           className="w-full"
         >
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="editor" className="gap-1.5 text-xs">
+          <TabsList className="grid w-full grid-cols-2 rounded-xl">
+            <TabsTrigger value="editor" className="gap-1.5 rounded-lg text-xs">
               <FileCodeIcon className="size-3.5" />
               <span>Editor Workspace</span>
             </TabsTrigger>
-            <TabsTrigger value="preview" className="gap-1.5 text-xs">
+            <TabsTrigger value="preview" className="gap-1.5 rounded-lg text-xs">
               <EyeIcon className="size-3.5" />
               <span>Live Preview</span>
             </TabsTrigger>
@@ -457,29 +487,31 @@ export function TemplateStudio({ initialTemplate }: TemplateStudioProps) {
           {/* Left Column: Variable Helper + Editor (Code or Visual) */}
           <div
             className={`flex flex-col space-y-3 ${
-              editorMode === "code" ? "lg:col-span-7" : "lg:col-span-12"
+              studioState.editorMode === "code" ? "lg:col-span-7" : "lg:col-span-12"
             }`}
           >
             <VariableHelper onInsert={handleInsertVariable} />
 
-            {editorMode === "code" ? (
-              <div className="border-border bg-card flex flex-col overflow-hidden rounded-lg border shadow-xs">
-                <div className="border-border bg-muted/40 flex items-center justify-between border-b px-3 py-2 text-xs">
+            {studioState.editorMode === "code" ? (
+              <div className="border-border/80 bg-card flex flex-col overflow-hidden rounded-2xl border shadow-xs">
+                <div className="border-border/80 bg-muted/40 flex items-center justify-between border-b px-3.5 py-2.5 text-xs">
                   <div className="text-muted-foreground flex items-center gap-1.5 font-medium">
                     <CodeIcon className="text-primary size-3.5" />
                     <span>HTML &amp; Liquid Template Source</span>
                   </div>
                   <span className="text-muted-foreground font-mono text-[11px]">
-                    {htmlContent.length} chars • {mergeTagCount} variables
+                    {studioState.htmlContent.length} chars • {mergeTagCount} variables
                   </span>
                 </div>
-                <div className="h-[620px] w-full">
+                <div className="h-155 w-full">
                   <MonacoEditor
                     height="100%"
                     language="html"
                     theme={resolvedTheme === "dark" ? "vs-dark" : "vs-light"}
-                    value={htmlContent}
-                    onChange={(val) => setHtmlContent(val ?? "")}
+                    value={studioState.htmlContent}
+                    onChange={(val) =>
+                      setStudioState((prev) => ({ ...prev, htmlContent: val ?? "" }))
+                    }
                     options={{
                       minimap: { enabled: false },
                       fontSize: 13,
@@ -494,8 +526,8 @@ export function TemplateStudio({ initialTemplate }: TemplateStudioProps) {
               </div>
             ) : (
               /* Visual Builder in 12-col full width */
-              <div className="border-border bg-card flex flex-col overflow-hidden rounded-lg border shadow-xs">
-                <div className="border-border bg-muted/40 flex items-center justify-between border-b px-3 py-2 text-xs">
+              <div className="border-border/80 bg-card flex flex-col overflow-hidden rounded-2xl border shadow-xs">
+                <div className="border-border/80 bg-muted/40 flex items-center justify-between border-b px-3.5 py-2.5 text-xs">
                   <div className="text-muted-foreground flex items-center gap-1.5 font-medium">
                     <LayoutTemplateIcon className="text-primary size-3.5" />
                     <span>Unlayer Drag &amp; Drop Visual Builder</span>
@@ -504,7 +536,7 @@ export function TemplateStudio({ initialTemplate }: TemplateStudioProps) {
                     Drag components from right drawer into email canvas
                   </span>
                 </div>
-                <div className="h-[750px] w-full">
+                <div className="h-187.5 w-full">
                   <EmailEditor
                     ref={emailEditorRef}
                     onReady={handleVisualEditorReady}
@@ -516,15 +548,15 @@ export function TemplateStudio({ initialTemplate }: TemplateStudioProps) {
           </div>
 
           {/* Right Column: Live Interactive Device Preview (only in code mode on desktop) */}
-          {editorMode === "code" && (
+          {studioState.editorMode === "code" && (
             <div className="lg:col-span-5">
               <div className="sticky top-20">
                 <DevicePreview
-                  htmlContent={htmlContent}
-                  subject={subject}
-                  senderName={senderName}
-                  fromEmail={fromEmail}
-                  replyTo={replyTo}
+                  htmlContent={studioState.htmlContent}
+                  subject={studioState.subject}
+                  senderName={studioState.senderName}
+                  fromEmail={studioState.fromEmail}
+                  replyTo={studioState.replyTo}
                   bodyMaxHeight="min-h-145 max-h-160"
                 />
               </div>
@@ -534,28 +566,30 @@ export function TemplateStudio({ initialTemplate }: TemplateStudioProps) {
 
         {/* Mobile / Tablet View: Tab-based full width */}
         <div className="block lg:hidden">
-          {mobileTab === "editor" ? (
+          {studioState.mobileTab === "editor" ? (
             <div className="flex flex-col space-y-3">
               <VariableHelper onInsert={handleInsertVariable} />
 
-              {editorMode === "code" ? (
-                <div className="border-border bg-card flex flex-col overflow-hidden rounded-lg border shadow-xs">
-                  <div className="border-border bg-muted/40 flex items-center justify-between border-b px-3 py-2 text-xs">
+              {studioState.editorMode === "code" ? (
+                <div className="border-border/80 bg-card flex flex-col overflow-hidden rounded-2xl border shadow-xs">
+                  <div className="border-border/80 bg-muted/40 flex items-center justify-between border-b px-3.5 py-2.5 text-xs">
                     <div className="text-muted-foreground flex items-center gap-1.5 font-medium">
                       <CodeIcon className="text-primary size-3.5" />
                       <span>HTML Source</span>
                     </div>
                     <span className="text-muted-foreground font-mono text-[11px]">
-                      {htmlContent.length} chars
+                      {studioState.htmlContent.length} chars
                     </span>
                   </div>
-                  <div className="h-[480px] w-full">
+                  <div className="h-120 w-full">
                     <MonacoEditor
                       height="100%"
                       language="html"
                       theme={resolvedTheme === "dark" ? "vs-dark" : "vs-light"}
-                      value={htmlContent}
-                      onChange={(val) => setHtmlContent(val ?? "")}
+                      value={studioState.htmlContent}
+                      onChange={(val) =>
+                        setStudioState((prev) => ({ ...prev, htmlContent: val ?? "" }))
+                      }
                       options={{
                         minimap: { enabled: false },
                         fontSize: 12,
@@ -569,8 +603,8 @@ export function TemplateStudio({ initialTemplate }: TemplateStudioProps) {
                   </div>
                 </div>
               ) : (
-                <div className="border-border bg-card flex flex-col overflow-hidden rounded-lg border shadow-xs">
-                  <div className="h-[600px] w-full">
+                <div className="border-border/80 bg-card flex flex-col overflow-hidden rounded-2xl border shadow-xs">
+                  <div className="h-150 w-full">
                     <EmailEditor
                       ref={emailEditorRef}
                       onReady={handleVisualEditorReady}
@@ -583,11 +617,11 @@ export function TemplateStudio({ initialTemplate }: TemplateStudioProps) {
           ) : (
             <div className="w-full">
               <DevicePreview
-                htmlContent={htmlContent}
-                subject={subject}
-                senderName={senderName}
-                fromEmail={fromEmail}
-                replyTo={replyTo}
+                htmlContent={studioState.htmlContent}
+                subject={studioState.subject}
+                senderName={studioState.senderName}
+                fromEmail={studioState.fromEmail}
+                replyTo={studioState.replyTo}
                 bodyMaxHeight="min-h-112.5"
               />
             </div>

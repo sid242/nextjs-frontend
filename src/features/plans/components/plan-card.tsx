@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Check, Sparkles } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +16,7 @@ import type { Plan } from "../schemas";
 interface PlanCardProps {
   plan: Plan;
   isCurrent?: boolean;
-  actionSlot?: React.ReactNode;
+  actionSlot?: ReactNode;
 }
 
 export function PlanCard({ plan, isCurrent, actionSlot }: PlanCardProps) {
@@ -23,16 +24,16 @@ export function PlanCard({ plan, isCurrent, actionSlot }: PlanCardProps) {
   const formattedPrice =
     plan?.priceCents === 0
       ? "$0"
-      : `$${(plan?.priceCents / 100).toLocaleString("en-US", { minimumFractionDigits: 0 })}`;
+      : `$${((plan?.priceCents ?? 0) / 100).toLocaleString("en-US", { minimumFractionDigits: 0 })}`;
 
   return (
     <Card
-      className={`relative flex flex-col justify-between transition-all ${
+      className={`relative flex flex-col justify-between rounded-2xl transition-all ${
         isCurrent
-          ? "border-primary/80 bg-primary/5 shadow-primary/10 ring-primary/40 shadow-md ring-1"
+          ? "border-primary/80 bg-primary/5 shadow-primary/10 ring-primary/40 shadow-xs ring-1"
           : isEnterprise
-            ? "bg-card/60 border-amber-500/40 shadow-lg"
-            : "border-border/80 bg-card/40 hover:border-border"
+            ? "bg-card/60 border-amber-500/40 shadow-xs"
+            : "border-border/80 bg-card/40 hover:border-border shadow-xs"
       }`}
     >
       {isCurrent ? (

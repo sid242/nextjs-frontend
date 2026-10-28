@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ChangeEvent } from "react";
 import { Code2, Search } from "lucide-react";
 
 import { ColumnConfigDropdown } from "@/components/molecules/column-config-dropdown";
@@ -72,7 +72,7 @@ export function AuditLogsTable() {
     setParams({ q: val.trim() || null, page: null }, { mode: "replace", scroll: false });
   }, 250);
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
     const val = e?.target?.value ?? "";
     setSearchInput(val);
     syncSearchParam.run(val);
@@ -246,7 +246,7 @@ export function AuditLogsTable() {
       <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Platform Audit Trail</h1>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-muted-foreground text-xs">
             Immutable compliance record of internal SaaS staff operations and delegated tenant
             sessions.
           </p>
@@ -254,28 +254,30 @@ export function AuditLogsTable() {
       </div>
 
       {/* Filter and Search Bar */}
-      <Card className="border-border/80">
-        <CardHeader className="pb-3">
-          <div className="flex flex-col items-center justify-between gap-3 md:flex-row">
-            <div className="relative w-full md:w-80">
-              <Search className="text-muted-foreground absolute top-2.5 left-2.5 h-4 w-4" />
+      <Card className="border-border/80 rounded-2xl shadow-xs">
+        <CardHeader className="pb-4">
+          <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
+            <div className="relative w-full sm:flex-1">
+              <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
               <Input
-                placeholder="Search action, staff email, target ID..."
+                placeholder="Search action, staff email, target ID…"
                 value={searchInput}
                 onChange={handleSearchChange}
-                className="h-9 pl-9 text-xs"
+                className="h-10 rounded-xl pl-9 text-xs"
               />
             </div>
 
-            <div className="flex w-full items-center gap-2 md:w-auto">
+            <div className="flex w-full items-center gap-2 sm:w-auto">
               <Select value={actionFilter} onValueChange={handleActionChange}>
-                <SelectTrigger className="h-9 w-full text-xs md:w-56">
+                <SelectTrigger className="h-10 w-full rounded-xl text-xs sm:w-56">
                   <SelectValue placeholder="Action Type" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">All Actions</SelectItem>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="ALL" className="rounded-lg">
+                    All Actions
+                  </SelectItem>
                   {uniqueActions.map((act) => (
-                    <SelectItem key={act} value={act}>
+                    <SelectItem key={act} value={act} className="rounded-lg">
                       {act}
                     </SelectItem>
                   ))}
@@ -304,27 +306,29 @@ export function AuditLogsTable() {
             </div>
           ) : (
             <div>
-              <Table>
-                <TableHeader>
-                  <TableRow className="font-mono text-xs uppercase">
-                    {tableColumns.orderedVisibleColumns.map((colId) => (
-                      <TableHead
-                        key={colId}
-                        className={colId === "payload" ? "text-right" : undefined}
-                      >
-                        {AUDIT_LOG_COLUMN_LABELS[colId]}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedLogs.map((log) => (
-                    <TableRow key={log.id} className="text-xs">
-                      {tableColumns.orderedVisibleColumns.map((colId) => renderCell(colId, log))}
+              <div className="w-full overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="font-mono text-xs uppercase">
+                      {tableColumns.orderedVisibleColumns.map((colId) => (
+                        <TableHead
+                          key={colId}
+                          className={colId === "payload" ? "text-right" : undefined}
+                        >
+                          {AUDIT_LOG_COLUMN_LABELS[colId]}
+                        </TableHead>
+                      ))}
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedLogs.map((log) => (
+                      <TableRow key={log.id} className="text-xs">
+                        {tableColumns.orderedVisibleColumns.map((colId) => renderCell(colId, log))}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
               <TablePagination
                 currentPage={safePage}
                 totalPages={totalPages}
@@ -344,10 +348,10 @@ export function AuditLogsTable() {
 
       {/* JSON Payload Inspection Modal */}
       <Dialog open={Boolean(inspectLog)} onOpenChange={(open) => !open && setInspectLog(null)}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="border-border/80 rounded-2xl shadow-xl sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 font-mono text-sm">
-              <Code2 className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+              <Code2 className="size-4 text-indigo-600 dark:text-indigo-400" />
               Audit Payload &bull; {inspectLog?.action}
             </DialogTitle>
             <DialogDescription className="font-mono text-xs">
@@ -356,7 +360,7 @@ export function AuditLogsTable() {
           </DialogHeader>
 
           <div className="space-y-3 py-2">
-            <div className="bg-muted/40 max-h-80 overflow-x-auto rounded-lg border p-3 font-mono text-xs">
+            <div className="bg-muted/40 max-h-80 overflow-x-auto rounded-xl border p-3 font-mono text-xs">
               <pre className="text-foreground text-[11px] leading-relaxed">
                 {JSON.stringify(inspectLog?.metadata ?? {}, null, 2)}
               </pre>

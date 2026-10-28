@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ChangeEvent } from "react";
 import { DownloadIcon, EyeIcon, FileIcon, SearchIcon, Trash2Icon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 
@@ -56,6 +56,11 @@ const COLUMN_CONFIG: Record<FileColumnId, { label: string; className?: string }>
   actions: { label: "Actions", className: "text-right" },
 };
 
+interface FileModalState {
+  type: "preview" | "delete" | null;
+  file: FileRecord | null;
+}
+
 export function FilesTable() {
   useFileRealtime();
   const { data: tenantContext } = useTenantContext();
@@ -73,8 +78,7 @@ export function FilesTable() {
   }, [data]);
   const remove = useDeleteFile();
 
-  const [toDelete, setToDelete] = useState<FileRecord | null>(null);
-  const [previewFile, setPreviewFile] = useState<FileRecord | null>(null);
+  const [modalState, setModalState] = useState<FileModalState>({ type: null, file: null });
 
   const { get, getNumber, setParam, setParams } = useSearchQueryParams();
   const [searchInput, setSearchInput] = useState<string>(() => get("q") ?? "");
@@ -83,7 +87,7 @@ export function FilesTable() {
     setParams({ q: val.trim() || null, page: null }, { mode: "replace", scroll: false });
   }, 250);
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
     const val = e?.target?.value ?? "";
     setSearchInput(val);
     syncSearchParam.run(val);
@@ -141,7 +145,7 @@ export function FilesTable() {
           <TableCell key="name" className="max-w-64 truncate font-medium" title={file?.filename}>
             <button
               type="button"
-              onClick={() => setPreviewFile(file)}
+              onClick={() => setModalState({ type: "preview", file })}
               className="hover:text-primary max-w-full truncate text-left font-medium transition-colors hover:underline"
             >
               {file?.filename}
@@ -158,7 +162,7 @@ export function FilesTable() {
         );
       case "added":
         return (
-          <TableCell key="added" className="text-muted-foreground">
+          <TableCell key="added" className="text-muted-foreground font-mono text-xs">
             {formatDate(file?.createdAt)}
           </TableCell>
         );
@@ -169,8 +173,9 @@ export function FilesTable() {
               size="icon"
               variant="ghost"
               aria-label={`Preview ${file?.filename}`}
-              onClick={() => setPreviewFile(file)}
+              onClick={() => setModalState({ type: "preview", file })}
               title="Preview file directly"
+              className="size-8 rounded-lg"
             >
               <EyeIcon className="size-4" />
             </Button>
@@ -181,6 +186,7 @@ export function FilesTable() {
               disabled={file?.status !== "UPLOADED"}
               onClick={() => void download(file)}
               title="Download file"
+              className="size-8 rounded-lg"
             >
               <DownloadIcon className="size-4" />
             </Button>
@@ -189,8 +195,9 @@ export function FilesTable() {
                 size="icon"
                 variant="ghost"
                 aria-label={`Delete ${file?.filename}`}
-                onClick={() => setToDelete(file)}
+                onClick={() => setModalState({ type: "delete", file })}
                 title="Delete file"
+                className="text-destructive hover:text-destructive size-8 rounded-lg"
               >
                 <Trash2Icon className="size-4" />
               </Button>
@@ -204,7 +211,7 @@ export function FilesTable() {
     return (
       <div className="grid gap-2" aria-busy="true">
         {Array.from({ length: 4 }, (_, i) => (
-          <Skeleton key={i} className="h-10 w-full" />
+          <Skeleton key={i} className="h-10 w-full rounded-xl" />
         ))}
       </div>
     );
@@ -212,10 +219,10 @@ export function FilesTable() {
 
   if (isError) {
     return (
-      <Alert variant="destructive">
+      <Alert variant="destructive" className="rounded-2xl">
         <AlertDescription className="flex items-center gap-3">
           {getErrorMessage(error, "Could not load your files.")}
-          <Button size="sm" variant="outline" onClick={() => void refetch()}>
+          <Button size="sm" variant="outline" onClick={() => void refetch()} className="rounded-xl">
             Retry
           </Button>
         </AlertDescription>
@@ -238,21 +245,21 @@ export function FilesTable() {
       {/* Table Toolbar */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative max-w-xs flex-1">
-          <SearchIcon className="text-muted-foreground absolute top-2.5 left-2.5 size-3.5" />
+          <SearchIcon className="text-muted-foreground absolute top-2.5 left-3 size-3.5" />
           <Input
             placeholder="Filter files by name…"
             value={searchInput}
             onChange={handleSearchChange}
-            className="h-8 pr-7 pl-8 text-xs"
+            className="border-border/80 h-9 rounded-xl pr-7 pl-9 text-xs"
           />
           {searchInput ? (
             <button
               type="button"
               onClick={handleClearSearch}
-              className="text-muted-foreground hover:text-foreground absolute top-2 right-2 p-0.5"
+              className="text-muted-foreground hover:text-foreground absolute top-2.5 right-2.5 p-0.5"
               aria-label="Clear search"
             >
-              <XIcon className="size-3" />
+              <XIcon className="size-3.5" />
             </button>
           ) : null}
         </div>
@@ -267,7 +274,7 @@ export function FilesTable() {
       </div>
 
       {filteredFiles.length === 0 ? (
-        <div className="rounded-md border p-8 text-center">
+        <div className="border-border/80 rounded-2xl border p-8 text-center shadow-xs">
           <p className="text-sm font-medium">No files matching &ldquo;{searchInput}&rdquo;</p>
           <p className="text-muted-foreground pt-1 text-xs">
             Try adjusting your search terms or clear the filter.
@@ -275,35 +282,37 @@ export function FilesTable() {
           <Button
             size="sm"
             variant="outline"
-            className="mt-3 text-xs"
+            className="mt-3 rounded-xl text-xs"
             onClick={() => setSearchInput("")}
           >
             Clear Filter
           </Button>
         </div>
       ) : (
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                {tableColumns.orderedVisibleColumns.map((colId) => {
-                  const header = COLUMN_CONFIG[colId];
-                  return (
-                    <TableHead key={colId} className={header?.className}>
-                      {header?.label}
-                    </TableHead>
-                  );
-                })}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginatedFiles.map((file) => (
-                <TableRow key={file?.id}>
-                  {tableColumns.orderedVisibleColumns.map((colId) => renderCell(colId, file))}
+        <div className="border-border/80 overflow-hidden rounded-2xl border shadow-xs">
+          <div className="w-full overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  {tableColumns.orderedVisibleColumns.map((colId) => {
+                    const header = COLUMN_CONFIG[colId];
+                    return (
+                      <TableHead key={colId} className={header?.className}>
+                        {header?.label}
+                      </TableHead>
+                    );
+                  })}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {paginatedFiles.map((file) => (
+                  <TableRow key={file?.id}>
+                    {tableColumns.orderedVisibleColumns.map((colId) => renderCell(colId, file))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
           <TablePagination
             currentPage={safePage}
             totalPages={totalPages}
@@ -321,27 +330,28 @@ export function FilesTable() {
 
       {/* Delete Confirmation Modal */}
       <ConfirmDialog
-        open={toDelete !== null}
-        onOpenChange={(open) => !open && setToDelete(null)}
+        open={modalState.type === "delete"}
+        onOpenChange={(open) => !open && setModalState({ type: null, file: null })}
         title="Delete file?"
-        description={`"${toDelete?.filename ?? ""}" will be permanently removed.`}
+        description={`"${modalState.file?.filename ?? ""}" will be permanently removed.`}
         confirmLabel="Delete"
         destructive
         pending={remove.isPending}
         onConfirm={() => {
-          if (!toDelete) return;
-          remove.mutate(toDelete.id, {
+          if (!modalState.file) return;
+          const targetId = modalState.file.id;
+          remove.mutate(targetId, {
             onSuccess: () => toast.success("File deleted"),
-            onSettled: () => setToDelete(null),
+            onSettled: () => setModalState({ type: null, file: null }),
           });
         }}
       />
 
       {/* In-browser File Preview Modal */}
       <FilePreviewDialog
-        file={previewFile}
-        open={previewFile !== null}
-        onOpenChange={(open) => !open && setPreviewFile(null)}
+        file={modalState.file}
+        open={modalState.type === "preview"}
+        onOpenChange={(open) => !open && setModalState({ type: null, file: null })}
       />
     </div>
   );

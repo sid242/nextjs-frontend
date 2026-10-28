@@ -63,7 +63,7 @@ export function RolesMatrix() {
       <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Platform Roles &amp; Permissions</h1>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-muted-foreground text-xs">
             Canonical <code>resource::action</code> catalogue governing internal SaaS operations.
           </p>
         </div>
@@ -71,12 +71,9 @@ export function RolesMatrix() {
           permission={PLATFORM_PERMISSION_KEYS.ROLES_MANAGE}
           hideInsteadOfBanner
         >
-          <Button
-            asChild
-            className="gap-2 bg-indigo-600 text-white shadow-md shadow-indigo-600/20 hover:bg-indigo-700"
-          >
+          <Button asChild className="h-10 gap-2 rounded-xl shadow-xs">
             <Link href="/platform/roles/new">
-              <Plus className="h-4 w-4" />
+              <Plus className="size-4" />
               Create Custom Platform Role
             </Link>
           </Button>
@@ -102,16 +99,16 @@ export function RolesMatrix() {
                   <button
                     key={role.id}
                     onClick={() => setSelectedRole(role)}
-                    className={`w-full rounded-xl border p-3.5 text-left transition-all ${
+                    className={`w-full rounded-2xl border p-3.5 text-left transition-all ${
                       isSelected
-                        ? "bg-card border-indigo-500/50 shadow-md ring-1 ring-indigo-500/30"
+                        ? "bg-card border-indigo-500/50 shadow-xs ring-1 ring-indigo-500/30"
                         : "bg-card/40 border-border/80 hover:bg-card/80"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <ShieldCheck
-                          className={`h-4 w-4 ${isSelected ? "text-indigo-600 dark:text-indigo-400" : "text-muted-foreground"}`}
+                          className={`size-4 ${isSelected ? "text-indigo-600 dark:text-indigo-400" : "text-muted-foreground"}`}
                         />
                         <span className="text-xs font-semibold tracking-tight">{role.name}</span>
                       </div>
@@ -145,12 +142,14 @@ export function RolesMatrix() {
           {/* Role Detail & Permission Matrix Column */}
           <div className="md:col-span-8">
             {activeRole ? (
-              <Card className="border-border/80 bg-card/60">
+              <Card className="border-border/80 bg-card/60 rounded-2xl shadow-xs">
                 <CardHeader className="border-b pb-4">
                   <div className="flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
                     <div>
                       <div className="flex items-center gap-2">
-                        <CardTitle className="text-lg font-bold">{activeRole.name}</CardTitle>
+                        <CardTitle className="text-lg font-bold tracking-tight">
+                          {activeRole.name}
+                        </CardTitle>
                         <Badge
                           variant="outline"
                           className="border-indigo-500/30 bg-indigo-500/10 font-mono text-xs text-indigo-600 dark:text-indigo-400"
@@ -316,10 +315,10 @@ function CreatePlatformRoleDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-xl">
+      <DialogContent className="border-border/80 flex max-h-[85vh] flex-col rounded-2xl shadow-xl sm:max-w-xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <ShieldAlert className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+            <ShieldAlert className="size-5 text-indigo-600 dark:text-indigo-400" />
             Create Custom Platform Role
           </DialogTitle>
           <DialogDescription className="text-xs">
@@ -344,7 +343,7 @@ function CreatePlatformRoleDialog({
               label="Role Name"
               placeholder="Security Auditor"
               required
-              className="h-9 text-xs"
+              className="h-10 rounded-xl text-xs"
             />
 
             <ControlledInput
@@ -352,7 +351,7 @@ function CreatePlatformRoleDialog({
               label="Role Key (Uppercase & Underscores)"
               placeholder="SECURITY_AUDITOR"
               required
-              className="h-9 font-mono text-xs"
+              className="h-10 rounded-xl font-mono text-xs"
             />
           </div>
 
@@ -360,7 +359,7 @@ function CreatePlatformRoleDialog({
             name="description"
             label="Description"
             placeholder="What responsibilities does this role hold?"
-            className="h-16 resize-none text-xs"
+            className="h-16 resize-none rounded-xl text-xs"
           />
 
           <div className="space-y-3 pt-2">
@@ -372,7 +371,7 @@ function CreatePlatformRoleDialog({
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-6 px-2 text-[11px]"
+                className="h-7 rounded-lg px-2 text-[11px]"
                 onClick={() => {
                   if (selectedPermissions.length === permissions.length) {
                     methods.setValue("permissionKeys", [], { shouldValidate: true });
@@ -401,7 +400,7 @@ function CreatePlatformRoleDialog({
                       return (
                         <label
                           key={perm.id}
-                          className={`flex cursor-pointer items-start gap-2 rounded border p-2 text-xs transition-colors ${
+                          className={`flex cursor-pointer items-start gap-2 rounded-xl border p-2.5 text-xs transition-colors ${
                             isChecked
                               ? "text-foreground border-indigo-500/40 bg-indigo-500/10"
                               : "bg-card border-border/60 hover:bg-muted/40 text-muted-foreground"
@@ -430,14 +429,20 @@ function CreatePlatformRoleDialog({
           </div>
 
           <DialogFooter className="border-t pt-4">
-            <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-10 rounded-xl"
+              onClick={() => onOpenChange(false)}
+            >
               Cancel
             </Button>
             <SubmitButton
               pending={isPending}
               pendingText="Creating Role..."
               size="sm"
-              className="bg-indigo-600 text-white hover:bg-indigo-700"
+              className="h-10 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700"
             >
               Save Custom Role
             </SubmitButton>

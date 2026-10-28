@@ -77,15 +77,15 @@ function TestSendDialogContent({
   };
 
   return (
-    <DialogContent className="max-w-lg">
+    <DialogContent className="border-border/80 max-w-lg rounded-2xl shadow-xl">
       <DialogHeader>
         <div className="flex items-center gap-2">
-          <div className="bg-primary/10 text-primary flex size-9 items-center justify-center rounded-lg">
+          <div className="bg-primary/10 text-primary flex size-9 items-center justify-center rounded-xl">
             <MailIcon className="size-5" />
           </div>
           <div>
-            <DialogTitle>Send Test Email</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-base font-semibold">Send Test Email</DialogTitle>
+            <DialogDescription className="text-xs">
               Dispatch a test copy of &quot;{template.name}&quot; via tenant SMTP
             </DialogDescription>
           </div>
@@ -103,7 +103,7 @@ function TestSendDialogContent({
         />
 
         {template?.variables && template.variables.length > 0 && (
-          <div className="border-border/70 space-y-2 border-t pt-3">
+          <div className="border-border/80 space-y-2 border-t pt-3">
             <div className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
               Template Variables ({template.variables.length})
             </div>
@@ -114,7 +114,7 @@ function TestSendDialogContent({
                     {`{{${key}}}`}
                   </span>
                   <Input
-                    className="col-span-7 h-7 font-sans text-xs"
+                    className="border-border/80 col-span-7 h-8 rounded-xl font-sans text-xs"
                     value={variableValues[key] ?? ""}
                     onChange={(e) =>
                       setVariableValues((prev) => ({ ...prev, [key]: e?.target?.value ?? "" }))
@@ -133,13 +133,14 @@ function TestSendDialogContent({
             variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={testSendMutation.isPending}
+            className="border-border/80 rounded-xl text-xs"
           >
             Cancel
           </Button>
           <SubmitButton
             pending={testSendMutation.isPending}
             pendingText="Dispatching..."
-            className="gap-1.5"
+            className="gap-1.5 rounded-xl text-xs"
           >
             <SendIcon className="size-4" />
             <span>Send Test Email</span>

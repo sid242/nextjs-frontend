@@ -114,8 +114,13 @@ const SUPPORT_SESSION_COLUMN_LABELS: Record<SupportSessionColumnId, string> = {
 
 export function SupportSessionsTable() {
   const router = useRouter();
-  const [initiateDialogOpen, setInitiateDialogOpen] = useState(false);
-  const [terminateSession, setTerminateSession] = useState<PlatformSupportSession | null>(null);
+  const [modalState, setModalState] = useState<{
+    type: "initiate" | "terminate" | null;
+    session: PlatformSupportSession | null;
+  }>({
+    type: null,
+    session: null,
+  });
   const { getNumber, setParam, setParams } = useSearchQueryParams();
   const rawPage = getNumber("page", 1) ?? 1;
   const page = Math.max(1, rawPage);
@@ -242,7 +247,7 @@ export function SupportSessionsTable() {
                   <Button
                     variant="destructive"
                     size="sm"
-                    onClick={() => setTerminateSession(session)}
+                    onClick={() => setModalState({ type: "terminate", session })}
                     className="h-7 gap-1 text-xs"
                   >
                     <StopCircle className="h-3.5 w-3.5" />
@@ -262,7 +267,7 @@ export function SupportSessionsTable() {
       <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Audited Support Delegation</h1>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-muted-foreground text-xs">
             Zero-standing customer privileges: time-bound, purpose-limited, cryptographic access
             tokens.
           </p>
@@ -272,18 +277,18 @@ export function SupportSessionsTable() {
           hideInsteadOfBanner
         >
           <Button
-            onClick={() => setInitiateDialogOpen(true)}
-            className="gap-2 bg-emerald-600 text-white shadow-md shadow-emerald-600/20 hover:bg-emerald-700"
+            onClick={() => setModalState({ type: "initiate", session: null })}
+            className="h-10 gap-2 rounded-xl bg-emerald-600 text-white shadow-xs hover:bg-emerald-700"
           >
-            <LifeBuoy className="h-4 w-4" />
+            <LifeBuoy className="size-4" />
             Initiate Support Delegation
           </Button>
         </PlatformPermissionGate>
       </div>
 
       {/* Security Architecture Principle Alert */}
-      <div className="text-foreground flex items-start gap-3 rounded-xl border border-indigo-500/25 bg-indigo-500/5 p-4 text-xs">
-        <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-indigo-500" />
+      <div className="text-foreground flex items-start gap-3 rounded-2xl border border-indigo-500/25 bg-indigo-500/5 p-4 text-xs shadow-xs">
+        <ShieldCheck className="mt-0.5 size-5 shrink-0 text-indigo-500" />
         <div className="space-y-1">
           <p className="text-foreground font-semibold">
             Immutable Tenant Isolation &amp; Controlled Access
@@ -299,48 +304,50 @@ export function SupportSessionsTable() {
 
       {/* Metric Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card className="bg-card/50 border-border/80 backdrop-blur">
+        <Card className="border-border/80 rounded-2xl shadow-xs">
           <CardHeader className="pb-2">
             <CardDescription className="font-mono text-xs text-emerald-500 uppercase">
               Active Delegations
             </CardDescription>
-            <CardTitle className="flex items-center justify-between text-2xl font-bold text-emerald-500">
+            <CardTitle className="flex items-center justify-between text-2xl font-bold tracking-tight text-emerald-500">
               {activeSessions.length}
-              <Radio className="h-5 w-5 animate-pulse text-emerald-500/60" />
+              <Radio className="size-5 animate-pulse text-emerald-500/60" />
             </CardTitle>
           </CardHeader>
         </Card>
 
-        <Card className="bg-card/50 border-border/80 backdrop-blur">
+        <Card className="border-border/80 rounded-2xl shadow-xs">
           <CardHeader className="pb-2">
             <CardDescription className="font-mono text-xs uppercase">
               Total Sessions Executed
             </CardDescription>
-            <CardTitle className="flex items-center justify-between text-2xl font-bold">
+            <CardTitle className="flex items-center justify-between text-2xl font-bold tracking-tight">
               {sessionData?.total ?? 0}
-              <LifeBuoy className="text-muted-foreground/60 h-5 w-5" />
+              <LifeBuoy className="text-muted-foreground/60 size-5" />
             </CardTitle>
           </CardHeader>
         </Card>
 
-        <Card className="bg-card/50 border-border/80 backdrop-blur">
+        <Card className="border-border/80 rounded-2xl shadow-xs">
           <CardHeader className="pb-2">
             <CardDescription className="font-mono text-xs text-amber-500 uppercase">
               Max Session Window
             </CardDescription>
-            <CardTitle className="flex items-center justify-between text-2xl font-bold text-amber-500">
+            <CardTitle className="flex items-center justify-between text-2xl font-bold tracking-tight text-amber-500">
               120 min
-              <Clock className="h-5 w-5 text-amber-500/60" />
+              <Clock className="size-5 text-amber-500/60" />
             </CardTitle>
           </CardHeader>
         </Card>
       </div>
 
       {/* Sessions Table */}
-      <Card className="border-border/80">
-        <CardHeader className="flex flex-col justify-between gap-3 pb-3 sm:flex-row sm:items-center">
+      <Card className="border-border/80 rounded-2xl shadow-xs">
+        <CardHeader className="flex flex-col justify-between gap-3 pb-4 sm:flex-row sm:items-center">
           <div>
-            <CardTitle className="text-sm font-semibold">Audit Records of Tenant Support</CardTitle>
+            <CardTitle className="text-base font-semibold tracking-tight">
+              Audit Records of Tenant Support
+            </CardTitle>
             <CardDescription className="text-xs">
               Historical log of time-bound access tickets and operator justifications.
             </CardDescription>
@@ -364,46 +371,48 @@ export function SupportSessionsTable() {
             </div>
           ) : (
             <div>
-              <Table>
-                <TableHeader>
-                  <TableRow className="font-mono text-xs uppercase">
-                    {tableColumns.orderedVisibleColumns.map((colId) => (
-                      <TableHead
-                        key={colId}
-                        className={
-                          colId === "actions" ? "w-65 min-w-65 pr-4 text-right" : undefined
-                        }
-                      >
-                        {colId === "actions" ? (
-                          <div className="flex items-center justify-end gap-1">
-                            <span className="text-muted-foreground text-xs font-semibold">
-                              Actions
-                            </span>
-                            <ColumnConfigDropdown
-                              tableColumns={tableColumns}
-                              variant="ghost"
-                              size="icon"
-                              className="text-muted-foreground hover:text-foreground hover:bg-muted size-8 cursor-pointer"
-                              align="end"
-                            />
-                          </div>
-                        ) : (
-                          SUPPORT_SESSION_COLUMN_LABELS[colId]
-                        )}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedSessions.map((session) => (
-                    <TableRow key={session.id} className="text-xs">
-                      {tableColumns.orderedVisibleColumns.map((colId) =>
-                        renderCell(colId, session),
-                      )}
+              <div className="w-full overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="font-mono text-xs uppercase">
+                      {tableColumns.orderedVisibleColumns.map((colId) => (
+                        <TableHead
+                          key={colId}
+                          className={
+                            colId === "actions" ? "w-65 min-w-65 pr-4 text-right" : undefined
+                          }
+                        >
+                          {colId === "actions" ? (
+                            <div className="flex items-center justify-end gap-1">
+                              <span className="text-muted-foreground text-xs font-semibold">
+                                Actions
+                              </span>
+                              <ColumnConfigDropdown
+                                tableColumns={tableColumns}
+                                variant="ghost"
+                                size="icon"
+                                className="text-muted-foreground hover:text-foreground hover:bg-muted size-8 cursor-pointer"
+                                align="end"
+                              />
+                            </div>
+                          ) : (
+                            SUPPORT_SESSION_COLUMN_LABELS[colId]
+                          )}
+                        </TableHead>
+                      ))}
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedSessions.map((session) => (
+                      <TableRow key={session.id} className="text-xs">
+                        {tableColumns.orderedVisibleColumns.map((colId) =>
+                          renderCell(colId, session),
+                        )}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
               <TablePagination
                 currentPage={safePage}
                 totalPages={totalPages}
@@ -423,15 +432,20 @@ export function SupportSessionsTable() {
 
       {/* Initiate Session Dialog */}
       <InitiateSupportSessionDialog
-        open={initiateDialogOpen}
-        onOpenChange={setInitiateDialogOpen}
+        open={modalState.type === "initiate"}
+        onOpenChange={(open) => setModalState({ type: open ? "initiate" : null, session: null })}
       />
 
       {/* Terminate Session Dialog */}
       <TerminateSessionDialog
-        session={terminateSession}
-        open={Boolean(terminateSession)}
-        onOpenChange={(open) => !open && setTerminateSession(null)}
+        session={modalState.type === "terminate" ? modalState.session : null}
+        open={modalState.type === "terminate"}
+        onOpenChange={(open) =>
+          setModalState({
+            type: open ? "terminate" : null,
+            session: open ? modalState.session : null,
+          })
+        }
       />
     </div>
   );
@@ -482,10 +496,10 @@ function InitiateSupportSessionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="border-border/80 rounded-2xl shadow-xl sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <LifeBuoy className="h-5 w-5 text-emerald-500" />
+            <LifeBuoy className="size-5 text-emerald-500" />
             Initiate Customer Support Delegation
           </DialogTitle>
           <DialogDescription className="text-xs">
@@ -505,14 +519,14 @@ function InitiateSupportSessionDialog({
             label="Customer Tenant ID (UUID)"
             placeholder="e.g. 550e8400-e29b-41d4-a716-446655440000"
             required
-            className="h-9 font-mono text-xs"
+            className="h-10 rounded-xl font-mono text-xs"
           />
 
           <ControlledInput
             name="targetUserId"
             label="Target User ID (Optional Impersonation)"
             placeholder="Leave empty for workspace-level support, or enter target user UUID"
-            className="h-9 font-mono text-xs"
+            className="h-10 rounded-xl font-mono text-xs"
           />
 
           <ControlledTextarea
@@ -520,7 +534,7 @@ function InitiateSupportSessionDialog({
             label="Justification / Support Ticket Ref"
             placeholder="Describe ticket reference (e.g. TICKET-9421: Investigating data export failure)"
             required
-            className="h-20 resize-none text-xs"
+            className="h-20 resize-none rounded-xl text-xs"
           />
 
           <ControlledSelect
@@ -532,8 +546,8 @@ function InitiateSupportSessionDialog({
             required
           />
 
-          <div className="flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-[11px] text-amber-500">
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <div className="flex items-start gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-[11px] text-amber-500">
+            <AlertCircle className="mt-0.5 size-4 shrink-0" />
             <span>
               Session initiation is logged to the Platform Compliance Audit Trail with your staff
               identity and IP address.
@@ -541,14 +555,20 @@ function InitiateSupportSessionDialog({
           </div>
 
           <DialogFooter className="pt-2">
-            <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-10 rounded-xl"
+              onClick={() => onOpenChange(false)}
+            >
               Cancel
             </Button>
             <SubmitButton
               pending={isPending}
               pendingText="Authorizing..."
               size="sm"
-              className="bg-emerald-600 text-white hover:bg-emerald-700"
+              className="h-10 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"
             >
               Start Audited Session
             </SubmitButton>
@@ -594,10 +614,10 @@ function TerminateSessionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="border-border/80 rounded-2xl shadow-xl sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-destructive flex items-center gap-2">
-            <StopCircle className="h-5 w-5" />
+            <StopCircle className="size-5" />
             Terminate Active Support Delegation
           </DialogTitle>
           <DialogDescription className="text-xs">
@@ -617,17 +637,24 @@ function TerminateSessionDialog({
             name="outcome"
             label="Optional Outcome Resolution Notes"
             placeholder="e.g. Export job successfully restarted, ticket resolved"
-            className="h-9 text-xs"
+            className="h-10 rounded-xl text-xs"
           />
 
           <DialogFooter>
-            <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-10 rounded-xl"
+              onClick={() => onOpenChange(false)}
+            >
               Cancel
             </Button>
             <SubmitButton
               pending={isPending}
               pendingText="Terminating..."
               size="sm"
+              className="h-10 rounded-xl"
               variant="destructive"
             >
               Terminate Immediately

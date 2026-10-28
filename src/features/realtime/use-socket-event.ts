@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import { useEffect, useRef } from "react";
 
 import type { ServerToClientEvents } from "./events";
 import { useSocket } from "./use-socket";
@@ -15,13 +15,13 @@ export function useSocketEvent<E extends keyof ServerToClientEvents>(
   handler: ServerToClientEvents[E],
 ) {
   const socket = useSocket();
-  const handlerRef = React.useRef(handler);
+  const handlerRef = useRef(handler);
 
-  React.useEffect(() => {
+  useEffect(() => {
     handlerRef.current = handler;
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!socket) return;
     const listener = ((...args: unknown[]) =>
       (handlerRef.current as (...a: unknown[]) => void)(...args)) as ServerToClientEvents[E];

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import dynamic from "next/dynamic";
 import { CodeIcon, LayoutTemplateIcon, SaveIcon } from "lucide-react";
 import { useTheme } from "next-themes";
@@ -41,7 +41,7 @@ import { VariableHelper } from "./variable-helper";
 const MonacoEditor = dynamic(() => import("@monaco-editor/react").then((mod) => mod.default), {
   ssr: false,
   loading: () => (
-    <div className="bg-muted/20 flex h-[400px] w-full items-center justify-center">
+    <div className="bg-muted/20 flex h-100 w-full items-center justify-center">
       <Spinner className="text-primary size-6" />
       <span className="text-muted-foreground ml-2 text-xs">Loading Monaco Code Editor...</span>
     </div>
@@ -52,7 +52,7 @@ const MonacoEditor = dynamic(() => import("@monaco-editor/react").then((mod) => 
 const EmailEditor = dynamic(() => import("react-email-editor").then((mod) => mod.default), {
   ssr: false,
   loading: () => (
-    <div className="bg-muted/20 flex h-[500px] w-full items-center justify-center">
+    <div className="bg-muted/20 flex h-125 w-full items-center justify-center">
       <Spinner className="text-primary size-6" />
       <span className="text-muted-foreground ml-2 text-xs">Loading Visual Email Builder...</span>
     </div>
@@ -122,6 +122,20 @@ interface UnlayerExportData {
   design: Record<string, unknown>;
 }
 
+interface TemplateFormState {
+  editorMode: "code" | "visual";
+  name: string;
+  slug: string;
+  subject: string;
+  category: EmailTemplateCategory;
+  status: EmailTemplateStatus;
+  description: string;
+  senderName: string;
+  fromEmail: string;
+  replyTo: string;
+  htmlContent: string;
+}
+
 function TemplateEditorDialogContent({
   template,
   onOpenChange,
@@ -130,20 +144,20 @@ function TemplateEditorDialogContent({
   onOpenChange: (open: boolean) => void;
 }) {
   const { resolvedTheme } = useTheme();
-  const [editorMode, setEditorMode] = useState<"code" | "visual">(
-    template?.designJson ? "visual" : "code",
-  );
 
-  const [name, setName] = useState(template?.name ?? "");
-  const [slug, setSlug] = useState(template?.slug ?? "");
-  const [subject, setSubject] = useState(template?.subject ?? "");
-  const [category, setCategory] = useState<EmailTemplateCategory>(template?.category ?? "CUSTOM");
-  const [status, setStatus] = useState<EmailTemplateStatus>(template?.status ?? "DRAFT");
-  const [description, setDescription] = useState(template?.description ?? "");
-  const [senderName, setSenderName] = useState(template?.senderName ?? "");
-  const [fromEmail, setFromEmail] = useState(template?.fromEmail ?? "");
-  const [replyTo, setReplyTo] = useState(template?.replyTo ?? "");
-  const [htmlContent, setHtmlContent] = useState(template?.htmlContent ?? DEFAULT_STARTER_HTML);
+  const [formState, setFormState] = useState<TemplateFormState>({
+    editorMode: template?.designJson ? "visual" : "code",
+    name: template?.name ?? "",
+    slug: template?.slug ?? "",
+    subject: template?.subject ?? "",
+    category: template?.category ?? "CUSTOM",
+    status: template?.status ?? "DRAFT",
+    description: template?.description ?? "",
+    senderName: template?.senderName ?? "",
+    fromEmail: template?.fromEmail ?? "",
+    replyTo: template?.replyTo ?? "",
+    htmlContent: template?.htmlContent ?? DEFAULT_STARTER_HTML,
+  });
 
   const emailEditorRef = useRef<EditorRef | null>(null);
 
@@ -159,28 +173,32 @@ function TemplateEditorDialogContent({
   const isSaving = createMutation.isPending || updateMutation.isPending;
 
   const handleNameChange = (val: string) => {
-    setName(val);
-    if (
-      !isEditing &&
-      (!slug ||
-        slug ===
-          name
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/(^-|-$)/g, ""))
-    ) {
-      setSlug(
-        val
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/(^-|-$)/g, ""),
-      );
-    }
+    setFormState((prev) => {
+      const currentSlug = prev.slug;
+      const autoSlug = prev.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
+      const shouldUpdateSlug = !isEditing && (!currentSlug || currentSlug === autoSlug);
+      return {
+        ...prev,
+        name: val,
+        slug: shouldUpdateSlug
+          ? val
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "-")
+              .replace(/(^-|-$)/g, "")
+          : prev.slug,
+      };
+    });
   };
 
   const handleInsertVariable = (variableKey: string) => {
     const mergeTag = `{{${variableKey}}}`;
-    setHtmlContent((prev) => prev + mergeTag);
+    setFormState((prev) => ({
+      ...prev,
+      htmlContent: prev.htmlContent + mergeTag,
+    }));
   };
 
   const handleVisualEditorReady = () => {
@@ -193,22 +211,22 @@ function TemplateEditorDialogContent({
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!name || !subject) return;
+    if (!formState.name || !formState.subject) return;
 
-    if (editorMode === "visual" && emailEditorRef.current?.editor) {
+    if (formState.editorMode === "visual" && emailEditorRef.current?.editor) {
       emailEditorRef.current.editor.exportHtml(async (data: UnlayerExportData) => {
         const payload: CreateEmailTemplateInput = {
-          name,
-          slug: slug || undefined,
-          subject,
-          category,
-          status,
-          description: description || undefined,
-          senderName: senderName || undefined,
-          fromEmail: fromEmail || undefined,
-          replyTo: replyTo || undefined,
+          name: formState.name,
+          slug: formState.slug || undefined,
+          subject: formState.subject,
+          category: formState.category,
+          status: formState.status,
+          description: formState.description || undefined,
+          senderName: formState.senderName || undefined,
+          fromEmail: formState.fromEmail || undefined,
+          replyTo: formState.replyTo || undefined,
           htmlContent: data.html,
           designJson: data.design,
         };
@@ -221,16 +239,16 @@ function TemplateEditorDialogContent({
       });
     } else {
       const payload: CreateEmailTemplateInput = {
-        name,
-        slug: slug || undefined,
-        subject,
-        category,
-        status,
-        description: description || undefined,
-        senderName: senderName || undefined,
-        fromEmail: fromEmail || undefined,
-        replyTo: replyTo || undefined,
-        htmlContent,
+        name: formState.name,
+        slug: formState.slug || undefined,
+        subject: formState.subject,
+        category: formState.category,
+        status: formState.status,
+        description: formState.description || undefined,
+        senderName: formState.senderName || undefined,
+        fromEmail: formState.fromEmail || undefined,
+        replyTo: formState.replyTo || undefined,
+        htmlContent: formState.htmlContent,
         designJson: undefined,
       };
 
@@ -243,37 +261,37 @@ function TemplateEditorDialogContent({
   };
 
   return (
-    <DialogContent className="flex max-h-[94vh] max-w-7xl flex-col overflow-hidden p-0">
-      <DialogHeader className="border-border bg-card border-b px-6 py-3.5">
+    <DialogContent className="border-border/80 bg-background flex max-h-[94vh] max-w-7xl flex-col overflow-hidden rounded-2xl p-0 shadow-2xl">
+      <DialogHeader className="border-border/80 bg-card/60 border-b px-6 py-3.5 backdrop-blur-xs">
         <div className="flex items-center justify-between">
           <div>
-            <DialogTitle className="text-base font-semibold">
+            <DialogTitle className="text-foreground text-base font-semibold">
               {isEditing ? `Edit Template: ${template?.name}` : "Create Email Template"}
             </DialogTitle>
-            <DialogDescription className="text-xs">
+            <DialogDescription className="text-muted-foreground text-xs">
               Build with Monaco Code Editor or Visual Drag & Drop Builder with live responsive
               preview
             </DialogDescription>
           </div>
 
           {/* Mode Switcher */}
-          <div className="border-border bg-muted/40 flex items-center rounded-lg border p-1">
+          <div className="border-border/80 bg-muted/50 flex items-center rounded-xl border p-1 shadow-xs">
             <Button
               type="button"
-              variant={editorMode === "code" ? "secondary" : "ghost"}
+              variant={formState.editorMode === "code" ? "secondary" : "ghost"}
               size="sm"
-              onClick={() => setEditorMode("code")}
-              className="h-7 gap-1.5 px-3 text-xs"
+              onClick={() => setFormState((prev) => ({ ...prev, editorMode: "code" }))}
+              className="h-7.5 gap-1.5 rounded-lg px-3 text-xs"
             >
               <CodeIcon className="size-3.5" />
               <span>Monaco Code</span>
             </Button>
             <Button
               type="button"
-              variant={editorMode === "visual" ? "secondary" : "ghost"}
+              variant={formState.editorMode === "visual" ? "secondary" : "ghost"}
               size="sm"
-              onClick={() => setEditorMode("visual")}
-              className="h-7 gap-1.5 px-3 text-xs"
+              onClick={() => setFormState((prev) => ({ ...prev, editorMode: "visual" }))}
+              className="h-7.5 gap-1.5 rounded-lg px-3 text-xs"
             >
               <LayoutTemplateIcon className="size-3.5" />
               <span>Visual Drag & Drop</span>
@@ -284,56 +302,58 @@ function TemplateEditorDialogContent({
 
       <form onSubmit={handleSubmit} className="flex flex-1 flex-col overflow-hidden">
         {/* Top Metadata Row */}
-        <div className="border-border bg-muted/10 border-b px-6 py-3">
+        <div className="border-border/80 bg-muted/15 border-b px-6 py-3.5">
           <div className="grid grid-cols-12 items-center gap-3">
-            <div className="col-span-3 space-y-1">
-              <Label htmlFor="tpl-name" className="text-xs">
+            <div className="col-span-12 space-y-1 sm:col-span-3">
+              <Label htmlFor="tpl-name" className="text-muted-foreground text-xs font-medium">
                 Template Name *
               </Label>
               <Input
                 id="tpl-name"
                 required
-                className="h-8 text-xs"
+                className="border-border/80 h-9 rounded-xl text-xs"
                 placeholder="e.g. Welcome Brochure"
-                value={name}
+                value={formState.name}
                 onChange={(e) => handleNameChange(e.target.value)}
               />
             </div>
-            <div className="col-span-2 space-y-1">
-              <Label htmlFor="tpl-slug" className="text-xs">
+            <div className="col-span-12 space-y-1 sm:col-span-2">
+              <Label htmlFor="tpl-slug" className="text-muted-foreground text-xs font-medium">
                 Slug (Identifier)
               </Label>
               <Input
                 id="tpl-slug"
-                className="h-8 font-mono text-xs"
+                className="border-border/80 h-9 rounded-xl font-mono text-xs"
                 placeholder="welcome-brochure"
-                value={slug}
-                onChange={(e) => setSlug(e.target.value)}
+                value={formState.slug}
+                onChange={(e) => setFormState((prev) => ({ ...prev, slug: e.target.value }))}
               />
             </div>
-            <div className="col-span-3 space-y-1">
-              <Label htmlFor="tpl-subject" className="text-xs">
+            <div className="col-span-12 space-y-1 sm:col-span-3">
+              <Label htmlFor="tpl-subject" className="text-muted-foreground text-xs font-medium">
                 Email Subject Line *
               </Label>
               <Input
                 id="tpl-subject"
                 required
-                className="h-8 text-xs"
+                className="border-border/80 h-9 rounded-xl text-xs"
                 placeholder="e.g. Welcome to {{project_name}}!"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
+                value={formState.subject}
+                onChange={(e) => setFormState((prev) => ({ ...prev, subject: e.target.value }))}
               />
             </div>
-            <div className="col-span-2 space-y-1">
-              <Label className="text-xs">Category</Label>
+            <div className="col-span-12 space-y-1 sm:col-span-2">
+              <Label className="text-muted-foreground text-xs font-medium">Category</Label>
               <Select
-                value={category}
-                onValueChange={(v) => setCategory(v as EmailTemplateCategory)}
+                value={formState.category}
+                onValueChange={(v) =>
+                  setFormState((prev) => ({ ...prev, category: v as EmailTemplateCategory }))
+                }
               >
-                <SelectTrigger className="h-8 text-xs">
+                <SelectTrigger className="border-border/80 h-9 rounded-xl text-xs">
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="border-border/80 rounded-xl shadow-md">
                   {CATEGORY_SELECT_OPTIONS?.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
@@ -342,13 +362,18 @@ function TemplateEditorDialogContent({
                 </SelectContent>
               </Select>
             </div>
-            <div className="col-span-2 space-y-1">
-              <Label className="text-xs">Status</Label>
-              <Select value={status} onValueChange={(v) => setStatus(v as EmailTemplateStatus)}>
-                <SelectTrigger className="h-8 text-xs">
+            <div className="col-span-12 space-y-1 sm:col-span-2">
+              <Label className="text-muted-foreground text-xs font-medium">Status</Label>
+              <Select
+                value={formState.status}
+                onValueChange={(v) =>
+                  setFormState((prev) => ({ ...prev, status: v as EmailTemplateStatus }))
+                }
+              >
+                <SelectTrigger className="border-border/80 h-9 rounded-xl text-xs">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="border-border/80 rounded-xl shadow-md">
                   {STATUS_SELECT_OPTIONS?.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
@@ -358,72 +383,77 @@ function TemplateEditorDialogContent({
               </Select>
             </div>
           </div>
-          <div className="mt-2 grid grid-cols-12 gap-3">
-            <div className="col-span-4 space-y-1">
-              <Label htmlFor="tpl-sender-name" className="text-xs">
+          <div className="mt-2.5 grid grid-cols-12 gap-3">
+            <div className="col-span-12 space-y-1 sm:col-span-4">
+              <Label
+                htmlFor="tpl-sender-name"
+                className="text-muted-foreground text-xs font-medium"
+              >
                 Sender Name
               </Label>
               <Input
                 id="tpl-sender-name"
-                className="h-8 text-xs"
+                className="border-border/80 h-9 rounded-xl text-xs"
                 placeholder="e.g. Savitara Support"
-                value={senderName}
-                onChange={(e) => setSenderName(e.target.value)}
+                value={formState.senderName}
+                onChange={(e) => setFormState((prev) => ({ ...prev, senderName: e.target.value }))}
               />
             </div>
-            <div className="col-span-4 space-y-1">
-              <Label htmlFor="tpl-from-email" className="text-xs">
+            <div className="col-span-12 space-y-1 sm:col-span-4">
+              <Label htmlFor="tpl-from-email" className="text-muted-foreground text-xs font-medium">
                 From Email
               </Label>
               <Input
                 id="tpl-from-email"
                 type="email"
-                className="h-8 font-mono text-xs"
+                className="border-border/80 h-9 rounded-xl font-mono text-xs"
                 placeholder="e.g. alerts@savitara.com"
-                value={fromEmail}
-                onChange={(e) => setFromEmail(e.target.value)}
+                value={formState.fromEmail}
+                onChange={(e) => setFormState((prev) => ({ ...prev, fromEmail: e.target.value }))}
               />
             </div>
-            <div className="col-span-4 space-y-1">
-              <Label htmlFor="tpl-reply-to" className="text-xs">
+            <div className="col-span-12 space-y-1 sm:col-span-4">
+              <Label htmlFor="tpl-reply-to" className="text-muted-foreground text-xs font-medium">
                 Reply-To
               </Label>
               <Input
                 id="tpl-reply-to"
                 type="email"
-                className="h-8 font-mono text-xs"
+                className="border-border/80 h-9 rounded-xl font-mono text-xs"
                 placeholder="e.g. billing@savitara.com"
-                value={replyTo}
-                onChange={(e) => setReplyTo(e.target.value)}
+                value={formState.replyTo}
+                onChange={(e) => setFormState((prev) => ({ ...prev, replyTo: e.target.value }))}
               />
             </div>
           </div>
-          <div className="mt-2">
+          <div className="mt-2.5">
             <Input
               id="tpl-desc"
-              className="text-muted-foreground placeholder:text-muted-foreground/60 h-7 text-xs"
+              className="text-muted-foreground placeholder:text-muted-foreground/60 border-border/80 h-8 rounded-xl text-xs"
               placeholder="Internal description or usage note (optional)..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              value={formState.description}
+              onChange={(e) => setFormState((prev) => ({ ...prev, description: e.target.value }))}
             />
           </div>
         </div>
 
         {/* Editor Main Content Area */}
         <div className="flex-1 overflow-hidden">
-          {editorMode === "code" ? (
-            <div className="divide-border grid h-full grid-cols-12 divide-x">
+          {formState.editorMode === "code" ? (
+            <div className="divide-border/80 grid h-full grid-cols-12 divide-x">
               {/* Left Column: Variable helper + Monaco Editor */}
-              <div className="col-span-7 flex h-full flex-col space-y-3 overflow-hidden p-4">
+              <div className="col-span-12 flex h-full flex-col space-y-3 overflow-hidden p-4 lg:col-span-7">
                 <VariableHelper onInsert={handleInsertVariable} />
 
-                <div className="border-border bg-background flex-1 overflow-hidden rounded-md border">
+                <div className="border-border/80 bg-background flex-1 overflow-hidden rounded-xl border shadow-xs">
                   <MonacoEditor
                     height="100%"
                     language="html"
                     theme={resolvedTheme === "dark" ? "vs-dark" : "vs-light"}
-                    value={htmlContent}
-                    onChange={(val) => setHtmlContent(val ?? "")}
+                    value={formState.htmlContent}
+                    onChange={(val) =>
+                      setFormState((prev) => ({ ...prev, htmlContent: val ?? "" }))
+                    }
                     options={{
                       minimap: { enabled: false },
                       fontSize: 12,
@@ -438,13 +468,13 @@ function TemplateEditorDialogContent({
               </div>
 
               {/* Right Column: Live Responsive Preview */}
-              <div className="bg-muted/10 col-span-5 flex flex-col overflow-y-auto p-4">
+              <div className="bg-muted/10 col-span-12 flex flex-col overflow-y-auto p-4 lg:col-span-5">
                 <DevicePreview
-                  htmlContent={htmlContent}
-                  subject={subject}
-                  senderName={senderName}
-                  fromEmail={fromEmail}
-                  replyTo={replyTo}
+                  htmlContent={formState.htmlContent}
+                  subject={formState.subject}
+                  senderName={formState.senderName}
+                  fromEmail={formState.fromEmail}
+                  replyTo={formState.replyTo}
                   className="flex-1"
                 />
               </div>
@@ -453,7 +483,7 @@ function TemplateEditorDialogContent({
             /* Visual Builder Mode using Unlayer */
             <div className="flex h-full flex-col space-y-2 overflow-hidden p-4">
               <VariableHelper onInsert={handleInsertVariable} />
-              <div className="border-border bg-background flex-1 overflow-hidden rounded-md border">
+              <div className="border-border/80 bg-background flex-1 overflow-hidden rounded-xl border shadow-xs">
                 <EmailEditor
                   ref={emailEditorRef}
                   onReady={handleVisualEditorReady}
@@ -465,14 +495,14 @@ function TemplateEditorDialogContent({
         </div>
 
         {/* Footer */}
-        <DialogFooter className="border-border bg-muted/20 flex items-center justify-between border-t px-6 py-2.5">
+        <DialogFooter className="border-border/80 bg-muted/20 flex items-center justify-between border-t px-6 py-2.5">
           <div className="text-muted-foreground text-xs">
             Mode:{" "}
-            <span className="font-semibold">
-              {editorMode === "code" ? "Monaco Editor" : "Visual Builder"}
+            <span className="text-foreground font-semibold">
+              {formState.editorMode === "code" ? "Monaco Editor" : "Visual Builder"}
             </span>{" "}
-            • {htmlContent.length} chars • Merge tags:{" "}
-            {htmlContent.match(/\{\{([a-zA-Z0-9_]+)\}\}/g)?.length || 0}
+            • {formState.htmlContent.length} chars • Merge tags:{" "}
+            {formState.htmlContent.match(/\{\{([a-zA-Z0-9_]+)\}\}/g)?.length || 0}
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -481,14 +511,15 @@ function TemplateEditorDialogContent({
               size="sm"
               onClick={() => onOpenChange(false)}
               disabled={isSaving}
+              className="border-border/80 rounded-xl"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               size="sm"
-              disabled={isSaving || !name || !subject}
-              className="gap-1.5"
+              disabled={isSaving || !formState.name || !formState.subject}
+              className="gap-1.5 rounded-xl"
             >
               {isSaving ? (
                 <>

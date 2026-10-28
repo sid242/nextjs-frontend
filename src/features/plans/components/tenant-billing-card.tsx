@@ -66,7 +66,7 @@ export function TenantBillingCard() {
 
   return (
     <>
-      <Card className="border-border/80 bg-card/40 shadow-sm">
+      <Card className="border-border/80 bg-card/50 rounded-2xl shadow-xs">
         <CardHeader className="pb-4">
           <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
             <div>
@@ -90,7 +90,7 @@ export function TenantBillingCard() {
             <Button
               size="sm"
               onClick={() => setChangeDialogOpen(true)}
-              className="gap-1.5 text-xs shadow-sm"
+              className="h-10 gap-1.5 rounded-xl text-xs shadow-xs"
             >
               <Sparkles className="h-3.5 w-3.5 text-amber-400" />
               Upgrade / Switch Plan
@@ -101,7 +101,7 @@ export function TenantBillingCard() {
 
         <CardContent className="space-y-6">
           {/* Plan Highlight Banner */}
-          <div className="border-border/60 bg-muted/30 flex flex-col justify-between gap-4 rounded-xl border p-4 sm:flex-row sm:items-center">
+          <div className="border-border/80 bg-muted/30 flex flex-col justify-between gap-4 rounded-xl border p-4 sm:flex-row sm:items-center">
             <div className="flex items-center gap-3">
               <div className="bg-primary/10 text-primary flex size-10 items-center justify-center rounded-xl">
                 <CreditCard className="size-5" />

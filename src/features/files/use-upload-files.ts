@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import { useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -71,7 +71,7 @@ async function uploadOne(id: string, file: File, onUploaded: () => void): Promis
 export function useUploadFiles() {
   const queryClient = useQueryClient();
 
-  return React.useCallback(
+  return useCallback(
     async (files: File[]) => {
       const batch = files.slice(0, MAX_FILES_PER_BATCH);
       if (files.length > batch.length)

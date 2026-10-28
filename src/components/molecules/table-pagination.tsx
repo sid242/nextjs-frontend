@@ -127,10 +127,13 @@ export function TablePagination({
                 }
               }}
             >
-              <SelectTrigger className="h-8 w-[72px] font-mono text-xs" aria-label="Rows per page">
+              <SelectTrigger
+                className="h-8 w-18 rounded-lg font-mono text-xs"
+                aria-label="Rows per page"
+              >
                 <SelectValue placeholder={String(pageSize)} />
               </SelectTrigger>
-              <SelectContent side="top">
+              <SelectContent side="top" className="border-border/80 rounded-xl shadow-md">
                 {pageSizeOptions?.map((size) => (
                   <SelectItem key={size} value={String(size)} className="font-mono text-xs">
                     {size}

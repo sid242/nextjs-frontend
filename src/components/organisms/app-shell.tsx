@@ -29,7 +29,7 @@ interface AppShellProps {
   /** Custom navigation slot for desktop sidebar (e.g. Tenant-aware navigation) */
   navigationSlot?: ReactNode;
   /** Custom navigation slot for mobile drawer */
-  mobileNavigationSlot?: ((props: { onNavigate: () => void }) => ReactNode) | ReactNode;
+  mobileNavigationSlot?: ReactNode;
 }
 
 /**

@@ -89,16 +89,16 @@ export function InvoicesTable() {
 
   return (
     <>
-      <Card className="border-border shadow-xs">
+      <Card className="border-border/80 rounded-2xl shadow-xs">
         <CardHeader className="gap-y-3 pb-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
-              <div className="bg-primary/10 text-primary flex h-9 w-9 items-center justify-center rounded-lg">
-                <Receipt className="h-5 w-5" />
+              <div className="bg-primary/10 text-primary flex size-9 items-center justify-center rounded-xl">
+                <Receipt className="size-5" />
               </div>
               <div>
-                <CardTitle className="text-base font-semibold">
-                  Billing Invoices & History
+                <CardTitle className="text-base font-semibold tracking-tight">
+                  Billing Invoices &amp; History
                 </CardTitle>
                 <CardDescription className="text-muted-foreground text-xs">
                   View past statements, itemized receipts, and tax invoices for this workspace.
@@ -108,7 +108,7 @@ export function InvoicesTable() {
 
             {/* Status Filter Badges */}
             <div className="flex flex-wrap items-center gap-1.5 pt-1 sm:pt-0">
-              <Filter className="text-muted-foreground mr-1 h-3.5 w-3.5" />
+              <Filter className="text-muted-foreground mr-1 size-3.5" />
               {(["ALL", "PAID", "OPEN", "DRAFT"] as const).map((tab) => {
                 const isSelected = activeStatusTab === tab;
                 return (
@@ -116,7 +116,7 @@ export function InvoicesTable() {
                     key={tab}
                     variant={isSelected ? "default" : "outline"}
                     size="sm"
-                    className="h-7 px-2.5 text-xs font-medium"
+                    className="h-8 rounded-lg px-2.5 text-xs font-medium"
                     onClick={() => {
                       setActiveStatusTab(tab);
                       setParam("page", 1);
@@ -272,10 +272,10 @@ export function InvoicesTable() {
         open={Boolean(selectedInvoice)}
         onOpenChange={(open) => !open && setSelectedInvoice(null)}
       >
-        <DialogContent className="max-w-lg">
+        <DialogContent className="border-border/80 max-w-lg rounded-2xl shadow-xl">
           <DialogHeader>
             <DialogTitle id={dialogTitleId} className="flex items-center gap-2">
-              <Receipt className="text-primary h-5 w-5" />
+              <Receipt className="text-primary size-5" />
               Invoice {selectedInvoice?.invoiceNumber}
             </DialogTitle>
             <DialogDescription className="text-xs">
@@ -285,7 +285,7 @@ export function InvoicesTable() {
 
           {selectedInvoice ? (
             <div className="space-y-4 pt-2">
-              <div className="border-border bg-muted/30 grid grid-cols-2 gap-3 rounded-lg border p-3 text-xs">
+              <div className="border-border/70 bg-muted/30 grid grid-cols-2 gap-3 rounded-xl border p-3 text-xs">
                 <div>
                   <span className="text-muted-foreground">Status</span>
                   <div className="text-foreground mt-1 font-semibold">
