@@ -96,13 +96,23 @@ authHttp.interceptors.response.use(
   },
 );
 
+interface ApiResponseEnvelope<T> {
+  success?: boolean;
+  data: T;
+  message?: string;
+}
+
+function isApiEnvelope<T>(body: unknown): body is ApiResponseEnvelope<T> {
+  return typeof body === "object" && body !== null && "data" in body;
+}
+
 function createApi(instance: AxiosInstance) {
   const unwrap = <T>(res: AxiosResponse<T>): T => {
-    if (res.status === 204) return undefined as T;
-    const body = res.data as { success?: boolean; data?: T; message?: string } | T;
-    if (body && typeof body === "object" && "success" in body && "data" in body) {
-      const data = (body as { data: T }).data;
-      const envelopeMessage = (body as { message?: string }).message;
+    if (res?.status === 204) return undefined as T;
+    const body = res?.data;
+    if (isApiEnvelope<T>(body)) {
+      const data = body.data;
+      const envelopeMessage = body.message;
       if (Array.isArray(data)) {
         return data as T;
       }
