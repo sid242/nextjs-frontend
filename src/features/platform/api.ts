@@ -365,3 +365,119 @@ export async function updatePlatformTenantSubscription(
 ): Promise<Record<string, unknown>> {
   return api.patch<Record<string, unknown>>(`/platform/tenants/${tenantId}/subscription`, input);
 }
+
+// ==========================================
+// 7. Dedicated Database Lifecycle & Health
+// ==========================================
+
+export interface TenantDbHealth {
+  healthy: boolean;
+  databaseMode: string;
+  databaseKey?: string;
+  databaseName?: string;
+  latencyMs: number;
+  error?: string;
+}
+
+export async function getTenantDatabaseHealth(
+  tenantId: string,
+  signal?: AbortSignal,
+): Promise<TenantDbHealth> {
+  return api.get<TenantDbHealth>(`/platform/tenants/${tenantId}/database/health`, { signal });
+}
+
+export interface MigrateTenantDatabaseInput {
+  customDatabaseName?: string;
+  poolLimit?: number;
+  connectionUrl?: string;
+}
+
+export interface MigrateTenantDatabaseResult {
+  tenant: PlatformTenant;
+  databaseName: string;
+  databaseKey: string;
+  recordsMigrated: Record<string, number>;
+}
+
+export async function migrateTenantDatabase(
+  tenantId: string,
+  input?: MigrateTenantDatabaseInput,
+): Promise<MigrateTenantDatabaseResult> {
+  return api.post<MigrateTenantDatabaseResult>(
+    `/platform/tenants/${tenantId}/database/migrate-to-dedicated`,
+    input ?? {},
+  );
+}
+
+export interface RollbackTenantDatabaseResult {
+  tenant: PlatformTenant;
+  previousDatabaseKey: string;
+  rolledBackAt: string;
+}
+
+export async function rollbackTenantDatabase(
+  tenantId: string,
+): Promise<RollbackTenantDatabaseResult> {
+  return api.post<RollbackTenantDatabaseResult>(
+    `/platform/tenants/${tenantId}/database/rollback-to-shared`,
+    {},
+  );
+}
+
+// ==========================================
+// 7. Dedicated Database Lifecycle & Health
+// ==========================================
+
+export interface TenantDbHealth {
+  healthy: boolean;
+  databaseMode: string;
+  databaseKey?: string;
+  databaseName?: string;
+  latencyMs: number;
+  error?: string;
+}
+
+export async function getTenantDatabaseHealth(
+  tenantId: string,
+  signal?: AbortSignal,
+): Promise<TenantDbHealth> {
+  return api.get<TenantDbHealth>(`/platform/tenants/${tenantId}/database/health`, { signal });
+}
+
+export interface MigrateTenantDatabaseInput {
+  customDatabaseName?: string;
+  poolLimit?: number;
+  connectionUrl?: string;
+}
+
+export interface MigrateTenantDatabaseResult {
+  tenant: PlatformTenant;
+  databaseName: string;
+  databaseKey: string;
+  recordsMigrated: Record<string, number>;
+}
+
+export async function migrateTenantDatabase(
+  tenantId: string,
+  input?: MigrateTenantDatabaseInput,
+): Promise<MigrateTenantDatabaseResult> {
+  return api.post<MigrateTenantDatabaseResult>(
+    `/platform/tenants/${tenantId}/database/migrate-to-dedicated`,
+    input ?? {},
+  );
+}
+
+export interface RollbackTenantDatabaseResult {
+  tenant: PlatformTenant;
+  previousDatabaseKey: string;
+  rolledBackAt: string;
+}
+
+export async function rollbackTenantDatabase(
+  tenantId: string,
+): Promise<RollbackTenantDatabaseResult> {
+  return api.post<RollbackTenantDatabaseResult>(
+    `/platform/tenants/${tenantId}/database/rollback-to-shared`,
+    {},
+  );
+}

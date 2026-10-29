@@ -21,11 +21,14 @@ import {
   getPlatformUsers,
   getStaffMembers,
   getSupportSessions,
+  getTenantDatabaseHealth,
   getTenantMembers,
   loginPlatformStaff,
   logoutPlatformStaff,
+  migrateTenantDatabase,
   provisionTenant,
   resetStaffMemberPassword,
+  rollbackTenantDatabase,
   setupPlatformTwoFactor,
   startSupportSession,
   suspendStaffMember,
@@ -36,6 +39,7 @@ import {
   updatePlatformUserStatus,
   updateStaffMember,
   verifyPlatformTwoFactor,
+  type MigrateTenantDatabaseInput,
 } from "./api";
 import { platformKeys } from "./keys";
 import type {
@@ -491,6 +495,48 @@ export function useUpdatePlatformTenantSubscription(tenantId: string) {
       updatePlatformTenantSubscription(tenantId, input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: platformKeys.tenantDetail(tenantId) });
+      queryClient.invalidateQueries({ queryKey: platformKeys.tenants() });
+    },
+  });
+}
+
+// ==========================================
+// 8. Tenant Dedicated Database Lifecycle Hooks
+// ==========================================
+
+export const tenantDbHealthQueryOptions = (tenantId: string) =>
+  queryOptions({
+    queryKey: platformKeys.tenantDbHealth(tenantId),
+    queryFn: ({ signal }) => getTenantDatabaseHealth(tenantId, signal),
+    staleTime: 10_000,
+  });
+
+export function useTenantDbHealth(tenantId: string, enabled = false) {
+  return useQuery({
+    ...tenantDbHealthQueryOptions(tenantId),
+    enabled: Boolean(tenantId) && enabled,
+  });
+}
+
+export function useMigrateTenantDatabase(tenantId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input?: MigrateTenantDatabaseInput) => migrateTenantDatabase(tenantId, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: platformKeys.tenantDetail(tenantId) });
+      queryClient.invalidateQueries({ queryKey: platformKeys.tenantDbHealth(tenantId) });
+      queryClient.invalidateQueries({ queryKey: platformKeys.tenants() });
+    },
+  });
+}
+
+export function useRollbackTenantDatabase(tenantId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => rollbackTenantDatabase(tenantId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: platformKeys.tenantDetail(tenantId) });
+      queryClient.invalidateQueries({ queryKey: platformKeys.tenantDbHealth(tenantId) });
       queryClient.invalidateQueries({ queryKey: platformKeys.tenants() });
     },
   });

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import {
+  Activity,
   ArrowLeft,
   Building2,
   Clock,
@@ -49,10 +50,13 @@ import { cn } from "@/lib/utils";
 
 import {
   useActivateTenant,
+  useMigrateTenantDatabase,
   usePlatformTenant,
   usePlatformTenantMembers,
+  useRollbackTenantDatabase,
   useStartSupportSession,
   useSuspendTenant,
+  useTenantDbHealth,
   useUpdatePlatformTenantSubscription,
 } from "../queries";
 import type { PlatformTenantMember } from "../schemas";
@@ -70,9 +74,20 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
     useUpdatePlatformTenantSubscription(tenantId);
   const { mutateAsync: startSupportSession, isPending: isStartingSupport } =
     useStartSupportSession();
+  const { mutateAsync: migrateTenantDb, isPending: isMigratingDb } =
+    useMigrateTenantDatabase(tenantId);
+  const { mutateAsync: rollbackTenantDb, isPending: isRollingBackDb } =
+    useRollbackTenantDatabase(tenantId);
+  const [healthChecked, setHealthChecked] = useState(false);
+  const {
+    data: dbHealth,
+    isFetching: isCheckingHealth,
+    refetch: refetchHealth,
+  } = useTenantDbHealth(tenantId, healthChecked);
+  const [customDbName, setCustomDbName] = useState("");
 
   const [modalState, setModalState] = useState<{
-    type: "suspend" | "support" | "editSeats" | null;
+    type: "suspend" | "support" | "editSeats" | "migrateDb" | "rollbackDb" | null;
     reason: string;
     targetMember: PlatformTenantMember | null;
     seatCount: number;
@@ -186,6 +201,44 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
     }
   };
 
+  const handleCheckHealth = async () => {
+    setHealthChecked(true);
+    try {
+      const res = await refetchHealth();
+      if (res?.data?.healthy) {
+        toast.success(`Database connected (${res.data.latencyMs}ms)`);
+      } else {
+        toast.error(`Database check failed: ${res?.data?.error ?? "Unreachable"}`);
+      }
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    }
+  };
+
+  const handleMigrateToDedicated = async () => {
+    try {
+      const result = await migrateTenantDb({
+        customDatabaseName: customDbName.trim() ? customDbName.trim() : undefined,
+      });
+      toast.success(
+        `Workspace migrated to dedicated database: ${result?.databaseName ?? "dedicated"}`,
+      );
+      setModalState((prev) => ({ ...prev, type: null }));
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    }
+  };
+
+  const handleRollbackToShared = async () => {
+    try {
+      await rollbackTenantDb();
+      toast.success("Workspace successfully rolled back to shared database cluster");
+      setModalState((prev) => ({ ...prev, type: null }));
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    }
+  };
+
   const handleSaveSeats = async () => {
     try {
       await updateSubscription({ seatCount: Number(modalState.seatCount) });
@@ -291,6 +344,50 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
                   ? "Enterprise isolated database schema"
                   : "Shared PostgreSQL with tenantId isolation"}
               </p>
+
+              <div className="border-border/50 mt-2.5 flex flex-wrap items-center gap-2 border-t pt-2.5">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 gap-1.5 rounded-lg text-[11px]"
+                  disabled={isCheckingHealth}
+                  onClick={handleCheckHealth}
+                >
+                  <Activity className="size-3 text-emerald-500" />
+                  {isCheckingHealth ? "Checking…" : "Check Health"}
+                </Button>
+
+                {tenant.databaseMode === "shared" ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 gap-1.5 rounded-lg border-indigo-500/30 text-[11px] text-indigo-600 hover:bg-indigo-500/10 dark:text-indigo-400"
+                    onClick={() => {
+                      setCustomDbName(`tenant_${tenant.slug.replace(/[^a-z0-9_]/g, "_")}`);
+                      setModalState((prev) => ({ ...prev, type: "migrateDb" }));
+                    }}
+                  >
+                    <Database className="size-3 text-indigo-500" />
+                    Migrate to Dedicated
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 gap-1.5 rounded-lg border-amber-500/30 text-[11px] text-amber-600 hover:bg-amber-500/10 dark:text-amber-400"
+                    onClick={() => setModalState((prev) => ({ ...prev, type: "rollbackDb" }))}
+                  >
+                    <Database className="size-3 text-amber-500" />
+                    Rollback to Shared
+                  </Button>
+                )}
+
+                {dbHealth && (
+                  <span className="text-muted-foreground font-mono text-[10px]">
+                    Ping: {dbHealth.latencyMs}ms ({dbHealth.databaseMode})
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="border-border/70 rounded-xl border p-3">
@@ -709,6 +806,101 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
                 : modalState.targetMember
                   ? "Impersonate & Enter Dashboard"
                   : "Start Support Session"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Migrate to Dedicated Database Dialog */}
+      <Dialog
+        open={modalState.type === "migrateDb"}
+        onOpenChange={(open) =>
+          setModalState((prev) => ({ ...prev, type: open ? "migrateDb" : null }))
+        }
+      >
+        <DialogContent className="border-border/80 rounded-2xl shadow-xl sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Database className="size-5 text-indigo-500" /> Migrate to Dedicated Database
+            </DialogTitle>
+            <DialogDescription>
+              Provisions an isolated PostgreSQL database, migrates all tenant data (members,
+              subscriptions, invoices, branding), and switches database routing.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            <div>
+              <Label htmlFor="custom-db-name" className="text-xs font-semibold">
+                Database Name
+              </Label>
+              <Input
+                id="custom-db-name"
+                value={customDbName}
+                onChange={(e) => setCustomDbName(e?.target?.value ?? "")}
+                className="h-10 rounded-xl font-mono text-xs"
+                placeholder="tenant_custom_name"
+              />
+              <p className="text-muted-foreground mt-1 text-[11px]">
+                Must start with a letter/underscore and contain 2-63 alphanumeric characters.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              className="h-10 rounded-xl"
+              onClick={() => setModalState((prev) => ({ ...prev, type: null }))}
+              disabled={isMigratingDb}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="h-10 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700"
+              onClick={handleMigrateToDedicated}
+              disabled={isMigratingDb}
+            >
+              {isMigratingDb ? "Provisioning & Migrating…" : "Start Migration"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rollback to Shared Database Dialog */}
+      <Dialog
+        open={modalState.type === "rollbackDb"}
+        onOpenChange={(open) =>
+          setModalState((prev) => ({ ...prev, type: open ? "rollbackDb" : null }))
+        }
+      >
+        <DialogContent className="border-border/80 rounded-2xl shadow-xl sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Database className="size-5 text-amber-500" /> Rollback to Shared Database
+            </DialogTitle>
+            <DialogDescription>
+              Switches tenant database routing back to the primary shared PostgreSQL cluster. The
+              dedicated database will be preserved for the retention window.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              className="h-10 rounded-xl"
+              onClick={() => setModalState((prev) => ({ ...prev, type: null }))}
+              disabled={isRollingBackDb}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              className="h-10 rounded-xl"
+              onClick={handleRollbackToShared}
+              disabled={isRollingBackDb}
+            >
+              {isRollingBackDb ? "Rolling back…" : "Confirm Rollback"}
             </Button>
           </DialogFooter>
         </DialogContent>
