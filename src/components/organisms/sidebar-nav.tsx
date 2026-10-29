@@ -50,7 +50,13 @@ const ICONS: Record<NavIcon, LucideIcon> = {
 function isPathActive(href: string | undefined, pathname: string): boolean {
   if (!href) return false;
   if (pathname === href) return true;
-  if (href !== "/" && href !== "/dashboard" && pathname.startsWith(`${href}/`)) {
+  const normalizedPathname = pathname.replace(/^\/w\/[^/]+/, "");
+  if (normalizedPathname === href) return true;
+  if (
+    href !== "/" &&
+    href !== "/dashboard" &&
+    (pathname.startsWith(`${href}/`) || normalizedPathname.startsWith(`${href}/`))
+  ) {
     return true;
   }
   return false;

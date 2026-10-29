@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { queryOptions, useQueryClient } from "@tanstack/react-query";
 
 import {
@@ -166,25 +167,41 @@ export function useTenantContext(
 
 export function useActiveTenant(options?: QueryOverrides<Tenant[]>) {
   const queryClient = useQueryClient();
+  const params = useParams();
+  const router = useRouter();
   const { data: tenants = [], isLoading } = useTenants(options);
   const activeTenantId = useTenantStore((s) => s.activeTenantId);
   const storeSetActiveTenantId = useTenantStore((s) => s.setActiveTenantId);
 
-  const activeTenant: Tenant | undefined =
-    tenants?.find((t) => t?.id === activeTenantId) ?? tenants?.[0];
+  const slugFromUrl = typeof params?.tenantSlug === "string" ? params.tenantSlug : undefined;
+
+  const activeTenant: Tenant | undefined = slugFromUrl
+    ? (tenants?.find((t) => t?.slug === slugFromUrl || t?.id === slugFromUrl) ??
+      tenants?.find((t) => t?.id === activeTenantId) ??
+      tenants?.[0])
+    : (tenants?.find((t) => t?.id === activeTenantId) ?? tenants?.[0]);
 
   useEffect(() => {
     if (!isLoading && tenants && tenants.length > 0) {
+      if (slugFromUrl && activeTenant?.id && activeTenant.id !== activeTenantId) {
+        storeSetActiveTenantId(activeTenant.id);
+        return;
+      }
       const isValidActive = tenants.some((t) => t?.id === activeTenantId);
       if (!isValidActive && activeTenant?.id) {
         storeSetActiveTenantId(activeTenant.id);
       }
     }
-  }, [isLoading, tenants, activeTenantId, activeTenant?.id, storeSetActiveTenantId]);
+  }, [isLoading, tenants, activeTenantId, activeTenant?.id, slugFromUrl, storeSetActiveTenantId]);
 
   const setActiveTenantId = useCallback(
     (nextTenantId: string) => {
       if (nextTenantId === activeTenantId) return;
+
+      const targetTenant = tenants?.find((t) => t?.id === nextTenantId);
+      if (slugFromUrl && targetTenant?.slug && targetTenant.slug !== slugFromUrl) {
+        router.push(`/w/${targetTenant.slug}/dashboard`);
+      }
 
       // 1. Update active tenant in store and localStorage
       storeSetActiveTenantId(nextTenantId);
@@ -201,7 +218,7 @@ export function useActiveTenant(options?: QueryOverrides<Tenant[]>) {
       // 3. Immediately trigger background refetches for new tenant context
       void queryClient.invalidateQueries();
     },
-    [activeTenantId, storeSetActiveTenantId, queryClient],
+    [activeTenantId, slugFromUrl, tenants, router, storeSetActiveTenantId, queryClient],
   );
 
   return {

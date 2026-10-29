@@ -11,7 +11,17 @@ export function safeNextPath(next: string | null | undefined, fallback = "/dashb
 }
 
 /** Routes that need a signed-in user. Keep in sync with the (app) route group. */
-export const PROTECTED_PREFIXES = ["/dashboard", "/files", "/settings"] as const;
+export const PROTECTED_PREFIXES = [
+  "/dashboard",
+  "/files",
+  "/settings",
+  "/team",
+  "/roles",
+  "/email-templates",
+  "/branding",
+  "/audit-logs",
+  "/w",
+] as const;
 export const AUTH_PAGES = ["/login", "/register"] as const;
 
 export const RESERVED_ROOT_SEGMENTS = new Set([

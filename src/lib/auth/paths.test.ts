@@ -28,6 +28,7 @@ describe("route matching", () => {
   it("matches protected sections and their children only", () => {
     expect(isProtectedPath("/files")).toBe(true);
     expect(isProtectedPath("/files/abc")).toBe(true);
+    expect(isProtectedPath("/w/acme-corp/dashboard")).toBe(true);
     expect(isProtectedPath("/filesystem")).toBe(false);
     expect(isProtectedPath("/")).toBe(false);
   });
