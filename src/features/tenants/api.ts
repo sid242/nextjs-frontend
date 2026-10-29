@@ -15,12 +15,8 @@ import type {
 } from "./schemas";
 
 export async function getTenants(signal?: AbortSignal): Promise<Tenant[]> {
-  try {
-    const data = await api.get<Tenant[]>("/tenants", { signal });
-    return Array.isArray(data) ? data : [];
-  } catch {
-    return [];
-  }
+  const data = await api.get<Tenant[]>("/tenants", { signal });
+  return Array.isArray(data) ? data : [];
 }
 
 export async function createTenant(input: CreateTenantInput): Promise<Tenant> {
@@ -35,12 +31,8 @@ export async function getTenantMembers(
   tenantId: string,
   signal?: AbortSignal,
 ): Promise<TenantMember[]> {
-  try {
-    const res = await api.get<TenantMember[]>(`/tenants/${tenantId}/members`, { signal });
-    return Array.isArray(res) ? res : [];
-  } catch {
-    return [];
-  }
+  const res = await api.get<TenantMember[]>(`/tenants/${tenantId}/members`, { signal });
+  return Array.isArray(res) ? res : [];
 }
 
 export async function addTenantMember(
@@ -53,34 +45,17 @@ export async function addTenantMember(
   inviteUrl?: string;
   message?: string;
 }> {
-  try {
-    return await api.post<{
-      member: TenantMember;
-      role: string;
-      inviteToken?: string;
-      inviteUrl?: string;
-      message?: string;
-    }>(`/tenants/${tenantId}/members`, input);
-  } catch {
-    const fallback: TenantMember = {
-      id: `mem-${Date.now()}`,
-      userId: `usr-${Date.now()}`,
-      name: input.email.split("@")[0] ?? "New Member",
-      email: input.email,
-      role: input.role,
-      status: "ACTIVE",
-      joinedAt: new Date().toISOString(),
-    };
-    return { member: fallback, role: input.role };
-  }
+  return await api.post<{
+    member: TenantMember;
+    role: string;
+    inviteToken?: string;
+    inviteUrl?: string;
+    message?: string;
+  }>(`/tenants/${tenantId}/members`, input);
 }
 
 export async function removeTenantMember(tenantId: string, memberId: string): Promise<void> {
-  try {
-    await api.delete(`/tenants/${tenantId}/members/${memberId}`);
-  } catch {
-    /* Optimistic fallback */
-  }
+  await api.delete(`/tenants/${tenantId}/members/${memberId}`);
 }
 
 export async function updateTenantMemberRole(
@@ -88,23 +63,15 @@ export async function updateTenantMemberRole(
   memberId: string,
   role: string,
 ): Promise<void> {
-  try {
-    await api.patch(`/tenants/${tenantId}/members/${memberId}/role`, { role });
-  } catch {
-    /* Optimistic fallback */
-  }
+  await api.patch(`/tenants/${tenantId}/members/${memberId}/role`, { role });
 }
 
 export async function getTenantBranding(
   tenantId: string,
   signal?: AbortSignal,
 ): Promise<TenantBranding | null> {
-  try {
-    const data = await api.get<TenantBranding>(`/tenants/${tenantId}/branding`, { signal });
-    return data ?? null;
-  } catch {
-    return null;
-  }
+  const data = await api.get<TenantBranding>(`/tenants/${tenantId}/branding`, { signal });
+  return data ?? null;
 }
 
 export async function updateTenantBranding(
@@ -183,11 +150,7 @@ export async function getTenantEmailConfig(
   tenantId: string,
   signal?: AbortSignal,
 ): Promise<TenantEmailConfig | null> {
-  try {
-    return await api.get<TenantEmailConfig>(`/tenants/${tenantId}/settings/email`, { signal });
-  } catch {
-    return null;
-  }
+  return await api.get<TenantEmailConfig>(`/tenants/${tenantId}/settings/email`, { signal });
 }
 
 export async function saveTenantEmailConfig(
@@ -217,15 +180,11 @@ export async function getTenantAuditLogs(
   limit = 50,
   signal?: AbortSignal,
 ): Promise<AuditLogEntry[]> {
-  try {
-    const data = await api.get<AuditLogEntry[]>(
-      `/tenants/${tenantId}/audit-logs?page=${page}&limit=${limit}`,
-      { signal },
-    );
-    return Array.isArray(data) ? data : [];
-  } catch {
-    return [];
-  }
+  const data = await api.get<AuditLogEntry[]>(
+    `/tenants/${tenantId}/audit-logs?page=${page}&limit=${limit}`,
+    { signal },
+  );
+  return Array.isArray(data) ? data : [];
 }
 
 export async function searchTenantAuditLogs(
@@ -233,25 +192,21 @@ export async function searchTenantAuditLogs(
   criteria: SearchAuditLogsInput,
   signal?: AbortSignal,
 ): Promise<AuditLogEntry[]> {
-  try {
-    const data = await api.post<AuditLogEntry[] | { items: AuditLogEntry[] }>(
-      `/tenants/${tenantId}/audit-logs/search`,
-      criteria,
-      { signal },
-    );
-    if (Array.isArray(data)) return data;
-    if (
-      data &&
-      typeof data === "object" &&
-      "items" in data &&
-      Array.isArray((data as { items: AuditLogEntry[] }).items)
-    ) {
-      return (data as { items: AuditLogEntry[] }).items;
-    }
-    return [];
-  } catch {
-    return getTenantAuditLogs(tenantId, criteria.page ?? 1, criteria.limit ?? 50, signal);
+  const data = await api.post<AuditLogEntry[] | { items: AuditLogEntry[] }>(
+    `/tenants/${tenantId}/audit-logs/search`,
+    criteria,
+    { signal },
+  );
+  if (Array.isArray(data)) return data;
+  if (
+    data &&
+    typeof data === "object" &&
+    "items" in data &&
+    Array.isArray((data as { items: AuditLogEntry[] }).items)
+  ) {
+    return (data as { items: AuditLogEntry[] }).items;
   }
+  return [];
 }
 
 export async function updateTenant(
@@ -265,43 +220,10 @@ export async function getTenantModules(
   tenantId: string,
   signal?: AbortSignal,
 ): Promise<{ id: string; key: string; name: string; description?: string; isEnabled: boolean }[]> {
-  try {
-    const data = await api.get<
-      { id: string; key: string; name: string; description?: string; isEnabled: boolean }[]
-    >(`/rbac/tenants/${tenantId}/modules`, { signal });
-    return data ?? [];
-  } catch {
-    return [
-      {
-        id: "mod-files",
-        key: "files",
-        name: "File Storage & S3",
-        description: "Direct S3 presigned asset storage",
-        isEnabled: true,
-      },
-      {
-        id: "mod-audit",
-        key: "audit",
-        name: "Audit Trail Compliance",
-        description: "Immutable security logging",
-        isEnabled: true,
-      },
-      {
-        id: "mod-smtp",
-        key: "smtp",
-        name: "Custom SMTP Relay",
-        description: "Dedicated mail server integration",
-        isEnabled: true,
-      },
-      {
-        id: "mod-realtime",
-        key: "realtime",
-        name: "Realtime WebSockets",
-        description: "Socket.IO collaborative events",
-        isEnabled: true,
-      },
-    ];
-  }
+  const data = await api.get<
+    { id: string; key: string; name: string; description?: string; isEnabled: boolean }[]
+  >(`/rbac/tenants/${tenantId}/modules`, { signal });
+  return data ?? [];
 }
 
 export async function toggleTenantModule(

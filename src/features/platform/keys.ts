@@ -26,7 +26,6 @@ export const platformKeys = {
   tenantDetail: (id: string) => [...platformKeys.tenants(), "detail", id] as const,
   tenantMembers: (tenantId: string) => [...platformKeys.tenants(), tenantId, "members"] as const,
   tenantDbHealth: (tenantId: string) => [...platformKeys.tenants(), tenantId, "db-health"] as const,
-  tenantDbHealth: (tenantId: string) => [...platformKeys.tenants(), tenantId, "db-health"] as const,
 
   me: () => [...platformKeys.all, "me"] as const,
   twoFactorStatus: () => [...platformKeys.all, "2fa", "status"] as const,
