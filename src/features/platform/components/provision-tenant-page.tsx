@@ -28,7 +28,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { getErrorMessage } from "@/lib/api/errors";
-import { cn } from "@/lib/utils";
+import { cn, generateSlug } from "@/lib/utils";
 
 import { useProvisionTenant } from "../queries";
 import { provisionTenantSchema, type ProvisionTenantInput } from "../schemas";
@@ -74,11 +74,7 @@ export function ProvisionTenantPage() {
   // Automatically derive URL slug from workspace name if not manually modified
   useEffect(() => {
     if (nameValue && !form.formState.dirtyFields.slug) {
-      const derived = nameValue
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "");
-      form.setValue("slug", derived, { shouldValidate: true });
+      form.setValue("slug", generateSlug(nameValue), { shouldValidate: true });
     }
   }, [nameValue, form]);
 

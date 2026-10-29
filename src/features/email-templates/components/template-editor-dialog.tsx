@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { generateSlug } from "@/lib/utils";
 
 import { CATEGORY_SELECT_OPTIONS, STATUS_SELECT_OPTIONS } from "../constants";
 import { useCreateEmailTemplate, useUpdateEmailTemplate } from "../queries";
@@ -175,20 +176,12 @@ function TemplateEditorDialogContent({
   const handleNameChange = (val: string) => {
     setFormState((prev) => {
       const currentSlug = prev.slug;
-      const autoSlug = prev.name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "");
+      const autoSlug = generateSlug(prev.name);
       const shouldUpdateSlug = !isEditing && (!currentSlug || currentSlug === autoSlug);
       return {
         ...prev,
         name: val,
-        slug: shouldUpdateSlug
-          ? val
-              .toLowerCase()
-              .replace(/[^a-z0-9]+/g, "-")
-              .replace(/(^-|-$)/g, "")
-          : prev.slug,
+        slug: shouldUpdateSlug ? generateSlug(val) : prev.slug,
       };
     });
   };

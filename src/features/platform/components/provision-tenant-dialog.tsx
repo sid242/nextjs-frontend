@@ -19,6 +19,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { getErrorMessage } from "@/lib/api/errors";
+import { generateSlug } from "@/lib/utils";
 
 import { useProvisionTenant } from "../queries";
 import { provisionTenantSchema, type ProvisionTenantInput } from "../schemas";
@@ -64,11 +65,7 @@ export function ProvisionTenantDialog({ open, onOpenChange }: ProvisionTenantDia
 
   useEffect(() => {
     if (nameValue && !form.formState.dirtyFields.slug) {
-      const derived = nameValue
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "");
-      form.setValue("slug", derived, { shouldValidate: true });
+      form.setValue("slug", generateSlug(nameValue), { shouldValidate: true });
     }
   }, [nameValue, form]);
 

@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { generateSlug } from "@/lib/utils";
 
 import { CATEGORY_SELECT_OPTIONS, DEFAULT_STARTER_HTML, STATUS_SELECT_OPTIONS } from "../constants";
 import { useCreateEmailTemplate, useUpdateEmailTemplate } from "../queries";
@@ -124,12 +125,7 @@ export function TemplateStudio({ initialTemplate }: TemplateStudioProps) {
 
   const handleNameChange = (val: string) => {
     setStudioState((prev) => {
-      const generatedSlug = !isEditing
-        ? val
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/(^-|-$)/g, "")
-        : prev.slug;
+      const generatedSlug = !isEditing ? generateSlug(val) : prev.slug;
       return {
         ...prev,
         name: val,
