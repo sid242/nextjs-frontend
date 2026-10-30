@@ -32,6 +32,10 @@ describe("Theme Engine & Color Calculations", () => {
   it("computes dual-mode theme tokens with fallback defaults", () => {
     const tokens = computeTenantThemeTokens();
     expect(tokens.primary).toBe("#4F46E5");
+    expect(tokens.secondary).toBe("#f4f4f5");
+    expect(tokens.darkSecondary).toBe("#27272a");
+    expect(tokens.secondaryForeground).toBe("#09090b");
+    expect(tokens.darkSecondaryForeground).toBe("#ffffff");
     expect(tokens.fontFamily).toBe("Inter");
     expect(tokens.sidebarTheme).toBe("DARK");
     expect(tokens.sidebarBg).toBe("#09090b");
@@ -41,14 +45,20 @@ describe("Theme Engine & Color Calculations", () => {
   it("computes dark mode overrides and brand-themed sidebars", () => {
     const tokens = computeTenantThemeTokens({
       primaryColor: "#059669",
+      secondaryColor: "#D1FAE5",
       accentColor: "#10B981",
       primaryDarkColor: "#10B981",
+      secondaryDarkColor: "#064E3B",
       accentDarkColor: "#34D399",
       fontFamily: "Plus Jakarta Sans",
       sidebarTheme: "BRAND",
     });
 
     expect(tokens.primary).toBe("#059669");
+    expect(tokens.secondary).toBe("#D1FAE5");
+    expect(tokens.darkSecondary).toBe("#064E3B");
+    expect(tokens.secondaryForeground).toBe("#09090b");
+    expect(tokens.darkSecondaryForeground).toBe("#ffffff");
     expect(tokens.darkPrimary).toBe("#10B981");
     expect(tokens.fontFamily).toBe("Plus Jakarta Sans");
     expect(tokens.sidebarTheme).toBe("BRAND");
@@ -64,8 +74,10 @@ describe("Theme Engine & Color Calculations", () => {
     });
 
     expect(css).toContain("--primary: #4F46E5;");
+    expect(css).toContain("--secondary: #f4f4f5;");
     expect(css).toContain('--font-tenant: "Geist", sans-serif;');
     expect(css).toContain(".dark :root");
+    expect(css).toContain("--secondary: #27272a;");
     expect(css).toContain("aside.bg-sidebar");
   });
 
@@ -73,8 +85,10 @@ describe("Theme Engine & Color Calculations", () => {
     expect(BRANDING_PRESETS.length).toBeGreaterThanOrEqual(6);
     for (const preset of BRANDING_PRESETS) {
       expect(preset.primaryColor).toMatch(/^#[0-9a-fA-F]{6}$/);
+      expect(preset.secondaryColor).toMatch(/^#[0-9a-fA-F]{6}$/);
       expect(preset.accentColor).toMatch(/^#[0-9a-fA-F]{6}$/);
       expect(preset.primaryDarkColor).toMatch(/^#[0-9a-fA-F]{6}$/);
+      expect(preset.secondaryDarkColor).toMatch(/^#[0-9a-fA-F]{6}$/);
       expect(preset.accentDarkColor).toMatch(/^#[0-9a-fA-F]{6}$/);
       expect(GOOGLE_FONTS[preset.fontFamily]).toBeDefined();
     }
@@ -84,13 +98,17 @@ describe("Theme Engine & Color Calculations", () => {
     const valid = tenantBrandingSchema.parse({
       companyName: "Acme",
       primaryColor: "#1E3A8A",
+      secondaryColor: "#DBEAFE",
       primaryDarkColor: "#3B82F6",
+      secondaryDarkColor: "#1E293B",
       fontFamily: "Roboto",
       sidebarTheme: "BRAND",
     });
 
     expect(valid.companyName).toBe("Acme");
+    expect(valid.secondaryColor).toBe("#DBEAFE");
     expect(valid.primaryDarkColor).toBe("#3B82F6");
+    expect(valid.secondaryDarkColor).toBe("#1E293B");
     expect(valid.fontFamily).toBe("Roboto");
     expect(valid.sidebarTheme).toBe("BRAND");
   });

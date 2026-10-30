@@ -64,6 +64,8 @@ export function getContrastRatio(hexA: string, hexB: string): number {
 export interface ComputedThemeTokens {
   primary: string;
   primaryForeground: string;
+  secondary: string;
+  secondaryForeground: string;
   accent: string;
   accentForeground: string;
   ring: string;
@@ -74,6 +76,8 @@ export interface ComputedThemeTokens {
   sidebarFg: string;
   darkPrimary: string;
   darkPrimaryForeground: string;
+  darkSecondary: string;
+  darkSecondaryForeground: string;
   darkAccent: string;
   darkAccentForeground: string;
   darkRing: string;
@@ -113,8 +117,10 @@ export interface BrandingPreset {
   name: string;
   description: string;
   primaryColor: string;
+  secondaryColor: string;
   accentColor: string;
   primaryDarkColor: string;
+  secondaryDarkColor: string;
   accentDarkColor: string;
   fontFamily: "Inter" | "Plus Jakarta Sans" | "Geist" | "Poppins" | "Outfit" | "Roboto";
   sidebarTheme: "DARK" | "LIGHT" | "BRAND";
@@ -127,8 +133,10 @@ export const BRANDING_PRESETS: BrandingPreset[] = [
     name: "Modern Indigo",
     description: "Deep indigo with vibrant cyan highlights and dark sleek sidebar",
     primaryColor: "#4F46E5",
+    secondaryColor: "#E0E7FF",
     accentColor: "#06B6D4",
     primaryDarkColor: "#6366F1",
+    secondaryDarkColor: "#312E81",
     accentDarkColor: "#22D3EE",
     fontFamily: "Inter",
     sidebarTheme: "DARK",
@@ -139,8 +147,10 @@ export const BRANDING_PRESETS: BrandingPreset[] = [
     name: "Fintech Emerald",
     description: "Clean enterprise green with sharp geometry and dark sidebar",
     primaryColor: "#059669",
+    secondaryColor: "#D1FAE5",
     accentColor: "#10B981",
     primaryDarkColor: "#10B981",
+    secondaryDarkColor: "#064E3B",
     accentDarkColor: "#34D399",
     fontFamily: "Plus Jakarta Sans",
     sidebarTheme: "DARK",
@@ -151,8 +161,10 @@ export const BRANDING_PRESETS: BrandingPreset[] = [
     name: "Corporate Navy",
     description: "Executive navy anchor with full brand-tinted sidebar",
     primaryColor: "#1E3A8A",
+    secondaryColor: "#DBEAFE",
     accentColor: "#3B82F6",
     primaryDarkColor: "#3B82F6",
+    secondaryDarkColor: "#1E293B",
     accentDarkColor: "#60A5FA",
     fontFamily: "Roboto",
     sidebarTheme: "BRAND",
@@ -163,8 +175,10 @@ export const BRANDING_PRESETS: BrandingPreset[] = [
     name: "Vibrant Violet",
     description: "Playful purple & fuchsia with soft curved corners",
     primaryColor: "#7C3AED",
+    secondaryColor: "#EDE9FE",
     accentColor: "#C026D3",
     primaryDarkColor: "#8B5CF6",
+    secondaryDarkColor: "#4C1D95",
     accentDarkColor: "#D946EF",
     fontFamily: "Poppins",
     sidebarTheme: "DARK",
@@ -175,8 +189,10 @@ export const BRANDING_PRESETS: BrandingPreset[] = [
     name: "Warm Amber",
     description: "Friendly golden amber with clean light sidebar",
     primaryColor: "#D97706",
+    secondaryColor: "#FEF3C7",
     accentColor: "#F59E0B",
     primaryDarkColor: "#F59E0B",
+    secondaryDarkColor: "#78350F",
     accentDarkColor: "#FBBF24",
     fontFamily: "Outfit",
     sidebarTheme: "LIGHT",
@@ -187,8 +203,10 @@ export const BRANDING_PRESETS: BrandingPreset[] = [
     name: "Clean Slate",
     description: "Monochrome slate minimal aesthetic with geist typography",
     primaryColor: "#334155",
+    secondaryColor: "#F1F5F9",
     accentColor: "#64748B",
     primaryDarkColor: "#94A3B8",
+    secondaryDarkColor: "#1E293B",
     accentDarkColor: "#CBD5E1",
     fontFamily: "Geist",
     sidebarTheme: "DARK",
@@ -197,6 +215,8 @@ export const BRANDING_PRESETS: BrandingPreset[] = [
 ];
 
 const DEFAULT_PRIMARY = "#4F46E5";
+const DEFAULT_SECONDARY = "#f4f4f5";
+const DEFAULT_SECONDARY_DARK = "#27272a";
 const DEFAULT_ACCENT = "#06B6D4";
 const DEFAULT_RADIUS = "0.5rem";
 const DEFAULT_FONT = "Inter";
@@ -204,8 +224,10 @@ const DEFAULT_SIDEBAR_THEME: "DARK" | "LIGHT" | "BRAND" = "DARK";
 
 export interface TenantThemeInput {
   primaryColor?: string | null;
+  secondaryColor?: string | null;
   accentColor?: string | null;
   primaryDarkColor?: string | null;
+  secondaryDarkColor?: string | null;
   accentDarkColor?: string | null;
   fontFamily?: string | null;
   sidebarTheme?: "DARK" | "LIGHT" | "BRAND" | string | null;
@@ -218,8 +240,12 @@ export interface TenantThemeInput {
  */
 export function computeTenantThemeTokens(branding?: TenantThemeInput | null): ComputedThemeTokens {
   const primary = branding?.primaryColor?.trim() || DEFAULT_PRIMARY;
+  const secondary = branding?.secondaryColor?.trim() || DEFAULT_SECONDARY;
   const accent = branding?.accentColor?.trim() || DEFAULT_ACCENT;
   const darkPrimary = branding?.primaryDarkColor?.trim() || primary;
+  const darkSecondary =
+    branding?.secondaryDarkColor?.trim() ||
+    (branding?.secondaryColor?.trim() ? secondary : DEFAULT_SECONDARY_DARK);
   const darkAccent = branding?.accentDarkColor?.trim() || accent;
   const radius = branding?.borderRadius?.trim() || DEFAULT_RADIUS;
   const fontFamily = branding?.fontFamily?.trim() || DEFAULT_FONT;
@@ -233,12 +259,18 @@ export function computeTenantThemeTokens(branding?: TenantThemeInput | null): Co
   const isPrimaryLight = getLuminance(primary) > 0.45;
   const primaryForeground = isPrimaryLight ? "#09090b" : "#ffffff";
 
+  const isSecondaryLight = getLuminance(secondary) > 0.45;
+  const secondaryForeground = isSecondaryLight ? "#09090b" : "#ffffff";
+
   const isAccentLight = getLuminance(accent) > 0.45;
   const accentForeground = isAccentLight ? "#09090b" : "#ffffff";
 
   // Dark mode foregrounds
   const isDarkPrimaryLight = getLuminance(darkPrimary) > 0.45;
   const darkPrimaryForeground = isDarkPrimaryLight ? "#09090b" : "#ffffff";
+
+  const isDarkSecondaryLight = getLuminance(darkSecondary) > 0.45;
+  const darkSecondaryForeground = isDarkSecondaryLight ? "#09090b" : "#ffffff";
 
   const isDarkAccentLight = getLuminance(darkAccent) > 0.45;
   const darkAccentForeground = isDarkAccentLight ? "#09090b" : "#ffffff";
@@ -268,6 +300,8 @@ export function computeTenantThemeTokens(branding?: TenantThemeInput | null): Co
   return {
     primary,
     primaryForeground,
+    secondary,
+    secondaryForeground,
     accent,
     accentForeground,
     ring: primary,
@@ -278,6 +312,8 @@ export function computeTenantThemeTokens(branding?: TenantThemeInput | null): Co
     sidebarFg,
     darkPrimary,
     darkPrimaryForeground,
+    darkSecondary,
+    darkSecondaryForeground,
     darkAccent,
     darkAccentForeground,
     darkRing: darkPrimary,
@@ -299,6 +335,8 @@ export function generateTenantThemeCss(
     ${selector} {
       --primary: ${tokens.primary};
       --primary-foreground: ${tokens.primaryForeground};
+      --secondary: ${tokens.secondary};
+      --secondary-foreground: ${tokens.secondaryForeground};
       --accent: ${tokens.accent};
       --accent-foreground: ${tokens.accentForeground};
       --ring: ${tokens.ring};
@@ -313,6 +351,8 @@ export function generateTenantThemeCss(
     ${selector}.dark {
       --primary: ${tokens.darkPrimary};
       --primary-foreground: ${tokens.darkPrimaryForeground};
+      --secondary: ${tokens.darkSecondary};
+      --secondary-foreground: ${tokens.darkSecondaryForeground};
       --accent: ${tokens.darkAccent};
       --accent-foreground: ${tokens.darkAccentForeground};
       --ring: ${tokens.darkRing};

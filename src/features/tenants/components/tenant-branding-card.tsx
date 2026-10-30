@@ -65,6 +65,16 @@ const PRIMARY_COLOR_PRESETS = [
   { label: "Slate", value: "#334155" },
 ];
 
+const SECONDARY_COLOR_PRESETS = [
+  { label: "Indigo Mist", value: "#E0E7FF" },
+  { label: "Emerald Mist", value: "#D1FAE5" },
+  { label: "Blue Mist", value: "#DBEAFE" },
+  { label: "Purple Mist", value: "#EDE9FE" },
+  { label: "Amber Mist", value: "#FEF3C7" },
+  { label: "Slate Mist", value: "#F1F5F9" },
+  { label: "Zinc Light", value: "#F4F4F5" },
+];
+
 const ACCENT_COLOR_PRESETS = [
   { label: "Cyan", value: "#06B6D4" },
   { label: "Teal", value: "#0D9488" },
@@ -97,13 +107,19 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
   const [logoDarkUrl, setLogoDarkUrl] = useState<string | null>(branding?.logoDarkUrl || null);
   const [faviconUrl, setFaviconUrl] = useState<string | null>(branding?.faviconUrl || null);
   const [primaryColor, setPrimaryColor] = useState(branding?.primaryColor || "#4F46E5");
+  const [secondaryColor, setSecondaryColor] = useState(branding?.secondaryColor || "");
   const [accentColor, setAccentColor] = useState(branding?.accentColor || "#06B6D4");
   const [primaryDarkColor, setPrimaryDarkColor] = useState<string>(
     branding?.primaryDarkColor || "",
   );
+  const [secondaryDarkColor, setSecondaryDarkColor] = useState<string>(
+    branding?.secondaryDarkColor || "",
+  );
   const [accentDarkColor, setAccentDarkColor] = useState<string>(branding?.accentDarkColor || "");
   const [useDarkOverrides, setUseDarkOverrides] = useState<boolean>(
-    Boolean(branding?.primaryDarkColor || branding?.accentDarkColor),
+    Boolean(
+      branding?.primaryDarkColor || branding?.secondaryDarkColor || branding?.accentDarkColor,
+    ),
   );
   const [fontFamily, setFontFamily] = useState<string>(branding?.fontFamily || "Inter");
   const [sidebarTheme, setSidebarTheme] = useState<"DARK" | "LIGHT" | "BRAND">(
@@ -129,8 +145,11 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
     logoDarkUrl,
     faviconUrl,
     primaryColor,
+    secondaryColor: secondaryColor.trim() ? secondaryColor.trim() : null,
     accentColor,
     primaryDarkColor: useDarkOverrides && primaryDarkColor.trim() ? primaryDarkColor.trim() : null,
+    secondaryDarkColor:
+      useDarkOverrides && secondaryDarkColor.trim() ? secondaryDarkColor.trim() : null,
     accentDarkColor: useDarkOverrides && accentDarkColor.trim() ? accentDarkColor.trim() : null,
     fontFamily: (fontFamily as TenantFontFamily) || "Inter",
     sidebarTheme,
@@ -145,14 +164,20 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
   const activePrimaryFg = previewDark
     ? previewTokens.darkPrimaryForeground
     : previewTokens.primaryForeground;
+  const activeSecondary = previewDark ? previewTokens.darkSecondary : previewTokens.secondary;
+  const activeSecondaryFg = previewDark
+    ? previewTokens.darkSecondaryForeground
+    : previewTokens.secondaryForeground;
   const contrastRatio = getContrastRatio(activePrimary, activePrimaryFg);
   const contrastPassesAA = contrastRatio >= 4.5;
   const contrastPassesAAA = contrastRatio >= 7.0;
 
   const handleApplyPreset = (preset: BrandingPreset) => {
     setPrimaryColor(preset.primaryColor);
+    setSecondaryColor(preset.secondaryColor);
     setAccentColor(preset.accentColor);
     setPrimaryDarkColor(preset.primaryDarkColor);
+    setSecondaryDarkColor(preset.secondaryDarkColor);
     setAccentDarkColor(preset.accentDarkColor);
     setUseDarkOverrides(true);
     setFontFamily(preset.fontFamily);
@@ -259,9 +284,12 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
         logoDarkUrl,
         faviconUrl,
         primaryColor,
+        secondaryColor: secondaryColor.trim() ? secondaryColor.trim() : null,
         accentColor,
         primaryDarkColor:
           useDarkOverrides && primaryDarkColor.trim() ? primaryDarkColor.trim() : null,
+        secondaryDarkColor:
+          useDarkOverrides && secondaryDarkColor.trim() ? secondaryDarkColor.trim() : null,
         accentDarkColor: useDarkOverrides && accentDarkColor.trim() ? accentDarkColor.trim() : null,
         fontFamily: (fontFamily as TenantFontFamily) || "Inter",
         sidebarTheme,
@@ -283,10 +311,16 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
       setLogoDarkUrl(branding?.logoDarkUrl || null);
       setFaviconUrl(branding?.faviconUrl || null);
       setPrimaryColor(branding?.primaryColor || "#4F46E5");
+      setSecondaryColor(branding?.secondaryColor || "");
       setAccentColor(branding?.accentColor || "#06B6D4");
       setPrimaryDarkColor(branding?.primaryDarkColor || "");
+      setSecondaryDarkColor(branding?.secondaryDarkColor || "");
       setAccentDarkColor(branding?.accentDarkColor || "");
-      setUseDarkOverrides(Boolean(branding?.primaryDarkColor || branding?.accentDarkColor));
+      setUseDarkOverrides(
+        Boolean(
+          branding?.primaryDarkColor || branding?.secondaryDarkColor || branding?.accentDarkColor,
+        ),
+      );
       setFontFamily(branding?.fontFamily || "Inter");
       setSidebarTheme((branding?.sidebarTheme as "DARK" | "LIGHT" | "BRAND") || "DARK");
       setBorderRadius(branding?.borderRadius || "0.5rem");
@@ -324,6 +358,9 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                 {BRANDING_PRESETS?.map((preset) => {
                   const isActive =
                     primaryColor?.toLowerCase() === preset?.primaryColor?.toLowerCase() &&
+                    (secondaryColor
+                      ? secondaryColor.toLowerCase() === preset?.secondaryColor?.toLowerCase()
+                      : true) &&
                     accentColor?.toLowerCase() === preset?.accentColor?.toLowerCase() &&
                     fontFamily === preset?.fontFamily &&
                     sidebarTheme === preset?.sidebarTheme;
@@ -345,10 +382,17 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                           <span
                             className="border-background size-3 rounded-full border shadow-2xs"
                             style={{ backgroundColor: preset?.primaryColor }}
+                            title="Primary"
+                          />
+                          <span
+                            className="border-background size-3 rounded-full border shadow-2xs"
+                            style={{ backgroundColor: preset?.secondaryColor }}
+                            title="Secondary"
                           />
                           <span
                             className="border-background size-3 rounded-full border shadow-2xs"
                             style={{ backgroundColor: preset?.accentColor }}
+                            title="Accent"
                           />
                         </div>
                       </div>
@@ -663,6 +707,58 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                 </div>
               </div>
 
+              {/* Secondary Color Picker */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="secondary-color" className="text-xs">
+                      Secondary Color (Light Mode)
+                    </Label>
+                    <span className="text-muted-foreground text-[10px]">(Optional)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {secondaryColor && (
+                      <button
+                        type="button"
+                        onClick={() => setSecondaryColor("")}
+                        className="text-muted-foreground hover:text-foreground text-[10px] underline"
+                      >
+                        Reset to default
+                      </button>
+                    )}
+                    <span className="text-muted-foreground font-mono text-xs">
+                      {secondaryColor || "Default (#F4F4F5)"}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <input
+                    id="secondary-color"
+                    type="color"
+                    value={secondaryColor || "#F4F4F5"}
+                    onChange={(e) => setSecondaryColor(e?.target?.value ?? "#F4F4F5")}
+                    className="border-border/80 size-9 cursor-pointer rounded-md border p-0.5"
+                  />
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {SECONDARY_COLOR_PRESETS.map((c) => (
+                      <button
+                        key={c.value}
+                        type="button"
+                        onClick={() => setSecondaryColor(c.value)}
+                        className={cn(
+                          "size-6 rounded-full border transition-all",
+                          secondaryColor.toLowerCase() === c.value.toLowerCase()
+                            ? "ring-foreground scale-110 ring-2"
+                            : "opacity-80 hover:opacity-100",
+                        )}
+                        style={{ backgroundColor: c.value }}
+                        title={c.label}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
               {/* Accent Color Picker */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -707,7 +803,8 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                       Dark Mode Palette Overrides
                     </Label>
                     <p className="text-muted-foreground text-[11px]">
-                      Specify optimized high-contrast primary and accent shades for Dark Mode.
+                      Specify optimized high-contrast primary, secondary, and accent shades for Dark
+                      Mode.
                     </p>
                   </div>
                   <Switch
@@ -715,16 +812,18 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                     checked={useDarkOverrides}
                     onCheckedChange={(checked) => {
                       setUseDarkOverrides(checked);
-                      if (checked && !primaryDarkColor) {
-                        setPrimaryDarkColor(primaryColor);
-                        setAccentDarkColor(accentColor);
+                      if (checked) {
+                        if (!primaryDarkColor) setPrimaryDarkColor(primaryColor);
+                        if (!secondaryDarkColor && secondaryColor)
+                          setSecondaryDarkColor(secondaryColor);
+                        if (!accentDarkColor) setAccentDarkColor(accentColor);
                       }
                     }}
                   />
                 </div>
 
                 {useDarkOverrides && (
-                  <div className="grid gap-3 pt-2 sm:grid-cols-2">
+                  <div className="grid gap-3 pt-2 sm:grid-cols-3">
                     <div className="space-y-1.5">
                       <Label htmlFor="dark-primary-color" className="text-[11px]">
                         Dark Mode Primary
@@ -742,6 +841,29 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                           onChange={(e) => setPrimaryDarkColor(e?.target?.value ?? "")}
                           className="h-8 font-mono text-xs"
                           placeholder="#6366F1"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="dark-secondary-color" className="text-[11px]">
+                        Dark Mode Secondary
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          id="dark-secondary-color"
+                          type="color"
+                          value={secondaryDarkColor || secondaryColor || "#27272a"}
+                          onChange={(e) =>
+                            setSecondaryDarkColor(e?.target?.value ?? secondaryColor ?? "#27272a")
+                          }
+                          className="border-border/80 size-8 cursor-pointer rounded border p-0.5"
+                        />
+                        <Input
+                          value={secondaryDarkColor}
+                          onChange={(e) => setSecondaryDarkColor(e?.target?.value ?? "")}
+                          className="h-8 font-mono text-xs"
+                          placeholder="#27272A"
                         />
                       </div>
                     </div>
@@ -890,6 +1012,8 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                   fontFamily: `"${previewTokens.fontFamily}", sans-serif`,
                   ["--primary" as string]: activePrimary,
                   ["--primary-foreground" as string]: activePrimaryFg,
+                  ["--secondary" as string]: activeSecondary,
+                  ["--secondary-foreground" as string]: activeSecondaryFg,
                   ["--accent" as string]: previewDark
                     ? previewTokens.darkAccent
                     : previewTokens.accent,
@@ -999,13 +1123,13 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
 
                         <button
                           type="button"
-                          className={cn(
-                            "border px-2.5 py-1 text-[11px] font-medium shadow-2xs",
-                            previewDark
-                              ? "border-zinc-800 hover:bg-zinc-900"
-                              : "border-zinc-200 hover:bg-zinc-50",
-                          )}
-                          style={{ borderRadius: previewTokens.radius }}
+                          className="border px-2.5 py-1 text-[11px] font-medium shadow-2xs transition-opacity hover:opacity-90"
+                          style={{
+                            backgroundColor: activeSecondary,
+                            color: activeSecondaryFg,
+                            borderColor: previewDark ? "#3f3f46" : "#e4e4e7",
+                            borderRadius: previewTokens.radius,
+                          }}
                         >
                           Secondary
                         </button>

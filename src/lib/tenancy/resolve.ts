@@ -9,8 +9,10 @@ export interface ResolvedTenantBranding {
   faviconUrl?: string | null;
   primaryColor?: string | null;
   accentColor?: string | null;
+  secondaryColor?: string | null;
   primaryDarkColor?: string | null;
   accentDarkColor?: string | null;
+  secondaryDarkColor?: string | null;
   fontFamily?: string | null;
   sidebarTheme?: "DARK" | "LIGHT" | "BRAND" | string | null;
   borderRadius?: string | null;
