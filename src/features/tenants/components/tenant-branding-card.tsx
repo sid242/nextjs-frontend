@@ -11,6 +11,7 @@ import {
   LayoutTemplate,
   Loader2,
   LogIn,
+  Mail,
   Moon,
   Palette,
   Settings,
@@ -55,6 +56,7 @@ import {
   GOOGLE_FONTS,
   type BrandingPreset,
 } from "../theme";
+import { ImageCropperDialog, type CropAssetType } from "./image-cropper-dialog";
 import { TenantLogo } from "./tenant-logo";
 
 const PRIMARY_COLOR_PRESETS = [
@@ -140,9 +142,15 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
   // Uploading state
   const [uploadingType, setUploadingType] = useState<string | null>(null);
 
-  // Live preview mode (light/dark and app/auth)
+  // In-browser Image Cropper & Aspect Ratio Pipeline
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const [cropFileName, setCropFileName] = useState("");
+  const [cropAssetType, setCropAssetType] = useState<CropAssetType>("logo");
+
+  // Live preview mode (light/dark and app/auth/email)
   const [previewDark, setPreviewDark] = useState(false);
-  const [previewTab, setPreviewTab] = useState<"app" | "auth">("app");
+  const [previewTab, setPreviewTab] = useState<"app" | "auth" | "email">("app");
 
   // Hidden file input refs
   const lightLogoInputRef = useRef<HTMLInputElement>(null);
@@ -225,17 +233,8 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
     return "image/png";
   };
 
-  const handleFileUpload = async (
-    e: ChangeEvent<HTMLInputElement>,
-    type: "logo" | "logo-dark" | "favicon" | "cover",
-  ) => {
-    const file = e?.target?.files?.[0];
-    if (!file || !activeTenantId) return;
-
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("File exceeds maximum allowed size (2MB)");
-      return;
-    }
+  const uploadAssetFile = async (file: File, type: CropAssetType) => {
+    if (!activeTenantId) return;
 
     setUploadingType(type);
     try {
@@ -270,8 +269,35 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
       toast.error(getErrorMessage(err, `Failed to upload ${type}. Ensure file format is valid.`));
     } finally {
       setUploadingType(null);
-      if (e?.target) e.target.value = "";
     }
+  };
+
+  const handleFileInputChange = (e: ChangeEvent<HTMLInputElement>, type: CropAssetType) => {
+    const file = e?.target?.files?.[0];
+    if (!file || !activeTenantId) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("File exceeds maximum allowed size (2MB)");
+      return;
+    }
+
+    const ext = file.name?.split(".")?.pop()?.toLowerCase();
+    // SVGs and ICOs are vector / icon binaries, upload directly without raster crop
+    if (ext === "svg" || ext === "ico") {
+      void uploadAssetFile(file, type);
+      if (e?.target) e.target.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCropSrc(reader.result as string);
+      setCropFileName(file.name);
+      setCropAssetType(type);
+      setCropperOpen(true);
+    };
+    reader.readAsDataURL(file);
+    if (e?.target) e.target.value = "";
   };
 
   const handleRemoveAsset = async (type: "logo" | "logo-dark" | "favicon" | "cover") => {
@@ -596,7 +622,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                     type="file"
                     accept=".png,.jpg,.jpeg,.webp,.svg,image/png,image/jpeg,image/webp,image/svg+xml"
                     className="hidden"
-                    onChange={(e) => handleFileUpload(e, "logo")}
+                    onChange={(e) => handleFileInputChange(e, "logo")}
                   />
                 </div>
 
@@ -643,7 +669,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                     type="file"
                     accept=".png,.jpg,.jpeg,.webp,.svg,image/png,image/jpeg,image/webp,image/svg+xml"
                     className="hidden"
-                    onChange={(e) => handleFileUpload(e, "logo-dark")}
+                    onChange={(e) => handleFileInputChange(e, "logo-dark")}
                   />
                 </div>
 
@@ -690,7 +716,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                     type="file"
                     accept=".ico,.png,.svg,.jpg,.jpeg,.webp,image/x-icon,image/vnd.microsoft.icon,image/ico,image/icon,image/x-ico,image/png,image/svg+xml"
                     className="hidden"
-                    onChange={(e) => handleFileUpload(e, "favicon")}
+                    onChange={(e) => handleFileInputChange(e, "favicon")}
                   />
                 </div>
               </div>
@@ -1109,7 +1135,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                   type="file"
                   accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp"
                   className="hidden"
-                  onChange={(e) => handleFileUpload(e, "cover")}
+                  onChange={(e) => handleFileInputChange(e, "cover")}
                 />
               </div>
             </div>
@@ -1206,7 +1232,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                 </div>
               </div>
 
-              {/* View Switcher: App vs Auth Screen */}
+              {/* View Switcher: App vs Auth Screen vs Outgoing Email */}
               <div className="bg-muted/50 border-border/40 flex w-fit items-center gap-1 rounded-lg border p-0.5">
                 <button
                   type="button"
@@ -1231,6 +1257,18 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                   )}
                 >
                   <LogIn className="size-3.5" /> Sign-in Screen
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewTab("email")}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all",
+                    previewTab === "email"
+                      ? "bg-background text-foreground font-semibold shadow-xs"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <Mail className="size-3.5" /> Outgoing Email
                 </button>
               </div>
             </CardHeader>
@@ -1408,86 +1446,163 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                       </div>
                     </div>
                   </div>
-                ) : authLayout === "SPLIT" ? (
-                  /* Simulation: Auth Split Layout */
-                  <div className="grid min-h-[360px] grid-cols-12">
-                    {/* Left Hero Branding Panel */}
-                    <div
-                      className="relative col-span-6 flex flex-col justify-between overflow-hidden p-3.5 text-white"
-                      style={{
-                        backgroundColor: activePrimary,
-                      }}
-                    >
-                      {authCoverUrl && (
-                        <div
-                          className="absolute inset-0 bg-cover bg-center"
-                          style={{ backgroundImage: `url(${authCoverUrl})` }}
-                        />
-                      )}
+                ) : previewTab === "auth" ? (
+                  authLayout === "SPLIT" ? (
+                    /* Simulation: Auth Split Layout */
+                    <div className="grid min-h-[360px] grid-cols-12">
+                      {/* Left Hero Branding Panel */}
                       <div
-                        className="absolute inset-0"
+                        className="relative col-span-6 flex flex-col justify-between overflow-hidden p-3.5 text-white"
                         style={{
-                          background: authCoverUrl
-                            ? "linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.85) 100%)"
-                            : `linear-gradient(135deg, ${activePrimary} 0%, rgba(0,0,0,0.85) 100%)`,
+                          backgroundColor: activePrimary,
                         }}
-                      />
-                      <div className="relative z-10 space-y-1.5">
-                        <TenantLogo
-                          variant="icon"
-                          branding={previewBranding}
-                          tenant={activeTenant}
-                          className="size-6 rounded bg-white/10 p-1 backdrop-blur"
+                      >
+                        {authCoverUrl && (
+                          <div
+                            className="absolute inset-0 bg-cover bg-center"
+                            style={{ backgroundImage: `url(${authCoverUrl})` }}
+                          />
+                        )}
+                        <div
+                          className="absolute inset-0"
+                          style={{
+                            background: authCoverUrl
+                              ? "linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.85) 100%)"
+                              : `linear-gradient(135deg, ${activePrimary} 0%, rgba(0,0,0,0.85) 100%)`,
+                          }}
                         />
-                        <div className="truncate text-[11px] font-bold drop-shadow-sm">
-                          {companyName || "Acme"}
+                        <div className="relative z-10 space-y-1.5">
+                          <TenantLogo
+                            variant="icon"
+                            branding={previewBranding}
+                            tenant={activeTenant}
+                            className="size-6 rounded bg-white/10 p-1 backdrop-blur"
+                          />
+                          <div className="truncate text-[11px] font-bold drop-shadow-sm">
+                            {companyName || "Acme"}
+                          </div>
+                        </div>
+                        <div className="relative z-10 space-y-1">
+                          <p className="text-xs leading-tight font-semibold text-white/95">
+                            {authHeadline || `Welcome to ${companyName || "Workspace"}`}
+                          </p>
+                          <p className="line-clamp-2 text-[10px] text-white/75">
+                            {authSubtitle || "Secure enterprise workspace authentication."}
+                          </p>
+                          <div className="flex items-center gap-1 pt-1 text-[8px] text-white/60">
+                            <Shield className="size-2.5" /> SOC-2 & SSO Protected
+                          </div>
                         </div>
                       </div>
-                      <div className="relative z-10 space-y-1">
-                        <p className="text-xs leading-tight font-semibold text-white/95">
-                          {authHeadline || `Welcome to ${companyName || "Workspace"}`}
-                        </p>
-                        <p className="line-clamp-2 text-[10px] text-white/75">
-                          {authSubtitle || "Secure enterprise workspace authentication."}
-                        </p>
-                        <div className="flex items-center gap-1 pt-1 text-[8px] text-white/60">
-                          <Shield className="size-2.5" /> SOC-2 & SSO Protected
+
+                      {/* Right Mock Form */}
+                      <div className="col-span-6 flex flex-col justify-center space-y-2.5 p-3.5">
+                        <div className="space-y-0.5">
+                          <div className="text-xs font-bold">Sign In</div>
+                          <div className="text-muted-foreground text-[10px]">
+                            Enter your credentials
+                          </div>
+                        </div>
+                        <div className="space-y-1.5">
+                          <div className="space-y-0.5">
+                            <div className="text-muted-foreground text-[8px] font-medium">
+                              Email
+                            </div>
+                            <div
+                              className={cn(
+                                "flex h-6 items-center rounded border px-2 text-[9px] text-zinc-500",
+                                previewDark
+                                  ? "border-zinc-800 bg-zinc-900"
+                                  : "border-zinc-200 bg-zinc-50",
+                              )}
+                              style={{ borderRadius: previewTokens.radius }}
+                            >
+                              alex@company.com
+                            </div>
+                          </div>
+                          <div className="space-y-0.5">
+                            <div className="text-muted-foreground text-[8px] font-medium">
+                              Password
+                            </div>
+                            <div
+                              className={cn(
+                                "flex h-6 items-center rounded border px-2 text-[9px] text-zinc-500",
+                                previewDark
+                                  ? "border-zinc-800 bg-zinc-900"
+                                  : "border-zinc-200 bg-zinc-50",
+                              )}
+                              style={{ borderRadius: previewTokens.radius }}
+                            >
+                              ••••••••••••
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className="w-full py-1 text-[10px] font-semibold shadow-2xs transition-opacity"
+                          style={{
+                            backgroundColor: activePrimary,
+                            color: activePrimaryFg,
+                            borderRadius: previewTokens.radius,
+                          }}
+                        >
+                          Sign in to Workspace
+                        </button>
+                        <div className="text-muted-foreground pt-0.5 text-center text-[8px]">
+                          Forgot password?
                         </div>
                       </div>
                     </div>
-
-                    {/* Right Mock Form */}
-                    <div className="col-span-6 flex flex-col justify-center space-y-2.5 p-3.5">
-                      <div className="space-y-0.5">
-                        <div className="text-xs font-bold">Sign In</div>
-                        <div className="text-muted-foreground text-[10px]">
-                          Enter your credentials
+                  ) : (
+                    /* Simulation: Auth Centered Card Layout */
+                    <div className="relative flex min-h-[360px] items-center justify-center overflow-hidden p-4">
+                      {/* Ambient radial brand glow */}
+                      <div
+                        className="pointer-events-none absolute inset-0 opacity-20"
+                        style={{
+                          background: `radial-gradient(circle at center, ${activePrimary} 0%, transparent 70%)`,
+                        }}
+                      />
+                      <div
+                        className={cn(
+                          "relative z-10 w-full max-w-[220px] space-y-2.5 rounded-xl border p-3.5 shadow-xs",
+                          previewDark
+                            ? "border-zinc-800 bg-zinc-900/90"
+                            : "border-zinc-200 bg-white/95",
+                        )}
+                        style={{ borderRadius: previewTokens.radius }}
+                      >
+                        <div className="flex flex-col items-center space-y-1 text-center">
+                          <TenantLogo
+                            variant="icon"
+                            branding={previewBranding}
+                            tenant={activeTenant}
+                            className="size-7 rounded shadow-2xs"
+                          />
+                          <div className="truncate text-xs font-bold">
+                            {authHeadline || `Sign in to ${companyName || "Workspace"}`}
+                          </div>
+                          <div className="text-muted-foreground line-clamp-2 text-[9px]">
+                            {authSubtitle || "Enter your workspace credentials"}
+                          </div>
                         </div>
-                      </div>
-                      <div className="space-y-1.5">
-                        <div className="space-y-0.5">
-                          <div className="text-muted-foreground text-[8px] font-medium">Email</div>
+                        <div className="space-y-1.5">
                           <div
                             className={cn(
                               "flex h-6 items-center rounded border px-2 text-[9px] text-zinc-500",
                               previewDark
-                                ? "border-zinc-800 bg-zinc-900"
+                                ? "border-zinc-800 bg-zinc-950"
                                 : "border-zinc-200 bg-zinc-50",
                             )}
                             style={{ borderRadius: previewTokens.radius }}
                           >
                             alex@company.com
                           </div>
-                        </div>
-                        <div className="space-y-0.5">
-                          <div className="text-muted-foreground text-[8px] font-medium">
-                            Password
-                          </div>
                           <div
                             className={cn(
                               "flex h-6 items-center rounded border px-2 text-[9px] text-zinc-500",
                               previewDark
-                                ? "border-zinc-800 bg-zinc-900"
+                                ? "border-zinc-800 bg-zinc-950"
                                 : "border-zinc-200 bg-zinc-50",
                             )}
                             style={{ borderRadius: previewTokens.radius }}
@@ -1495,93 +1610,139 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                             ••••••••••••
                           </div>
                         </div>
-                      </div>
-                      <button
-                        type="button"
-                        className="w-full py-1 text-[10px] font-semibold shadow-2xs transition-opacity"
-                        style={{
-                          backgroundColor: activePrimary,
-                          color: activePrimaryFg,
-                          borderRadius: previewTokens.radius,
-                        }}
-                      >
-                        Sign in to Workspace
-                      </button>
-                      <div className="text-muted-foreground pt-0.5 text-center text-[8px]">
-                        Forgot password?
+                        <button
+                          type="button"
+                          className="w-full py-1 text-[10px] font-semibold shadow-2xs transition-opacity"
+                          style={{
+                            backgroundColor: activePrimary,
+                            color: activePrimaryFg,
+                            borderRadius: previewTokens.radius,
+                          }}
+                        >
+                          Continue
+                        </button>
+                        <div className="text-muted-foreground flex items-center justify-center gap-1 pt-0.5 text-[8px]">
+                          <Shield className="size-2.5" /> Protected Workspace
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )
                 ) : (
-                  /* Simulation: Auth Centered Card Layout */
-                  <div className="relative flex min-h-[360px] items-center justify-center overflow-hidden p-4">
-                    {/* Ambient radial brand glow */}
-                    <div
-                      className="pointer-events-none absolute inset-0 opacity-20"
-                      style={{
-                        background: `radial-gradient(circle at center, ${activePrimary} 0%, transparent 70%)`,
-                      }}
-                    />
+                  /* Simulation: Outgoing Branded Transactional Email */
+                  <div
+                    className={cn(
+                      "flex min-h-[360px] items-center justify-center p-3.5",
+                      previewDark ? "bg-zinc-900/60" : "bg-zinc-100/70",
+                    )}
+                  >
                     <div
                       className={cn(
-                        "relative z-10 w-full max-w-[220px] space-y-2.5 rounded-xl border p-3.5 shadow-xs",
+                        "w-full max-w-[280px] overflow-hidden rounded-lg border shadow-xs transition-colors",
                         previewDark
-                          ? "border-zinc-800 bg-zinc-900/90"
-                          : "border-zinc-200 bg-white/95",
+                          ? "border-zinc-800 bg-zinc-950 text-white"
+                          : "border-zinc-200 bg-white text-zinc-900",
                       )}
-                      style={{ borderRadius: previewTokens.radius }}
+                      style={{
+                        borderTop: `4px solid ${activePrimary}`,
+                        borderRadius: previewTokens.radius,
+                      }}
                     >
-                      <div className="flex flex-col items-center space-y-1 text-center">
-                        <TenantLogo
-                          variant="icon"
-                          branding={previewBranding}
-                          tenant={activeTenant}
-                          className="size-7 rounded shadow-2xs"
-                        />
-                        <div className="truncate text-xs font-bold">
-                          {authHeadline || `Sign in to ${companyName || "Workspace"}`}
-                        </div>
-                        <div className="text-muted-foreground line-clamp-2 text-[9px]">
-                          {authSubtitle || "Enter your workspace credentials"}
-                        </div>
-                      </div>
-                      <div className="space-y-1.5">
-                        <div
-                          className={cn(
-                            "flex h-6 items-center rounded border px-2 text-[9px] text-zinc-500",
-                            previewDark
-                              ? "border-zinc-800 bg-zinc-950"
-                              : "border-zinc-200 bg-zinc-50",
-                          )}
-                          style={{ borderRadius: previewTokens.radius }}
-                        >
-                          alex@company.com
-                        </div>
-                        <div
-                          className={cn(
-                            "flex h-6 items-center rounded border px-2 text-[9px] text-zinc-500",
-                            previewDark
-                              ? "border-zinc-800 bg-zinc-950"
-                              : "border-zinc-200 bg-zinc-50",
-                          )}
-                          style={{ borderRadius: previewTokens.radius }}
-                        >
-                          ••••••••••••
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        className="w-full py-1 text-[10px] font-semibold shadow-2xs transition-opacity"
-                        style={{
-                          backgroundColor: activePrimary,
-                          color: activePrimaryFg,
-                          borderRadius: previewTokens.radius,
-                        }}
+                      {/* Email Header */}
+                      <div
+                        className={cn(
+                          "border-b p-3 text-center",
+                          previewDark ? "border-zinc-800" : "border-zinc-100",
+                        )}
                       >
-                        Continue
-                      </button>
-                      <div className="text-muted-foreground flex items-center justify-center gap-1 pt-0.5 text-[8px]">
-                        <Shield className="size-2.5" /> Protected Workspace
+                        {logoUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={previewDark && logoDarkUrl ? logoDarkUrl : logoUrl}
+                            alt={companyName || "Organization"}
+                            className="mx-auto max-h-6 max-w-[120px] object-contain"
+                          />
+                        ) : (
+                          <div
+                            className="text-xs font-bold tracking-tight"
+                            style={{ color: activePrimary }}
+                          >
+                            {companyName || "Acme Organization"}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Email Body Content */}
+                      <div className="space-y-2.5 p-3 text-[10px]">
+                        <div className="text-xs font-bold">
+                          You&apos;re invited to join {companyName || "Acme"}
+                        </div>
+                        <p className="text-muted-foreground text-[9px] leading-relaxed">
+                          Hi Elena, you have been invited to collaborate on{" "}
+                          <strong>{companyName || "Acme"}</strong> with the{" "}
+                          <strong>Workspace Admin</strong> role.
+                        </p>
+
+                        {/* Branded CTA Button */}
+                        <div className="py-1 text-center">
+                          <button
+                            type="button"
+                            className="rounded px-3 py-1 text-[9px] font-semibold text-white shadow-2xs transition-opacity"
+                            style={{
+                              backgroundColor: activePrimary,
+                              color: activePrimaryFg,
+                              borderRadius: previewTokens.radius,
+                            }}
+                          >
+                            Accept Invitation & Join
+                          </button>
+                        </div>
+
+                        {/* Branded Token Box */}
+                        <div
+                          className={cn(
+                            "rounded border border-dashed p-1.5 text-center",
+                            previewDark ? "border-zinc-800" : "border-zinc-200",
+                          )}
+                          style={{
+                            backgroundColor: activeSecondary,
+                            color: activeSecondaryFg,
+                            borderRadius: previewTokens.radius,
+                          }}
+                        >
+                          <div className="text-muted-foreground text-[7px] font-semibold tracking-wider uppercase">
+                            Invitation Token
+                          </div>
+                          <div
+                            className="font-mono text-[10px] font-bold tracking-widest"
+                            style={{ color: activePrimary }}
+                          >
+                            INV-7842-AX9B
+                          </div>
+                        </div>
+
+                        <p className="border-border/40 text-muted-foreground border-t pt-1 text-[8px]">
+                          This invitation link expires in 48 hours.
+                        </p>
+                      </div>
+
+                      {/* Email Footer */}
+                      <div
+                        className={cn(
+                          "text-muted-foreground border-t p-2 text-center text-[8px]",
+                          previewDark
+                            ? "border-zinc-900 bg-zinc-900/40"
+                            : "border-zinc-100 bg-zinc-50",
+                        )}
+                      >
+                        <div>
+                          © {new Date().getFullYear()} {companyName || "Organization"}. All rights
+                          reserved.
+                        </div>
+                        {supportEmail ? (
+                          <div className="pt-0.5 font-medium" style={{ color: activePrimary }}>
+                            Questions? {supportEmail}
+                          </div>
+                        ) : null}
                       </div>
                     </div>
                   </div>
@@ -1619,6 +1780,17 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
           </Card>
         </div>
       </div>
+
+      <ImageCropperDialog
+        open={cropperOpen}
+        onOpenChange={setCropperOpen}
+        imageSrc={cropSrc}
+        fileName={cropFileName}
+        assetType={cropAssetType}
+        onCropComplete={async (file) => {
+          await uploadAssetFile(file, cropAssetType);
+        }}
+      />
     </div>
   );
 }
