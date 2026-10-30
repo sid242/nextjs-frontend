@@ -20,6 +20,8 @@ export async function backendFetch(path: string, init: BackendInit = {}): Promis
   const h = new Headers();
   h.set("accept", "application/json");
   if (json !== undefined) h.set("content-type", "application/json");
+  const bffSecret = getEnv().BFF_SHARED_SECRET;
+  if (bffSecret) h.set("x-bff-secret", bffSecret);
   for (const [key, value] of Object.entries(headers)) if (value) h.set(key, value);
   if (token) h.set("authorization", `Bearer ${token}`);
 

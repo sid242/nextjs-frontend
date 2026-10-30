@@ -9,6 +9,7 @@ export {
   tenantAuditLogsQueryOptions,
   tenantAuditLogsSearchQueryOptions,
   tenantModulesQueryOptions,
+  tenantUrlSettingsQueryOptions,
   useTenants,
   useTenantBranding,
   useTenantMembers,
@@ -17,6 +18,7 @@ export {
   useTenantAuditLogsSearch,
   useTenantModules,
   useTenantContext,
+  useTenantUrlSettings,
   tenantContextQueryOptions,
   useActiveTenant,
   useCreateTenant,
@@ -25,6 +27,8 @@ export {
   useRemoveTenantMember,
   useUpdateMemberRole,
   useUpdateTenantBranding,
+  useUpdateTenantUrlSettings,
+  useDeleteTenantCustomDomain,
   useSaveTenantEmailConfig,
   useTestTenantEmailConfig,
   useToggleTenantModule,
@@ -38,6 +42,7 @@ export { TenantSidebarNav } from "./components/tenant-sidebar-nav";
 export { TenantThemeProvider } from "./components/tenant-theme-provider";
 export { TenantSettingsCard } from "./components/tenant-settings-card";
 export { TenantBrandingCard } from "./components/tenant-branding-card";
+export { TenantUrlCard } from "./components/tenant-url-card";
 export { TenantSmtpCard } from "./components/tenant-smtp-card";
 export { TeamStatsCards } from "./components/team-stats-cards";
 export { TeamMembersList } from "./components/team-members-list";

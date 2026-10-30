@@ -15,8 +15,45 @@ export type Tenant = z.infer<typeof tenantSchema>;
 
 export const hexColorRegex = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 
-export const customDomainStatusSchema = z.enum(["PENDING", "ACTIVE", "FAILED"]);
+export const customDomainStatusSchema = z.enum(["PENDING", "VERIFIED", "ACTIVE", "FAILED"]);
 export type CustomDomainStatus = z.infer<typeof customDomainStatusSchema>;
+
+export const tenantUrlStyleSchema = z.enum(["path", "subdomain", "customDomain"]);
+export type TenantUrlStyle = z.infer<typeof tenantUrlStyleSchema>;
+
+export const tenantUrlAccessSchema = z.object({
+  path: z.literal(true),
+  subdomain: z.boolean(),
+  customDomain: z.boolean(),
+});
+export type TenantUrlAccess = z.infer<typeof tenantUrlAccessSchema>;
+
+export const tenantUrlSettingsSchema = z.object({
+  urlStyle: tenantUrlStyleSchema,
+  effective: tenantUrlStyleSchema,
+  allowed: tenantUrlAccessSchema,
+  canonicalBase: z.string(),
+  reason: z.enum(["PLAN", "UNVERIFIED", "SUSPENDED", "ENV_DISABLED"]).optional(),
+  customDomain: z.string().nullable().optional(),
+  status: customDomainStatusSchema.nullable().optional(),
+  verifiedAt: z.string().nullable().optional(),
+  instructions: z.object({
+    txtRecord: z.string().nullable().optional(),
+    cnameTarget: z.string().optional(),
+  }),
+  urls: z.object({
+    path: z.string(),
+    subdomain: z.string().optional(),
+    customDomain: z.string().optional(),
+  }),
+});
+export type TenantUrlSettings = z.infer<typeof tenantUrlSettingsSchema>;
+
+export const updateTenantUrlSettingsSchema = z.object({
+  urlStyle: tenantUrlStyleSchema.optional(),
+  customDomain: z.string().trim().nullable().optional().or(z.literal("")),
+});
+export type UpdateTenantUrlSettingsInput = z.infer<typeof updateTenantUrlSettingsSchema>;
 
 export const tenantBrandingSchema = z.object({
   tenantId: z.string().optional(),
@@ -29,6 +66,8 @@ export const tenantBrandingSchema = z.object({
   borderRadius: z.string().optional(),
   customDomain: z.string().nullable().optional(),
   customDomainStatus: customDomainStatusSchema.nullable().optional(),
+  customDomainVerifiedAt: z.string().nullable().optional(),
+  customDomainTlsStatus: z.string().nullable().optional(),
   supportEmail: z.string().email().optional().or(z.literal("")),
 });
 export type TenantBranding = z.infer<typeof tenantBrandingSchema>;
@@ -141,6 +180,10 @@ export interface TenantContext {
     status: string;
     plan: string;
     databaseMode?: string;
+    urlStyle?: string;
+    urlAccess?: TenantUrlAccess;
+    urlMode?: TenantUrlStyle;
+    effectiveUrl?: string;
   };
   membership?: {
     id: string;

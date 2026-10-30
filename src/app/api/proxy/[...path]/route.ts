@@ -73,11 +73,17 @@ async function handler(req: NextRequest, { params }: Ctx) {
     upstreamPath === "/billing/platform" ||
     upstreamPath.startsWith("/billing/platform/");
 
+  const isPublicRoute =
+    upstreamPath === "/plans" ||
+    upstreamPath === "/public/plans" ||
+    upstreamPath === "/billing" ||
+    upstreamPath.startsWith("/tenants/public/");
+
   const token = isPlatformRoute
     ? req.cookies.get(PLATFORM_STAFF_COOKIE)?.value
     : req.cookies.get(ACCESS_COOKIE)?.value;
 
-  if (!token) return errorResponse(401, "UNAUTHORIZED", "Not signed in");
+  if (!token && !isPublicRoute) return errorResponse(401, "UNAUTHORIZED", "Not signed in");
 
   // Finding 3 Fix: Bounded, byte-accurate body length validation.
   // UTF-16 string .length miscalculates multibyte characters; we check Content-Length header

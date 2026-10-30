@@ -2,6 +2,7 @@ import "client-only"; // build error if a server component imports this: server 
 
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from "axios";
 
+import { isProtectedPath } from "@/lib/auth/paths";
 import { createId } from "@/lib/id";
 import { tenantStorage } from "@/lib/storage";
 
@@ -49,6 +50,10 @@ function redirectToLogin() {
   const isPlatform = window.location.pathname.startsWith("/platform");
   const loginPath = isPlatform ? "/platform/login" : "/login";
   if (window.location.pathname === loginPath) return;
+
+  // Never bounce visitors browsing public marketing / unauthenticated pages to login
+  if (!isPlatform && !isProtectedPath(window.location.pathname)) return;
+
   redirecting = true;
   const next = encodeURIComponent(window.location.pathname + window.location.search);
   // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- Full page navigation needed outside React lifecycle to clear application state

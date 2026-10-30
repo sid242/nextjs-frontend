@@ -14,6 +14,7 @@ import {
 import {
   addTenantMember,
   createTenant,
+  deleteTenantCustomDomain,
   getTenantAuditLogs,
   getTenantBranding,
   getTenantContext,
@@ -21,6 +22,7 @@ import {
   getTenantMembers,
   getTenantModules,
   getTenants,
+  getTenantUrlSettings,
   removeTenantMember,
   saveTenantEmailConfig,
   searchTenantAuditLogs,
@@ -30,6 +32,7 @@ import {
   updateTenant,
   updateTenantBranding,
   updateTenantMemberRole,
+  updateTenantUrlSettings,
   verifyTenantCustomDomain,
 } from "./api";
 import { tenantKeys } from "./keys";
@@ -44,8 +47,10 @@ import type {
   TenantEmailConfig,
   TenantMember,
   TenantModule,
+  TenantUrlSettings,
   TestEmailInput,
   UpdateTenantBrandingInput,
+  UpdateTenantUrlSettingsInput,
 } from "./schemas";
 import { useTenantStore } from "./store";
 
@@ -100,6 +105,14 @@ export const tenantAuditLogsSearchQueryOptions = (
     staleTime: 30 * 1000,
   });
 };
+
+export const tenantUrlSettingsQueryOptions = (tenantId: string) =>
+  queryOptions({
+    queryKey: tenantKeys.urlSettings(tenantId),
+    queryFn: ({ signal }) => getTenantUrlSettings(tenantId, signal),
+    enabled: Boolean(tenantId),
+    staleTime: 60 * 1000,
+  });
 
 export function useTenants(options?: QueryOverrides<Tenant[]>) {
   return useAppQuery<Tenant[]>(tenantsQueryOptions(), options);
@@ -466,6 +479,56 @@ export function useTransferTenantOwnership(
       onSuccess: () => {
         void queryClient.invalidateQueries({ queryKey: tenantKeys.members(tenantId) });
         void queryClient.invalidateQueries({ queryKey: tenantKeys.all });
+      },
+    },
+    options,
+  );
+}
+
+export function useTenantUrlSettings(
+  tenantId?: string | null,
+  options?: QueryOverrides<TenantUrlSettings>,
+) {
+  return useAppQuery<TenantUrlSettings>(tenantUrlSettingsQueryOptions(tenantId ?? ""), {
+    enabled: Boolean(tenantId),
+    ...options,
+  });
+}
+
+export function useUpdateTenantUrlSettings(
+  tenantId: string,
+  options?: MutationOverrides<TenantUrlSettings, UpdateTenantUrlSettingsInput>,
+) {
+  const queryClient = useQueryClient();
+
+  return useAppMutation(
+    {
+      mutationFn: (input: UpdateTenantUrlSettingsInput) => updateTenantUrlSettings(tenantId, input),
+      onSuccess: (data: TenantUrlSettings) => {
+        queryClient.setQueryData(tenantKeys.urlSettings(tenantId), data);
+        void queryClient.invalidateQueries({ queryKey: tenantKeys.branding(tenantId) });
+        void queryClient.invalidateQueries({ queryKey: tenantKeys.context(tenantId) });
+        void queryClient.invalidateQueries({ queryKey: tenantKeys.detail(tenantId) });
+      },
+    },
+    options,
+  );
+}
+
+export function useDeleteTenantCustomDomain(
+  tenantId: string,
+  options?: MutationOverrides<TenantUrlSettings, void>,
+) {
+  const queryClient = useQueryClient();
+
+  return useAppMutation(
+    {
+      mutationFn: () => deleteTenantCustomDomain(tenantId),
+      onSuccess: (data: TenantUrlSettings) => {
+        queryClient.setQueryData(tenantKeys.urlSettings(tenantId), data);
+        void queryClient.invalidateQueries({ queryKey: tenantKeys.branding(tenantId) });
+        void queryClient.invalidateQueries({ queryKey: tenantKeys.context(tenantId) });
+        void queryClient.invalidateQueries({ queryKey: tenantKeys.detail(tenantId) });
       },
     },
     options,

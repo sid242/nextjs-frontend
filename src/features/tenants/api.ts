@@ -10,8 +10,10 @@ import type {
   TenantContext,
   TenantEmailConfig,
   TenantMember,
+  TenantUrlSettings,
   TestEmailInput,
   UpdateTenantBrandingInput,
+  UpdateTenantUrlSettingsInput,
 } from "./schemas";
 
 export async function getTenants(signal?: AbortSignal): Promise<Tenant[]> {
@@ -257,4 +259,22 @@ export async function getTenantContext(
   signal?: AbortSignal,
 ): Promise<TenantContext> {
   return api.get<TenantContext>(`/tenants/${tenantId}/context`, { signal });
+}
+
+export async function getTenantUrlSettings(
+  tenantId: string,
+  signal?: AbortSignal,
+): Promise<TenantUrlSettings> {
+  return api.get<TenantUrlSettings>(`/tenants/${tenantId}/url-settings`, { signal });
+}
+
+export async function updateTenantUrlSettings(
+  tenantId: string,
+  input: UpdateTenantUrlSettingsInput,
+): Promise<TenantUrlSettings> {
+  return api.put<TenantUrlSettings>(`/tenants/${tenantId}/url-settings`, input);
+}
+
+export async function deleteTenantCustomDomain(tenantId: string): Promise<TenantUrlSettings> {
+  return api.delete<TenantUrlSettings>(`/tenants/${tenantId}/url-settings/custom-domain`);
 }

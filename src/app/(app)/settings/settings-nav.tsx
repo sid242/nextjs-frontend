@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Building2Icon,
   CreditCardIcon,
+  GlobeIcon,
   MailIcon,
   PaletteIcon,
   ShieldIcon,
@@ -45,6 +46,13 @@ export function SettingsNav() {
       label: "Branding & Theme",
       icon: PaletteIcon,
       active: pathname === "/settings/branding",
+      visible: hasTenantPermission(permissions, TENANT_PERMISSIONS.TENANTS_UPDATE),
+    },
+    {
+      href: "/settings/url",
+      label: "Domains & URLs",
+      icon: GlobeIcon,
+      active: pathname === "/settings/url",
       visible: hasTenantPermission(permissions, TENANT_PERMISSIONS.TENANTS_UPDATE),
     },
     {

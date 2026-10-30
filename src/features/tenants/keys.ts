@@ -8,6 +8,7 @@ export const tenantKeys = {
   modules: (id: string) => [...tenantKeys.all, "modules", id] as const,
   auditLogs: (id: string, page = 1) => [...tenantKeys.all, "auditLogs", id, page] as const,
   context: (id: string) => [...tenantKeys.all, "context", id] as const,
+  urlSettings: (id: string) => [...tenantKeys.all, "urlSettings", id] as const,
   auditLogsSearch: (id: string, criteria: Record<string, unknown>) =>
     [...tenantKeys.all, "auditLogsSearch", id, criteria] as const,
 };

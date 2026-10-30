@@ -9,6 +9,8 @@ import {
   matchTenantAuthPath,
   safeNextPath,
 } from "@/lib/auth/paths";
+import { classifyHost } from "@/lib/tenancy/host";
+import { resolveTenantByHost } from "@/lib/tenancy/resolve";
 
 const isDev = process.env.NODE_ENV !== "production";
 
@@ -79,19 +81,108 @@ function buildCsp(nonce: string): string {
   ].join("; ");
 }
 
+/** Strip any inbound x-tenant-* headers to prevent client spoofing. */
+function stripTenantHeaders(headers: Headers): void {
+  const toDelete: string[] = [];
+  headers.forEach((_value, key) => {
+    if (key.toLowerCase().startsWith("x-tenant-")) {
+      toDelete.push(key);
+    }
+  });
+  for (const key of toDelete) {
+    headers.delete(key);
+  }
+}
+
 /**
  * Runs before every page request (not /api, not static assets):
- *  1. route guard: anonymous -> /login, signed-in -> away from /login & /register, stale access -> refresh
- *  2. platform operator gate: non-staff -> /platform/login, authenticated staff on login -> /platform/staff
- *  3. per-request CSP nonce
- *  4. exposes the pathname to server components (used by requireUser to build the refresh redirect)
+ *  1. host-based tenant resolution: subdomain / custom domain → tenant context
+ *  2. route guard: anonymous -> /login, signed-in -> away from /login & /register, stale access -> refresh
+ *  3. platform operator gate: non-staff -> /platform/login, authenticated staff on login -> /platform/staff
+ *  4. per-request CSP nonce
+ *  5. exposes the pathname to server components (used by requireUser to build the refresh redirect)
  * This is a UX gate only. Real authorization happens in the backend on every API call.
  */
-export function proxy(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
   const hasAccess = req.cookies.has(ACCESS_COOKIE);
   const hasRefresh = req.cookies.has(REFRESH_COOKIE);
   const hasPlatformStaff = req.cookies.has(PLATFORM_STAFF_COOKIE);
+
+  // ─── Host-aware tenant resolution ───────────────────────────────
+  const rawHost =
+    (process.env.TRUST_PROXY === "true" ? req.headers.get("x-forwarded-host") : null) ??
+    req.headers.get("host");
+
+  const hostInfo = classifyHost(rawHost);
+
+  if (hostInfo?.classification === "subdomain" || hostInfo?.classification === "custom") {
+    const result = await resolveTenantByHost(rawHost ?? "");
+
+    if (!result) {
+      const url = req.nextUrl.clone();
+      url.pathname = "/tenant-not-found";
+      return NextResponse.rewrite(url);
+    }
+
+    if (result?.status === "SUSPENDED") {
+      const url = req.nextUrl.clone();
+      url.pathname = "/tenant-suspended";
+      return NextResponse.rewrite(url);
+    }
+
+    if (result?.pathOnly) {
+      return NextResponse.redirect(new URL(`${result.canonicalBase}${pathname}${search}`), 307);
+    }
+
+    // Block /w/* paths on domain hosts – redirect to the unprefixed version
+    // so one tenant host can't point at another slug
+    const wMatch = pathname.match(/^\/w\/[^/]+(\/.*)?$/);
+    if (wMatch) {
+      const rest = wMatch[1] ?? "/";
+      return NextResponse.redirect(new URL(rest + search, req.url), 307);
+    }
+
+    // Set tenant context headers and rewrite to /w/{slug}/{path}
+    const nonce = btoa(crypto.randomUUID());
+    const csp = buildCsp(nonce);
+
+    const headers = new Headers(req.headers);
+    stripTenantHeaders(headers);
+    headers.set("x-tenant-slug", result?.slug ?? "");
+    headers.set("x-tenant-id", result?.tenantId ?? "");
+    headers.set("x-tenant-mode", result?.urlMode ?? "");
+    headers.set("x-tenant-canonical", result?.canonicalBase ?? "");
+    headers.set("x-nonce", nonce);
+    headers.set("x-pathname", `${pathname}${search}`);
+    headers.set("content-security-policy", csp);
+
+    const restPath = pathname === "/" ? "" : pathname;
+    const url = req.nextUrl.clone();
+    url.pathname = `/w/${result.slug}${restPath}`;
+
+    const res = NextResponse.rewrite(url, { request: { headers } });
+    res.headers.set("Content-Security-Policy", csp);
+    return res;
+  }
+
+  // ─── Platform host: redirect /w/{slug}/... to canonical domain (if not path mode) ───
+  if (hostInfo?.classification === "platform") {
+    const wPlatformMatch = pathname.match(/^\/w\/([^/]+)(\/.*)?$/);
+    if (wPlatformMatch && !pathname.startsWith("/api/")) {
+      const slug = wPlatformMatch[1];
+      const rest = wPlatformMatch[2] ?? "/";
+
+      // Only redirect if we can resolve the slug and it has a domain-based canonical
+      if (slug) {
+        const { resolveTenantBySlug } = await import("@/lib/tenancy/resolve");
+        const slugResult = await resolveTenantBySlug(slug);
+        if (slugResult?.canonicalBase && slugResult?.urlMode !== "path") {
+          return NextResponse.redirect(new URL(`${slugResult.canonicalBase}${rest}${search}`), 307);
+        }
+      }
+    }
+  }
 
   // Platform console gate
   if (isPlatformPath(pathname)) {

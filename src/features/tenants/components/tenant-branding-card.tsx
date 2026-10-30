@@ -9,7 +9,6 @@ import {
   Loader2,
   Moon,
   Palette,
-  RefreshCw,
   Sun,
   Trash2,
   Upload,
@@ -32,12 +31,7 @@ import { getErrorMessage } from "@/lib/api/errors";
 import { cn } from "@/lib/utils";
 
 import { requestBrandingUploadUrl, uploadBrandingAsset } from "../api";
-import {
-  useActiveTenant,
-  useTenantBranding,
-  useUpdateTenantBranding,
-  useVerifyTenantCustomDomain,
-} from "../queries";
+import { useActiveTenant, useTenantBranding, useUpdateTenantBranding } from "../queries";
 import type { Tenant, TenantBranding, UpdateTenantBrandingInput } from "../schemas";
 import { computeTenantThemeTokens, getContrastRatio } from "../theme";
 import { TenantLogo } from "./tenant-logo";
@@ -78,7 +72,6 @@ interface TenantBrandingFormProps {
 
 function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBrandingFormProps) {
   const updateBrandingMutation = useUpdateTenantBranding(activeTenantId);
-  const verifyDomainMutation = useVerifyTenantCustomDomain(activeTenantId);
 
   // Form state initialized directly from props (pure state, no effect needed)
   const [companyName, setCompanyName] = useState(branding?.companyName || activeTenant?.name || "");
@@ -88,7 +81,6 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
   const [primaryColor, setPrimaryColor] = useState(branding?.primaryColor || "#4F46E5");
   const [accentColor, setAccentColor] = useState(branding?.accentColor || "#06B6D4");
   const [borderRadius, setBorderRadius] = useState(branding?.borderRadius || "0.5rem");
-  const [customDomain, setCustomDomain] = useState(branding?.customDomain || "");
   const [supportEmail, setSupportEmail] = useState(branding?.supportEmail || "");
 
   // Uploading state
@@ -110,7 +102,6 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
     primaryColor,
     accentColor,
     borderRadius,
-    customDomain,
     supportEmail,
   };
 
@@ -219,7 +210,6 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
         primaryColor,
         accentColor,
         borderRadius,
-        customDomain: customDomain.trim() || null,
         supportEmail: supportEmail.trim() || undefined,
       };
 
@@ -227,16 +217,6 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
       toast.success("Workspace branding updated successfully!");
     } catch {
       toast.error("Failed to save branding changes.");
-    }
-  };
-
-  const handleVerifyDomain = async () => {
-    if (!activeTenantId || !customDomain.trim()) return;
-    try {
-      await verifyDomainMutation.mutateAsync({ bypassVerification: false });
-      toast.success("Custom domain verified and activated!");
-    } catch {
-      toast.error("DNS verification failed. Ensure TXT challenge record is configured.");
     }
   };
 
@@ -514,64 +494,19 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
               </div>
             </div>
 
-            {/* Custom Domain Section */}
+            {/* Support Contact & Domain Link */}
             <div className="border-border/50 space-y-4 rounded-lg border p-4">
               <div className="flex items-center justify-between">
                 <span className="text-foreground flex items-center gap-2 text-xs font-semibold">
-                  <Globe className="text-primary size-3.5" /> Custom White-Label Domain
+                  <Globe className="text-primary size-3.5" /> Domain & URL Settings
                 </span>
-                <Badge
-                  variant={branding?.customDomainStatus === "ACTIVE" ? "default" : "secondary"}
-                  className="text-[10px]"
+                <a
+                  href="/settings/url"
+                  className="text-primary hover:text-primary/80 text-xs font-medium underline-offset-2 hover:underline"
                 >
-                  {branding?.customDomainStatus ?? "PENDING"}
-                </Badge>
+                  Manage domains →
+                </a>
               </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="domain-input" className="text-xs">
-                  Domain Hostname
-                </Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="domain-input"
-                    value={customDomain}
-                    onChange={(e) => setCustomDomain(e?.target?.value ?? "")}
-                    placeholder="e.g. portal.acmecorp.com"
-                    className="font-mono text-xs"
-                  />
-                  {customDomain.trim() && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleVerifyDomain}
-                      disabled={verifyDomainMutation.isPending}
-                      className="shrink-0"
-                    >
-                      {verifyDomainMutation.isPending ? (
-                        <Loader2 className="mr-1.5 size-3.5 animate-spin" />
-                      ) : (
-                        <RefreshCw className="mr-1.5 size-3.5" />
-                      )}
-                      Verify DNS
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              {customDomain.trim() && (
-                <div className="bg-muted/40 text-muted-foreground space-y-1.5 rounded-md border p-3 font-mono text-[11px]">
-                  <p className="text-foreground font-semibold">Required DNS Configuration:</p>
-                  <p>
-                    1. CNAME: host=&quot;{customDomain}&quot;
-                    target=&quot;cname.platform.local&quot;
-                  </p>
-                  <p>
-                    2. TXT: host=&quot;_saas-verify.{customDomain}&quot; value=&quot;saas-verify=
-                    {activeTenantId}&quot;
-                  </p>
-                </div>
-              )}
 
               <div className="grid gap-2">
                 <Label htmlFor="support-email" className="text-xs">
@@ -600,7 +535,6 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                     setPrimaryColor(branding.primaryColor || "#4F46E5");
                     setAccentColor(branding.accentColor || "#06B6D4");
                     setBorderRadius(branding.borderRadius || "0.5rem");
-                    setCustomDomain(branding.customDomain || "");
                     setSupportEmail(branding.supportEmail || "");
                   }
                 }}
