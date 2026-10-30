@@ -6,12 +6,15 @@ import {
   Check,
   CheckCircle2,
   Globe,
+  ImageIcon,
   LayoutDashboard,
   LayoutTemplate,
   Loader2,
+  LogIn,
   Moon,
   Palette,
   Settings,
+  Shield,
   Sparkles,
   Sun,
   Trash2,
@@ -127,17 +130,25 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
   );
   const [borderRadius, setBorderRadius] = useState(branding?.borderRadius || "0.5rem");
   const [supportEmail, setSupportEmail] = useState(branding?.supportEmail || "");
+  const [authHeadline, setAuthHeadline] = useState(branding?.authHeadline || "");
+  const [authSubtitle, setAuthSubtitle] = useState(branding?.authSubtitle || "");
+  const [authCoverUrl, setAuthCoverUrl] = useState<string | null>(branding?.authCoverUrl || null);
+  const [authLayout, setAuthLayout] = useState<"SPLIT" | "CARD">(
+    (branding?.authLayout as "SPLIT" | "CARD") || "SPLIT",
+  );
 
   // Uploading state
   const [uploadingType, setUploadingType] = useState<string | null>(null);
 
-  // Live preview mode (light/dark)
+  // Live preview mode (light/dark and app/auth)
   const [previewDark, setPreviewDark] = useState(false);
+  const [previewTab, setPreviewTab] = useState<"app" | "auth">("app");
 
   // Hidden file input refs
   const lightLogoInputRef = useRef<HTMLInputElement>(null);
   const darkLogoInputRef = useRef<HTMLInputElement>(null);
   const faviconInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   const previewBranding: Partial<TenantBranding> = {
     companyName: companyName.trim() || activeTenant?.name || "Organization",
@@ -154,6 +165,10 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
     fontFamily: (fontFamily as TenantFontFamily) || "Inter",
     sidebarTheme,
     borderRadius,
+    authHeadline: authHeadline.trim() || undefined,
+    authSubtitle: authSubtitle.trim() || undefined,
+    authCoverUrl,
+    authLayout,
     supportEmail,
   };
 
@@ -212,7 +227,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
 
   const handleFileUpload = async (
     e: ChangeEvent<HTMLInputElement>,
-    type: "logo" | "logo-dark" | "favicon",
+    type: "logo" | "logo-dark" | "favicon" | "cover",
   ) => {
     const file = e?.target?.files?.[0];
     if (!file || !activeTenantId) return;
@@ -245,6 +260,9 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
       } else if (type === "favicon") {
         setFaviconUrl(presigned.publicUrl);
         await updateBrandingMutation.mutateAsync({ faviconUrl: presigned.publicUrl });
+      } else if (type === "cover") {
+        setAuthCoverUrl(presigned.publicUrl);
+        await updateBrandingMutation.mutateAsync({ authCoverUrl: presigned.publicUrl });
       }
 
       toast.success(`${type.toUpperCase()} uploaded and saved successfully!`);
@@ -256,7 +274,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
     }
   };
 
-  const handleRemoveAsset = async (type: "logo" | "logo-dark" | "favicon") => {
+  const handleRemoveAsset = async (type: "logo" | "logo-dark" | "favicon" | "cover") => {
     if (!activeTenantId) return;
     try {
       if (type === "logo") {
@@ -268,6 +286,9 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
       } else if (type === "favicon") {
         setFaviconUrl(null);
         await updateBrandingMutation.mutateAsync({ faviconUrl: null });
+      } else if (type === "cover") {
+        setAuthCoverUrl(null);
+        await updateBrandingMutation.mutateAsync({ authCoverUrl: null });
       }
       toast.success(`${type.toUpperCase()} removed successfully`);
     } catch (err: unknown) {
@@ -294,6 +315,10 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
         fontFamily: (fontFamily as TenantFontFamily) || "Inter",
         sidebarTheme,
         borderRadius,
+        authHeadline: authHeadline.trim() || undefined,
+        authSubtitle: authSubtitle.trim() || undefined,
+        authCoverUrl,
+        authLayout,
         supportEmail: supportEmail.trim() || undefined,
       };
 
@@ -324,6 +349,10 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
       setFontFamily(branding?.fontFamily || "Inter");
       setSidebarTheme((branding?.sidebarTheme as "DARK" | "LIGHT" | "BRAND") || "DARK");
       setBorderRadius(branding?.borderRadius || "0.5rem");
+      setAuthHeadline(branding?.authHeadline || "");
+      setAuthSubtitle(branding?.authSubtitle || "");
+      setAuthCoverUrl(branding?.authCoverUrl || null);
+      setAuthLayout((branding?.authLayout as "SPLIT" | "CARD") || "SPLIT");
       setSupportEmail(branding?.supportEmail || "");
     }
   };
@@ -912,7 +941,180 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
               </div>
             </div>
 
-            {/* 7. Support Contact & Domain Link */}
+            {/* 7. Sign-In & Authentication Screen Customization */}
+            <div className="border-border/50 space-y-4 rounded-lg border p-4">
+              <div className="flex items-center gap-2">
+                <LogIn className="text-primary size-4" />
+                <span className="text-foreground text-xs font-semibold">
+                  Sign-In & Auth Screen Customization
+                </span>
+              </div>
+              <p className="text-muted-foreground text-[11px]">
+                Customize the presentation and branded assets displayed when members and clients log
+                in to this workspace.
+              </p>
+
+              {/* Layout Mode Selection */}
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold">Authentication Layout Mode</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setAuthLayout("SPLIT")}
+                    className={cn(
+                      "flex flex-col gap-2 rounded-lg border p-3 text-left transition-all",
+                      authLayout === "SPLIT"
+                        ? "border-primary ring-primary/40 bg-primary/5 ring-2"
+                        : "border-border/60 hover:border-border bg-card",
+                    )}
+                  >
+                    <div className="border-border/60 flex h-16 w-full overflow-hidden rounded border">
+                      <div className="bg-primary/20 flex w-1/2 flex-col justify-between p-1.5">
+                        <div className="bg-primary/60 h-2 w-6 rounded-xs" />
+                        <div className="bg-primary/40 h-1.5 w-10 rounded-xs" />
+                      </div>
+                      <div className="bg-background flex w-1/2 flex-col items-center justify-center p-1.5">
+                        <div className="bg-muted-foreground/30 h-1.5 w-8 rounded-xs" />
+                        <div className="bg-primary mt-1.5 h-2 w-10 rounded-xs" />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs font-semibold">Split Screen (Recommended)</div>
+                      <div className="text-muted-foreground text-[10px]">
+                        Immersive brand hero on left, login form on right.
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setAuthLayout("CARD")}
+                    className={cn(
+                      "flex flex-col gap-2 rounded-lg border p-3 text-left transition-all",
+                      authLayout === "CARD"
+                        ? "border-primary ring-primary/40 bg-primary/5 ring-2"
+                        : "border-border/60 hover:border-border bg-card",
+                    )}
+                  >
+                    <div className="border-border/60 bg-muted/20 flex h-16 w-full items-center justify-center rounded border p-2">
+                      <div className="border-border/80 bg-background flex h-full w-20 flex-col items-center justify-center rounded border p-1 shadow-xs">
+                        <div className="bg-primary/60 size-2 rounded-full" />
+                        <div className="bg-muted-foreground/30 mt-1 h-1 w-10 rounded-xs" />
+                        <div className="bg-primary mt-1 h-1.5 w-12 rounded-xs" />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs font-semibold">Centered Card</div>
+                      <div className="text-muted-foreground text-[10px]">
+                        Minimalist centered card with subtle ambient brand glow.
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Custom Headline & Subtitle */}
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="auth-headline" className="text-xs font-semibold">
+                    Welcome Headline
+                  </Label>
+                  <Input
+                    id="auth-headline"
+                    value={authHeadline}
+                    onChange={(e) => setAuthHeadline(e?.target?.value ?? "")}
+                    placeholder={`e.g. Welcome to ${companyName || "Acme"}`}
+                    className="text-xs"
+                  />
+                  <p className="text-muted-foreground text-[10px]">
+                    Displays above the sign-in / registration form.
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="auth-subtitle" className="text-xs font-semibold">
+                    Subtitle / Tagline
+                  </Label>
+                  <Input
+                    id="auth-subtitle"
+                    value={authSubtitle}
+                    onChange={(e) => setAuthSubtitle(e?.target?.value ?? "")}
+                    placeholder="e.g. Sign in to access your secure workspace"
+                    className="text-xs"
+                  />
+                  <p className="text-muted-foreground text-[10px]">
+                    Supporting descriptive text beneath the headline.
+                  </p>
+                </div>
+              </div>
+
+              {/* Auth Hero Cover Image */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold">Auth Hero Cover Art (Split Mode)</Label>
+                  <span className="text-muted-foreground text-[11px]">
+                    Recommended: 16:9 (1920x1080)
+                  </span>
+                </div>
+                <div className="bg-muted/30 border-border/60 relative flex h-32 flex-col items-center justify-center overflow-hidden rounded-lg border border-dashed text-center">
+                  {authCoverUrl ? (
+                    <div className="relative size-full">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={authCoverUrl}
+                        alt="Auth Hero Cover"
+                        className="size-full object-cover"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/30 opacity-0 transition-opacity hover:opacity-100">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => coverInputRef?.current?.click()}
+                          disabled={uploadingType === "cover"}
+                          className="h-7 gap-1 text-xs"
+                        >
+                          <Upload className="size-3" /> Replace
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleRemoveAsset("cover")}
+                          className="h-7 gap-1 text-xs"
+                        >
+                          <Trash2 className="size-3" /> Remove
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => coverInputRef?.current?.click()}
+                      disabled={uploadingType === "cover"}
+                      className="text-muted-foreground hover:text-foreground flex flex-col items-center gap-1.5 p-4 text-xs transition-colors"
+                    >
+                      {uploadingType === "cover" ? (
+                        <Loader2 className="size-5 animate-spin" />
+                      ) : (
+                        <ImageIcon className="size-5" />
+                      )}
+                      <span className="font-medium">Upload Hero Cover Image</span>
+                      <span className="text-muted-foreground text-[10px]">
+                        PNG, JPG, or WebP up to 2MB. Displayed on desktop sign-in split layout.
+                      </span>
+                    </button>
+                  )}
+                </div>
+                <input
+                  ref={coverInputRef}
+                  type="file"
+                  accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={(e) => handleFileUpload(e, "cover")}
+                />
+              </div>
+            </div>
+
+            {/* 8. Support Contact & Domain Link */}
             <div className="border-border/50 space-y-4 rounded-lg border p-4">
               <div className="flex items-center justify-between">
                 <span className="text-foreground flex items-center gap-2 text-xs font-semibold">
@@ -966,37 +1168,69 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
       <div className="lg:col-span-5">
         <div className="sticky top-20 space-y-4">
           <Card className="border-border/80 shadow-md">
-            <CardHeader className="border-border/50 flex flex-row items-center justify-between border-b pb-3">
-              <div>
-                <CardTitle className="text-sm font-semibold">Live Experience Preview</CardTitle>
-                <CardDescription className="text-[11px]">
-                  Real-time simulation across Light & Dark modes and Sidebar styles.
-                </CardDescription>
+            <CardHeader className="border-border/50 space-y-3 border-b pb-3">
+              <div className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-sm font-semibold">Live Experience Preview</CardTitle>
+                  <CardDescription className="text-[11px]">
+                    Real-time simulation across Light & Dark modes, App UI, and Auth screens.
+                  </CardDescription>
+                </div>
+
+                {/* Theme Toggle within Preview */}
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setPreviewDark(false)}
+                    className={cn(
+                      "flex size-7 items-center justify-center rounded-md border transition-all",
+                      !previewDark
+                        ? "bg-muted text-foreground"
+                        : "text-muted-foreground opacity-60",
+                    )}
+                    title="Preview Light Mode"
+                  >
+                    <Sun className="size-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewDark(true)}
+                    className={cn(
+                      "flex size-7 items-center justify-center rounded-md border transition-all",
+                      previewDark ? "bg-muted text-foreground" : "text-muted-foreground opacity-60",
+                    )}
+                    title="Preview Dark Mode"
+                  >
+                    <Moon className="size-3.5" />
+                  </button>
+                </div>
               </div>
 
-              {/* Theme Toggle within Preview */}
-              <div className="flex items-center gap-1.5">
+              {/* View Switcher: App vs Auth Screen */}
+              <div className="bg-muted/50 border-border/40 flex w-fit items-center gap-1 rounded-lg border p-0.5">
                 <button
                   type="button"
-                  onClick={() => setPreviewDark(false)}
+                  onClick={() => setPreviewTab("app")}
                   className={cn(
-                    "flex size-7 items-center justify-center rounded-md border transition-all",
-                    !previewDark ? "bg-muted text-foreground" : "text-muted-foreground opacity-60",
+                    "flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all",
+                    previewTab === "app"
+                      ? "bg-background text-foreground font-semibold shadow-xs"
+                      : "text-muted-foreground hover:text-foreground",
                   )}
-                  title="Preview Light Mode"
                 >
-                  <Sun className="size-3.5" />
+                  <LayoutDashboard className="size-3.5" /> Dashboard
                 </button>
                 <button
                   type="button"
-                  onClick={() => setPreviewDark(true)}
+                  onClick={() => setPreviewTab("auth")}
                   className={cn(
-                    "flex size-7 items-center justify-center rounded-md border transition-all",
-                    previewDark ? "bg-muted text-foreground" : "text-muted-foreground opacity-60",
+                    "flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all",
+                    previewTab === "auth"
+                      ? "bg-background text-foreground font-semibold shadow-xs"
+                      : "text-muted-foreground hover:text-foreground",
                   )}
-                  title="Preview Dark Mode"
                 >
-                  <Moon className="size-3.5" />
+                  <LogIn className="size-3.5" /> Sign-in Screen
                 </button>
               </div>
             </CardHeader>
@@ -1023,156 +1257,335 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                   ["--radius" as string]: previewTokens.radius,
                 }}
               >
-                {/* Simulation: Split Sidebar + Content Layout */}
-                <div className="flex min-h-[360px]">
-                  {/* Mock Sidebar */}
-                  <div
-                    className="flex w-32 shrink-0 flex-col justify-between border-r p-2.5 transition-colors"
-                    style={{
-                      backgroundColor: previewDark
-                        ? previewTokens.darkSidebarBg
-                        : previewTokens.sidebarBg,
-                      color: previewDark ? previewTokens.darkSidebarFg : previewTokens.sidebarFg,
-                      borderColor: previewDark ? "#27272a" : "#e4e4e7",
-                    }}
-                  >
-                    <div className="space-y-3">
-                      {/* Logo in Sidebar */}
-                      <div className="flex items-center gap-1.5 overflow-hidden">
+                {previewTab === "app" ? (
+                  /* Simulation: Split Sidebar + Content Layout */
+                  <div className="flex min-h-[360px]">
+                    {/* Mock Sidebar */}
+                    <div
+                      className="flex w-32 shrink-0 flex-col justify-between border-r p-2.5 transition-colors"
+                      style={{
+                        backgroundColor: previewDark
+                          ? previewTokens.darkSidebarBg
+                          : previewTokens.sidebarBg,
+                        color: previewDark ? previewTokens.darkSidebarFg : previewTokens.sidebarFg,
+                        borderColor: previewDark ? "#27272a" : "#e4e4e7",
+                      }}
+                    >
+                      <div className="space-y-3">
+                        {/* Logo in Sidebar */}
+                        <div className="flex items-center gap-1.5 overflow-hidden">
+                          <TenantLogo
+                            variant="icon"
+                            branding={previewBranding}
+                            tenant={activeTenant}
+                          />
+                          <span className="truncate text-[11px] font-semibold">
+                            {companyName || "Acme"}
+                          </span>
+                        </div>
+
+                        {/* Mock Navigation links */}
+                        <div className="space-y-1 text-[11px]">
+                          <div
+                            className="flex items-center gap-1.5 rounded px-2 py-1 font-semibold transition-opacity"
+                            style={{
+                              backgroundColor:
+                                sidebarTheme === "BRAND" ? "rgba(255,255,255,0.2)" : activePrimary,
+                              color: sidebarTheme === "BRAND" ? "#ffffff" : activePrimaryFg,
+                              borderRadius: previewTokens.radius,
+                            }}
+                          >
+                            <LayoutDashboard className="size-3 shrink-0" />
+                            <span className="truncate">Home</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 px-2 py-1 opacity-70">
+                            <Users className="size-3 shrink-0" />
+                            <span className="truncate">Team</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 px-2 py-1 opacity-70">
+                            <Settings className="size-3 shrink-0" />
+                            <span className="truncate">Settings</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="border-t border-current/15 pt-2 text-[9px] opacity-70">
+                        {sidebarTheme} Mode
+                      </div>
+                    </div>
+
+                    {/* Mock Main Area */}
+                    <div className="flex-1 p-3">
+                      {/* Header bar */}
+                      <div
+                        className={cn(
+                          "flex items-center justify-between border-b pb-2.5",
+                          previewDark ? "border-zinc-800" : "border-zinc-200",
+                        )}
+                      >
+                        <span className="text-xs font-semibold">Dashboard</span>
+                        <Badge
+                          variant="outline"
+                          className="h-4 px-1 text-[9px]"
+                          style={{ borderRadius: previewTokens.radius }}
+                        >
+                          PRO
+                        </Badge>
+                      </div>
+
+                      {/* Controls Sample */}
+                      <div className="mt-3 space-y-3">
+                        <div className="space-y-0.5">
+                          <div className="text-xs font-semibold">Typography Showcase</div>
+                          <div className="text-muted-foreground text-[10px]">
+                            Font: {previewTokens.fontFamily}
+                          </div>
+                        </div>
+
+                        {/* Buttons Mockup */}
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <button
+                            type="button"
+                            className="px-2.5 py-1 text-[11px] font-semibold shadow-2xs transition-opacity hover:opacity-90"
+                            style={{
+                              backgroundColor: activePrimary,
+                              color: activePrimaryFg,
+                              borderRadius: previewTokens.radius,
+                            }}
+                          >
+                            Primary
+                          </button>
+
+                          <button
+                            type="button"
+                            className="border px-2.5 py-1 text-[11px] font-medium shadow-2xs transition-opacity hover:opacity-90"
+                            style={{
+                              backgroundColor: activeSecondary,
+                              color: activeSecondaryFg,
+                              borderColor: previewDark ? "#3f3f46" : "#e4e4e7",
+                              borderRadius: previewTokens.radius,
+                            }}
+                          >
+                            Secondary
+                          </button>
+                        </div>
+
+                        {/* Mock Input */}
+                        <input
+                          type="text"
+                          readOnly
+                          placeholder="Search resources…"
+                          className={cn(
+                            "w-full border px-2.5 py-1 text-[11px] outline-none",
+                            previewDark
+                              ? "border-zinc-800 bg-zinc-900 text-white"
+                              : "border-zinc-200 bg-zinc-50 text-zinc-900",
+                          )}
+                          style={{ borderRadius: previewTokens.radius }}
+                        />
+
+                        {/* Accent Status Pill */}
+                        <div
+                          className={cn(
+                            "flex items-center justify-between rounded border p-2",
+                            previewDark
+                              ? "border-zinc-800 bg-zinc-900/50"
+                              : "border-zinc-200 bg-zinc-50",
+                          )}
+                          style={{ borderRadius: previewTokens.radius }}
+                        >
+                          <span className="text-[10px] font-medium">Accent Highlight</span>
+                          <div
+                            className="size-3.5 rounded-full"
+                            style={{
+                              backgroundColor: previewDark
+                                ? previewTokens.darkAccent
+                                : previewTokens.accent,
+                            }}
+                            title="Accent Indicator"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : authLayout === "SPLIT" ? (
+                  /* Simulation: Auth Split Layout */
+                  <div className="grid min-h-[360px] grid-cols-12">
+                    {/* Left Hero Branding Panel */}
+                    <div
+                      className="relative col-span-6 flex flex-col justify-between overflow-hidden p-3.5 text-white"
+                      style={{
+                        backgroundColor: activePrimary,
+                      }}
+                    >
+                      {authCoverUrl && (
+                        <div
+                          className="absolute inset-0 bg-cover bg-center"
+                          style={{ backgroundImage: `url(${authCoverUrl})` }}
+                        />
+                      )}
+                      <div
+                        className="absolute inset-0"
+                        style={{
+                          background: authCoverUrl
+                            ? "linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.85) 100%)"
+                            : `linear-gradient(135deg, ${activePrimary} 0%, rgba(0,0,0,0.85) 100%)`,
+                        }}
+                      />
+                      <div className="relative z-10 space-y-1.5">
                         <TenantLogo
                           variant="icon"
                           branding={previewBranding}
                           tenant={activeTenant}
+                          className="size-6 rounded bg-white/10 p-1 backdrop-blur"
                         />
-                        <span className="truncate text-[11px] font-semibold">
+                        <div className="truncate text-[11px] font-bold drop-shadow-sm">
                           {companyName || "Acme"}
-                        </span>
+                        </div>
                       </div>
-
-                      {/* Mock Navigation links */}
-                      <div className="space-y-1 text-[11px]">
-                        <div
-                          className="flex items-center gap-1.5 rounded px-2 py-1 font-semibold transition-opacity"
-                          style={{
-                            backgroundColor:
-                              sidebarTheme === "BRAND" ? "rgba(255,255,255,0.2)" : activePrimary,
-                            color: sidebarTheme === "BRAND" ? "#ffffff" : activePrimaryFg,
-                            borderRadius: previewTokens.radius,
-                          }}
-                        >
-                          <LayoutDashboard className="size-3 shrink-0" />
-                          <span className="truncate">Home</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 px-2 py-1 opacity-70">
-                          <Users className="size-3 shrink-0" />
-                          <span className="truncate">Team</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 px-2 py-1 opacity-70">
-                          <Settings className="size-3 shrink-0" />
-                          <span className="truncate">Settings</span>
+                      <div className="relative z-10 space-y-1">
+                        <p className="text-xs leading-tight font-semibold text-white/95">
+                          {authHeadline || `Welcome to ${companyName || "Workspace"}`}
+                        </p>
+                        <p className="line-clamp-2 text-[10px] text-white/75">
+                          {authSubtitle || "Secure enterprise workspace authentication."}
+                        </p>
+                        <div className="flex items-center gap-1 pt-1 text-[8px] text-white/60">
+                          <Shield className="size-2.5" /> SOC-2 & SSO Protected
                         </div>
                       </div>
                     </div>
 
-                    <div className="border-t border-current/15 pt-2 text-[9px] opacity-70">
-                      {sidebarTheme} Mode
+                    {/* Right Mock Form */}
+                    <div className="col-span-6 flex flex-col justify-center space-y-2.5 p-3.5">
+                      <div className="space-y-0.5">
+                        <div className="text-xs font-bold">Sign In</div>
+                        <div className="text-muted-foreground text-[10px]">
+                          Enter your credentials
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <div className="space-y-0.5">
+                          <div className="text-muted-foreground text-[8px] font-medium">Email</div>
+                          <div
+                            className={cn(
+                              "flex h-6 items-center rounded border px-2 text-[9px] text-zinc-500",
+                              previewDark
+                                ? "border-zinc-800 bg-zinc-900"
+                                : "border-zinc-200 bg-zinc-50",
+                            )}
+                            style={{ borderRadius: previewTokens.radius }}
+                          >
+                            alex@company.com
+                          </div>
+                        </div>
+                        <div className="space-y-0.5">
+                          <div className="text-muted-foreground text-[8px] font-medium">
+                            Password
+                          </div>
+                          <div
+                            className={cn(
+                              "flex h-6 items-center rounded border px-2 text-[9px] text-zinc-500",
+                              previewDark
+                                ? "border-zinc-800 bg-zinc-900"
+                                : "border-zinc-200 bg-zinc-50",
+                            )}
+                            style={{ borderRadius: previewTokens.radius }}
+                          >
+                            ••••••••••••
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="w-full py-1 text-[10px] font-semibold shadow-2xs transition-opacity"
+                        style={{
+                          backgroundColor: activePrimary,
+                          color: activePrimaryFg,
+                          borderRadius: previewTokens.radius,
+                        }}
+                      >
+                        Sign in to Workspace
+                      </button>
+                      <div className="text-muted-foreground pt-0.5 text-center text-[8px]">
+                        Forgot password?
+                      </div>
                     </div>
                   </div>
-
-                  {/* Mock Main Area */}
-                  <div className="flex-1 p-3">
-                    {/* Header bar */}
+                ) : (
+                  /* Simulation: Auth Centered Card Layout */
+                  <div className="relative flex min-h-[360px] items-center justify-center overflow-hidden p-4">
+                    {/* Ambient radial brand glow */}
+                    <div
+                      className="pointer-events-none absolute inset-0 opacity-20"
+                      style={{
+                        background: `radial-gradient(circle at center, ${activePrimary} 0%, transparent 70%)`,
+                      }}
+                    />
                     <div
                       className={cn(
-                        "flex items-center justify-between border-b pb-2.5",
-                        previewDark ? "border-zinc-800" : "border-zinc-200",
+                        "relative z-10 w-full max-w-[220px] space-y-2.5 rounded-xl border p-3.5 shadow-xs",
+                        previewDark
+                          ? "border-zinc-800 bg-zinc-900/90"
+                          : "border-zinc-200 bg-white/95",
                       )}
+                      style={{ borderRadius: previewTokens.radius }}
                     >
-                      <span className="text-xs font-semibold">Dashboard</span>
-                      <Badge
-                        variant="outline"
-                        className="h-4 px-1 text-[9px]"
-                        style={{ borderRadius: previewTokens.radius }}
-                      >
-                        PRO
-                      </Badge>
-                    </div>
-
-                    {/* Controls Sample */}
-                    <div className="mt-3 space-y-3">
-                      <div className="space-y-0.5">
-                        <div className="text-xs font-semibold">Typography Showcase</div>
-                        <div className="text-muted-foreground text-[10px]">
-                          Font: {previewTokens.fontFamily}
+                      <div className="flex flex-col items-center space-y-1 text-center">
+                        <TenantLogo
+                          variant="icon"
+                          branding={previewBranding}
+                          tenant={activeTenant}
+                          className="size-7 rounded shadow-2xs"
+                        />
+                        <div className="truncate text-xs font-bold">
+                          {authHeadline || `Sign in to ${companyName || "Workspace"}`}
+                        </div>
+                        <div className="text-muted-foreground line-clamp-2 text-[9px]">
+                          {authSubtitle || "Enter your workspace credentials"}
                         </div>
                       </div>
-
-                      {/* Buttons Mockup */}
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <button
-                          type="button"
-                          className="px-2.5 py-1 text-[11px] font-semibold shadow-2xs transition-opacity hover:opacity-90"
-                          style={{
-                            backgroundColor: activePrimary,
-                            color: activePrimaryFg,
-                            borderRadius: previewTokens.radius,
-                          }}
-                        >
-                          Primary
-                        </button>
-
-                        <button
-                          type="button"
-                          className="border px-2.5 py-1 text-[11px] font-medium shadow-2xs transition-opacity hover:opacity-90"
-                          style={{
-                            backgroundColor: activeSecondary,
-                            color: activeSecondaryFg,
-                            borderColor: previewDark ? "#3f3f46" : "#e4e4e7",
-                            borderRadius: previewTokens.radius,
-                          }}
-                        >
-                          Secondary
-                        </button>
-                      </div>
-
-                      {/* Mock Input */}
-                      <input
-                        type="text"
-                        readOnly
-                        placeholder="Search resources…"
-                        className={cn(
-                          "w-full border px-2.5 py-1 text-[11px] outline-none",
-                          previewDark
-                            ? "border-zinc-800 bg-zinc-900 text-white"
-                            : "border-zinc-200 bg-zinc-50 text-zinc-900",
-                        )}
-                        style={{ borderRadius: previewTokens.radius }}
-                      />
-
-                      {/* Accent Status Pill */}
-                      <div
-                        className={cn(
-                          "flex items-center justify-between rounded border p-2",
-                          previewDark
-                            ? "border-zinc-800 bg-zinc-900/50"
-                            : "border-zinc-200 bg-zinc-50",
-                        )}
-                        style={{ borderRadius: previewTokens.radius }}
-                      >
-                        <span className="text-[10px] font-medium">Accent Highlight</span>
+                      <div className="space-y-1.5">
                         <div
-                          className="size-3.5 rounded-full"
-                          style={{
-                            backgroundColor: previewDark
-                              ? previewTokens.darkAccent
-                              : previewTokens.accent,
-                          }}
-                          title="Accent Indicator"
-                        />
+                          className={cn(
+                            "flex h-6 items-center rounded border px-2 text-[9px] text-zinc-500",
+                            previewDark
+                              ? "border-zinc-800 bg-zinc-950"
+                              : "border-zinc-200 bg-zinc-50",
+                          )}
+                          style={{ borderRadius: previewTokens.radius }}
+                        >
+                          alex@company.com
+                        </div>
+                        <div
+                          className={cn(
+                            "flex h-6 items-center rounded border px-2 text-[9px] text-zinc-500",
+                            previewDark
+                              ? "border-zinc-800 bg-zinc-950"
+                              : "border-zinc-200 bg-zinc-50",
+                          )}
+                          style={{ borderRadius: previewTokens.radius }}
+                        >
+                          ••••••••••••
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="w-full py-1 text-[10px] font-semibold shadow-2xs transition-opacity"
+                        style={{
+                          backgroundColor: activePrimary,
+                          color: activePrimaryFg,
+                          borderRadius: previewTokens.radius,
+                        }}
+                      >
+                        Continue
+                      </button>
+                      <div className="text-muted-foreground flex items-center justify-center gap-1 pt-0.5 text-[8px]">
+                        <Shield className="size-2.5" /> Protected Workspace
                       </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 {/* Accessibility & Contrast Telemetry */}
                 <div

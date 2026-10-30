@@ -19,18 +19,20 @@ export default async function LoginPage({
 
   const resolved = await resolvePublicTenant({ host, slug: tenantSlug });
   const tenantName = resolved?.branding?.companyName || resolved?.tenant?.name;
+  const headline: string =
+    (resolved?.branding?.authHeadline as string | undefined) ||
+    (tenantName ? `Sign in to ${tenantName}` : "Welcome back");
+  const description: string =
+    (resolved?.branding?.authSubtitle as string | undefined) ||
+    (tenantName
+      ? `Enter your credentials to access the ${tenantName} workspace.`
+      : "Sign in to continue.");
 
   return (
-    <Card>
+    <Card className="border-border/80 shadow-md">
       <CardHeader>
-        <CardTitle className="text-xl">
-          {tenantName ? `Sign in to ${tenantName}` : "Welcome back"}
-        </CardTitle>
-        <CardDescription>
-          {tenantName
-            ? `Enter your credentials to access the ${tenantName} workspace.`
-            : "Sign in to continue."}
-        </CardDescription>
+        <CardTitle className="text-xl font-bold tracking-tight">{headline}</CardTitle>
+        <CardDescription className="text-xs leading-relaxed">{description}</CardDescription>
       </CardHeader>
       <CardContent>
         <LoginForm

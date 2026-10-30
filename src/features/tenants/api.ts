@@ -102,7 +102,7 @@ export interface PresignedBrandingUploadResponse {
 export async function requestBrandingUploadUrl(
   tenantId: string,
   input: {
-    type: "logo" | "logo-dark" | "favicon";
+    type: "logo" | "logo-dark" | "favicon" | "cover";
     filename: string;
     contentType: string;
   },

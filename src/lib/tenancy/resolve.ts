@@ -16,6 +16,10 @@ export interface ResolvedTenantBranding {
   fontFamily?: string | null;
   sidebarTheme?: "DARK" | "LIGHT" | "BRAND" | string | null;
   borderRadius?: string | null;
+  authHeadline?: string | null;
+  authSubtitle?: string | null;
+  authCoverUrl?: string | null;
+  authLayout?: "SPLIT" | "CARD" | string | null;
   customDomain?: string | null;
   supportEmail?: string | null;
   [key: string]: unknown;

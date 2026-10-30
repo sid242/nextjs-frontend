@@ -19,18 +19,20 @@ export default async function RegisterPage({
 
   const resolved = await resolvePublicTenant({ host, slug: tenantSlug });
   const tenantName = resolved?.branding?.companyName || resolved?.tenant?.name;
+  const headline: string =
+    (resolved?.branding?.authHeadline as string | undefined) ||
+    (tenantName ? `Join ${tenantName}` : "Create your account");
+  const description: string =
+    (resolved?.branding?.authSubtitle as string | undefined) ||
+    (tenantName
+      ? `Get started with your team at ${tenantName}.`
+      : "It only takes a minute to get started.");
 
   return (
-    <Card>
+    <Card className="border-border/80 shadow-md">
       <CardHeader>
-        <CardTitle className="text-xl">
-          {tenantName ? `Join ${tenantName}` : "Create your account"}
-        </CardTitle>
-        <CardDescription>
-          {tenantName
-            ? `Get started with your team at ${tenantName}.`
-            : "It only takes a minute to get started."}
-        </CardDescription>
+        <CardTitle className="text-xl font-bold tracking-tight">{headline}</CardTitle>
+        <CardDescription className="text-xs leading-relaxed">{description}</CardDescription>
       </CardHeader>
       <CardContent>
         <RegisterForm targetTenant={resolved?.tenant} />

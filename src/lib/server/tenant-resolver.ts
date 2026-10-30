@@ -8,10 +8,15 @@ export interface ResolvedTenantBranding {
   logoDarkUrl?: string | null;
   faviconUrl?: string | null;
   primaryColor?: string | null;
+  secondaryColor?: string | null;
   accentColor?: string | null;
   borderRadius?: string | null;
   customDomain?: string | null;
   supportEmail?: string | null;
+  authHeadline?: string | null;
+  authSubtitle?: string | null;
+  authCoverUrl?: string | null;
+  authLayout?: "SPLIT" | "CARD" | string | null;
   [key: string]: unknown;
 }
 
