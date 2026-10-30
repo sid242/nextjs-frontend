@@ -131,16 +131,19 @@ export async function proxy(req: NextRequest) {
       return NextResponse.rewrite(url);
     }
 
-    if (result?.pathOnly) {
-      return NextResponse.redirect(new URL(`${result.canonicalBase}${pathname}${search}`), 307);
+    if (result?.pathOnly && result?.canonicalBase) {
+      const cleanBase = result.canonicalBase.replace(/\/+$/, "");
+      const cleanPath = pathname.startsWith("/") ? pathname : `/${pathname}`;
+      return NextResponse.redirect(new URL(`${cleanBase}${cleanPath}${search}`), 307);
     }
 
     // Block /w/* paths on domain hosts – redirect to the unprefixed version
     // so one tenant host can't point at another slug
     const wMatch = pathname.match(/^\/w\/[^/]+(\/.*)?$/);
     if (wMatch) {
-      const rest = wMatch[1] ?? "/";
-      return NextResponse.redirect(new URL(rest + search, req.url), 307);
+      const rawRest = wMatch[1] ?? "/";
+      const cleanRest = rawRest.startsWith("/") ? rawRest : `/${rawRest}`;
+      return NextResponse.redirect(new URL(cleanRest + search, req.url), 307);
     }
 
     // Set tenant context headers and rewrite to /w/{slug}/{path}
@@ -177,8 +180,16 @@ export async function proxy(req: NextRequest) {
       if (slug) {
         const { resolveTenantBySlug } = await import("@/lib/tenancy/resolve");
         const slugResult = await resolveTenantBySlug(slug);
-        if (slugResult?.canonicalBase && slugResult?.urlMode !== "path") {
-          return NextResponse.redirect(new URL(`${slugResult.canonicalBase}${rest}${search}`), 307);
+        if (
+          slugResult &&
+          slugResult.kind === "tenant" &&
+          slugResult.canonicalBase &&
+          slugResult.urlMode &&
+          slugResult.urlMode !== "path"
+        ) {
+          const cleanBase = slugResult.canonicalBase.replace(/\/+$/, "");
+          const cleanRest = rest.startsWith("/") ? rest : `/${rest}`;
+          return NextResponse.redirect(new URL(`${cleanBase}${cleanRest}${search}`), 307);
         }
       }
     }
