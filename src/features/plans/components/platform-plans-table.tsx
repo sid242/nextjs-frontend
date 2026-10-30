@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { CreditCard, HardDrive, Layers, Pencil, Plus, Users } from "lucide-react";
+import { useMemo } from "react";
+import Link from "next/link";
+import { CreditCard, Globe, HardDrive, Layers, Pencil, Plus, Users } from "lucide-react";
 
 import { ColumnConfigDropdown } from "@/components/molecules/column-config-dropdown";
 import { TablePagination } from "@/components/molecules/table-pagination";
@@ -23,38 +24,30 @@ import { useSearchQueryParams, useTableColumns, type TableColumnDef } from "@/li
 
 import { usePlatformPlans } from "../queries";
 import type { Plan } from "../schemas";
-import { CreatePlanDialog } from "./create-plan-dialog";
-import { EditPlanDialog } from "./edit-plan-dialog";
 
 type PlanColumnId = "tier" | "pricing" | "capacity" | "quota" | "features" | "status" | "actions";
 
 const PLAN_COLUMNS: TableColumnDef<PlanColumnId>[] = [
-  { id: "tier", label: "Tier Key / Name", canHide: false, defaultVisible: true },
-  { id: "pricing", label: "Pricing", canHide: true, defaultVisible: true },
+  { id: "tier", label: "Tier Key & Name", canHide: false, defaultVisible: true },
+  { id: "pricing", label: "Retail Pricing", canHide: true, defaultVisible: true },
   { id: "capacity", label: "Seat Capacity", canHide: true, defaultVisible: true },
-  { id: "quota", label: "Storage Quota", canHide: true, defaultVisible: true },
-  { id: "features", label: "Features", canHide: true, defaultVisible: true },
-  { id: "status", label: "Status", canHide: false, defaultVisible: true },
+  { id: "quota", label: "Cloud Storage Quota", canHide: true, defaultVisible: true },
+  { id: "features", label: "Included Features", canHide: true, defaultVisible: true },
+  { id: "status", label: "Status & Catalog", canHide: false, defaultVisible: true },
   { id: "actions", label: "Actions", canHide: false, defaultVisible: true },
 ];
 
 const PLAN_COLUMN_LABELS: Record<PlanColumnId, string> = {
-  tier: "Tier Key / Name",
-  pricing: "Pricing",
+  tier: "Tier Key & Name",
+  pricing: "Retail Pricing",
   capacity: "Seat Capacity",
-  quota: "Storage Quota",
-  features: "Features",
-  status: "Status",
+  quota: "Cloud Storage Quota",
+  features: "Included Features",
+  status: "Status & Catalog",
   actions: "Actions",
 };
 
-interface PlanModalState {
-  type: "create" | "edit" | null;
-  plan: Plan | null;
-}
-
 export function PlatformPlansTable() {
-  const [modalState, setModalState] = useState<PlanModalState>({ type: null, plan: null });
   const { getNumber, setParam, setParams } = useSearchQueryParams();
   const rawPage = getNumber("page", 1) ?? 1;
   const page = Math.max(1, rawPage);
@@ -77,6 +70,11 @@ export function PlatformPlansTable() {
     return (plans ?? []).slice(start, start + pageSize);
   }, [plans, safePage, pageSize]);
 
+  const maxSeatOffering = useMemo(() => {
+    if (!plans || plans.length === 0) return 0;
+    return Math.max(...plans.map((p) => p.entitlements?.maxMembers ?? 0));
+  }, [plans]);
+
   const tableColumns = useTableColumns<PlanColumnId>({
     columns: PLAN_COLUMNS,
     tableId: "platform_plans_table",
@@ -86,107 +84,138 @@ export function PlatformPlansTable() {
     switch (colId) {
       case "tier":
         return (
-          <TableCell key="tier">
-            <div className="text-foreground font-semibold">{plan?.name}</div>
-            <div className="text-muted-foreground font-mono text-[11px]">{plan?.key}</div>
+          <TableCell key="tier" className="py-3.5">
+            <div className="flex items-center gap-3">
+              <div className="bg-primary/10 text-primary border-primary/20 flex size-8 shrink-0 items-center justify-center rounded-lg border">
+                <Layers className="size-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-foreground truncate text-xs font-semibold">{plan?.name}</div>
+                <div className="text-muted-foreground truncate font-mono text-[11px]">
+                  {plan?.key}
+                </div>
+              </div>
+            </div>
           </TableCell>
         );
-      case "pricing":
+      case "pricing": {
+        const isFree = (plan?.priceCents ?? 0) === 0;
+        const formattedPrice = isFree ? "$0" : `$${((plan?.priceCents ?? 0) / 100).toFixed(0)}`;
         return (
-          <TableCell key="pricing">
-            <div className="font-mono font-bold">
-              {plan?.priceCents === 0 ? "$0" : `$${((plan?.priceCents ?? 0) / 100).toFixed(0)}`}
-            </div>
-            <div className="text-muted-foreground text-[10px]">
-              {plan?.billingInterval?.toLowerCase()}
+          <TableCell key="pricing" className="py-3.5">
+            <div className="flex items-baseline gap-1">
+              <span className="text-foreground font-mono text-xs font-bold">{formattedPrice}</span>
+              <span className="text-muted-foreground text-[10px]">
+                {plan?.currency ?? "USD"} / {plan?.billingInterval?.toLowerCase()}
+              </span>
             </div>
           </TableCell>
         );
+      }
       case "capacity":
         return (
-          <TableCell key="capacity">
-            <div className="flex items-center gap-1.5 font-medium">
-              <Users className="text-muted-foreground h-3.5 w-3.5" />
-              <span>{plan?.entitlements?.maxMembers ?? 5} members</span>
+          <TableCell key="capacity" className="py-3.5">
+            <div className="text-foreground flex items-center gap-1.5 text-xs font-medium">
+              <Users className="text-muted-foreground size-3.5" />
+              <span>{plan?.entitlements?.maxMembers ?? 5} team seats</span>
             </div>
           </TableCell>
         );
-      case "quota":
+      case "quota": {
+        const storageMb = plan?.entitlements?.maxStorageMb ?? 1024;
+        const storageGb = (storageMb / 1024).toFixed(0);
         return (
-          <TableCell key="quota">
-            <div className="flex items-center gap-1.5 font-mono text-[11px]">
-              <HardDrive className="text-muted-foreground h-3.5 w-3.5" />
-              <span>{((plan?.entitlements?.maxStorageMb ?? 1024) / 1024).toFixed(0)} GB</span>
+          <TableCell key="quota" className="py-3.5">
+            <div className="text-muted-foreground flex items-center gap-1.5 font-mono text-xs">
+              <HardDrive className="size-3.5" />
+              <span>{storageGb} GB</span>
             </div>
           </TableCell>
         );
+      }
       case "features":
         return (
-          <TableCell key="features">
-            <div className="flex flex-wrap gap-1">
+          <TableCell key="features" className="py-3.5">
+            <div className="flex flex-wrap items-center gap-1">
               {plan?.entitlements?.hasCustomRoles ? (
                 <Badge
                   variant="outline"
-                  className="border-emerald-500/40 text-[10px] text-emerald-500"
+                  className="border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0 font-mono text-[9px] text-emerald-600 dark:text-emerald-400"
                 >
                   Custom RBAC
                 </Badge>
               ) : null}
               {plan?.entitlements?.hasAdvancedAnalytics ? (
-                <Badge variant="outline" className="border-blue-500/40 text-[10px] text-blue-500">
+                <Badge
+                  variant="outline"
+                  className="border-blue-500/30 bg-blue-500/10 px-1.5 py-0 font-mono text-[9px] text-blue-600 dark:text-blue-400"
+                >
                   Analytics
                 </Badge>
               ) : null}
               {plan?.entitlements?.hasPrioritySupport ? (
-                <Badge variant="outline" className="border-amber-500/40 text-[10px] text-amber-500">
+                <Badge
+                  variant="outline"
+                  className="border-amber-500/30 bg-amber-500/10 px-1.5 py-0 font-mono text-[9px] text-amber-600 dark:text-amber-400"
+                >
                   Priority SLA
                 </Badge>
               ) : null}
               {!plan?.entitlements?.hasCustomRoles &&
               !plan?.entitlements?.hasAdvancedAnalytics &&
               !plan?.entitlements?.hasPrioritySupport ? (
-                <span className="text-muted-foreground text-[11px]">Standard Core</span>
+                <span className="text-muted-foreground font-mono text-[10px]">Standard Core</span>
               ) : null}
             </div>
           </TableCell>
         );
       case "status":
         return (
-          <TableCell key="status">
-            {plan?.isActive ? (
-              <Badge
-                variant="outline"
-                className="border-emerald-500/30 font-mono text-[10px] text-emerald-500"
-              >
-                ACTIVE
-              </Badge>
-            ) : (
-              <Badge
-                variant="outline"
-                className="border-muted text-muted-foreground font-mono text-[10px]"
-              >
-                INACTIVE
-              </Badge>
-            )}
+          <TableCell key="status" className="py-3.5 text-right">
+            <div className="flex items-center justify-end gap-1.5">
+              {plan?.isActive ? (
+                <Badge
+                  variant="outline"
+                  className="gap-1 border-emerald-500/30 bg-emerald-500/10 font-mono text-[10px] text-emerald-600 dark:text-emerald-400"
+                >
+                  <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
+                  ACTIVE
+                </Badge>
+              ) : (
+                <Badge
+                  variant="outline"
+                  className="border-muted text-muted-foreground font-mono text-[10px]"
+                >
+                  INACTIVE
+                </Badge>
+              )}
+              {plan?.isPublic ? (
+                <Badge variant="secondary" className="px-1 font-mono text-[9px]">
+                  PUBLIC
+                </Badge>
+              ) : (
+                <Badge
+                  variant="outline"
+                  className="text-muted-foreground px-1 font-mono text-[9px]"
+                >
+                  PRIVATE
+                </Badge>
+              )}
+            </div>
           </TableCell>
         );
       case "actions":
         return (
-          <TableCell key="actions" className="text-right">
+          <TableCell key="actions" className="py-3.5 text-right">
             <PlatformPermissionGate
               permission={PLATFORM_PERMISSION_KEYS.BILLING_MANAGE}
               hideInsteadOfBanner
             >
-              <Button
-                variant="ghost"
-                size="sm"
-                className="hover:bg-accent h-7.5 gap-1.5 rounded-lg px-2 text-xs font-medium"
-                onClick={() => {
-                  setModalState({ type: "edit", plan });
-                }}
-              >
-                <Pencil className="h-3.5 w-3.5" />
-                <span>Edit</span>
+              <Button asChild variant="outline" size="sm" className="h-7 gap-1 text-xs shadow-2xs">
+                <Link href={`/platform/plans/${plan?.id}/edit`}>
+                  <Pencil className="size-3" />
+                  <span>Edit Tier</span>
+                </Link>
               </Button>
             </PlatformPermissionGate>
           </TableCell>
@@ -197,39 +226,51 @@ export function PlatformPlansTable() {
   return (
     <div className="space-y-6">
       {/* Metrics Row */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card className="border-border/80 bg-card/50 rounded-2xl shadow-xs backdrop-blur">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card className="border-border/80 bg-card/60 rounded-2xl shadow-xs">
           <CardHeader className="pb-2">
             <CardDescription className="font-mono text-xs uppercase">
               Configured SaaS Tiers
             </CardDescription>
             <CardTitle className="flex items-center justify-between text-2xl font-bold">
               {plans?.length ?? 0}
-              <Layers className="text-muted-foreground/60 h-5 w-5" />
+              <Layers className="text-muted-foreground/60 size-5" />
             </CardTitle>
           </CardHeader>
         </Card>
 
-        <Card className="border-border/80 bg-card/50 rounded-2xl shadow-xs backdrop-blur">
+        <Card className="border-border/80 bg-card/60 rounded-2xl shadow-xs">
           <CardHeader className="pb-2">
-            <CardDescription className="font-mono text-xs text-emerald-500 uppercase">
-              Active Public Plans
+            <CardDescription className="font-mono text-xs text-emerald-600 uppercase dark:text-emerald-400">
+              Active Commercial Tiers
             </CardDescription>
-            <CardTitle className="flex items-center justify-between text-2xl font-bold text-emerald-500">
+            <CardTitle className="flex items-center justify-between text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+              {(plans ?? []).filter((p) => p?.isActive)?.length ?? 0}
+              <CreditCard className="size-5 opacity-70" />
+            </CardTitle>
+          </CardHeader>
+        </Card>
+
+        <Card className="border-border/80 bg-card/60 rounded-2xl shadow-xs">
+          <CardHeader className="pb-2">
+            <CardDescription className="font-mono text-xs text-blue-600 uppercase dark:text-blue-400">
+              Public Self-Serve Plans
+            </CardDescription>
+            <CardTitle className="flex items-center justify-between text-2xl font-bold text-blue-600 dark:text-blue-400">
               {(plans ?? []).filter((p) => p?.isActive && p?.isPublic)?.length ?? 0}
-              <CreditCard className="h-5 w-5 text-emerald-500/60" />
+              <Globe className="size-5 opacity-70" />
             </CardTitle>
           </CardHeader>
         </Card>
 
-        <Card className="border-border/80 bg-card/50 rounded-2xl shadow-xs backdrop-blur">
+        <Card className="border-border/80 bg-card/60 rounded-2xl shadow-xs">
           <CardHeader className="pb-2">
-            <CardDescription className="font-mono text-xs text-amber-500 uppercase">
-              Seat Limit Max Tier
+            <CardDescription className="font-mono text-xs text-amber-600 uppercase dark:text-amber-400">
+              Peak Seat Offering
             </CardDescription>
-            <CardTitle className="flex items-center justify-between text-2xl font-bold text-amber-500">
-              500 Seats
-              <Users className="h-5 w-5 text-amber-500/60" />
+            <CardTitle className="flex items-center justify-between text-2xl font-bold text-amber-600 dark:text-amber-400">
+              {maxSeatOffering} Seats
+              <Users className="size-5 opacity-70" />
             </CardTitle>
           </CardHeader>
         </Card>
@@ -241,7 +282,7 @@ export function PlatformPlansTable() {
           <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
             <div>
               <CardTitle className="text-base font-semibold">
-                SaaS Commercial Pricing & Entitlements
+                Commercial Pricing &amp; Entitlements
               </CardTitle>
               <CardDescription className="text-xs">
                 Canonical multi-tenant pricing models, seat limits, and storage quotas enforced
@@ -254,13 +295,11 @@ export function PlatformPlansTable() {
                 permission={PLATFORM_PERMISSION_KEYS.BILLING_MANAGE}
                 hideInsteadOfBanner
               >
-                <Button
-                  size="sm"
-                  onClick={() => setModalState({ type: "create", plan: null })}
-                  className="h-9 gap-1.5 rounded-xl text-xs shadow-xs"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Provision New Tier
+                <Button asChild size="sm" className="h-9 gap-1.5 rounded-xl text-xs shadow-xs">
+                  <Link href="/platform/plans/new">
+                    <Plus className="size-3.5" />
+                    Provision New Tier
+                  </Link>
                 </Button>
               </PlatformPermissionGate>
             </div>
@@ -323,16 +362,6 @@ export function PlatformPlansTable() {
           )}
         </CardContent>
       </Card>
-
-      <CreatePlanDialog
-        open={modalState.type === "create"}
-        onOpenChange={(open) => !open && setModalState({ type: null, plan: null })}
-      />
-      <EditPlanDialog
-        open={modalState.type === "edit"}
-        onOpenChange={(open) => !open && setModalState({ type: null, plan: null })}
-        plan={modalState.plan}
-      />
     </div>
   );
 }

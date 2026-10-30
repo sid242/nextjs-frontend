@@ -18,3 +18,4 @@ export { CreatePlanDialog } from "./components/create-plan-dialog";
 export { EditPlanDialog } from "./components/edit-plan-dialog";
 export { TenantBillingCard } from "./components/tenant-billing-card";
 export { PlatformPlansTable } from "./components/platform-plans-table";
+export { PlanFormPage } from "./components/plan-form-page";

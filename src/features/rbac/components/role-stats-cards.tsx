@@ -17,9 +17,11 @@ export function RoleStatsCards({
 }: RoleStatsCardsProps) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <Card className="border-border/60 shadow-xs">
+      <Card className="border-border/80 bg-card/60 rounded-2xl shadow-xs">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardDescription className="text-xs font-medium">Configured Roles</CardDescription>
+          <CardDescription className="font-mono text-xs uppercase">
+            Configured Roles
+          </CardDescription>
           <div className="bg-primary/10 text-primary flex size-8 items-center justify-center rounded-lg">
             <ShieldCheckIcon className="size-4" />
           </div>
@@ -32,10 +34,12 @@ export function RoleStatsCards({
         </CardContent>
       </Card>
 
-      <Card className="border-border/60 shadow-xs">
+      <Card className="border-border/80 bg-card/60 rounded-2xl shadow-xs">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardDescription className="text-xs font-medium">Available Scopes</CardDescription>
-          <div className="flex size-8 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600">
+          <CardDescription className="font-mono text-xs text-amber-600 uppercase dark:text-amber-400">
+            Available Scopes
+          </CardDescription>
+          <div className="flex size-8 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
             <KeyRoundIcon className="size-4" />
           </div>
         </CardHeader>
@@ -47,10 +51,12 @@ export function RoleStatsCards({
         </CardContent>
       </Card>
 
-      <Card className="border-border/60 shadow-xs sm:col-span-2 lg:col-span-1">
+      <Card className="border-border/80 bg-card/60 rounded-2xl shadow-xs sm:col-span-2 lg:col-span-1">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardDescription className="text-xs font-medium">RBAC Security</CardDescription>
-          <div className="flex size-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600">
+          <CardDescription className="font-mono text-xs text-emerald-600 uppercase dark:text-emerald-400">
+            RBAC Security
+          </CardDescription>
+          <div className="flex size-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
             <LockIcon className="size-4" />
           </div>
         </CardHeader>
