@@ -6,12 +6,18 @@ import {
   Check,
   CheckCircle2,
   Globe,
+  LayoutDashboard,
+  LayoutTemplate,
   Loader2,
   Moon,
   Palette,
+  Settings,
+  Sparkles,
   Sun,
   Trash2,
+  Type,
   Upload,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -27,13 +33,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { getErrorMessage } from "@/lib/api/errors";
 import { cn } from "@/lib/utils";
 
 import { requestBrandingUploadUrl, uploadBrandingAsset } from "../api";
 import { useActiveTenant, useTenantBranding, useUpdateTenantBranding } from "../queries";
-import type { Tenant, TenantBranding, UpdateTenantBrandingInput } from "../schemas";
-import { computeTenantThemeTokens, getContrastRatio } from "../theme";
+import type {
+  Tenant,
+  TenantBranding,
+  TenantFontFamily,
+  UpdateTenantBrandingInput,
+} from "../schemas";
+import {
+  BRANDING_PRESETS,
+  computeTenantThemeTokens,
+  getContrastRatio,
+  GOOGLE_FONTS,
+  type BrandingPreset,
+} from "../theme";
 import { TenantLogo } from "./tenant-logo";
 
 const PRIMARY_COLOR_PRESETS = [
@@ -80,6 +98,17 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
   const [faviconUrl, setFaviconUrl] = useState<string | null>(branding?.faviconUrl || null);
   const [primaryColor, setPrimaryColor] = useState(branding?.primaryColor || "#4F46E5");
   const [accentColor, setAccentColor] = useState(branding?.accentColor || "#06B6D4");
+  const [primaryDarkColor, setPrimaryDarkColor] = useState<string>(
+    branding?.primaryDarkColor || "",
+  );
+  const [accentDarkColor, setAccentDarkColor] = useState<string>(branding?.accentDarkColor || "");
+  const [useDarkOverrides, setUseDarkOverrides] = useState<boolean>(
+    Boolean(branding?.primaryDarkColor || branding?.accentDarkColor),
+  );
+  const [fontFamily, setFontFamily] = useState<string>(branding?.fontFamily || "Inter");
+  const [sidebarTheme, setSidebarTheme] = useState<"DARK" | "LIGHT" | "BRAND">(
+    (branding?.sidebarTheme as "DARK" | "LIGHT" | "BRAND") || "DARK",
+  );
   const [borderRadius, setBorderRadius] = useState(branding?.borderRadius || "0.5rem");
   const [supportEmail, setSupportEmail] = useState(branding?.supportEmail || "");
 
@@ -101,16 +130,39 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
     faviconUrl,
     primaryColor,
     accentColor,
+    primaryDarkColor: useDarkOverrides && primaryDarkColor.trim() ? primaryDarkColor.trim() : null,
+    accentDarkColor: useDarkOverrides && accentDarkColor.trim() ? accentDarkColor.trim() : null,
+    fontFamily: (fontFamily as TenantFontFamily) || "Inter",
+    sidebarTheme,
     borderRadius,
     supportEmail,
   };
 
   const previewTokens = computeTenantThemeTokens(previewBranding);
-  const contrastRatio = getContrastRatio(primaryColor, previewTokens.primaryForeground);
+
+  // WCAG contrast calculation for active preview mode
+  const activePrimary = previewDark ? previewTokens.darkPrimary : previewTokens.primary;
+  const activePrimaryFg = previewDark
+    ? previewTokens.darkPrimaryForeground
+    : previewTokens.primaryForeground;
+  const contrastRatio = getContrastRatio(activePrimary, activePrimaryFg);
   const contrastPassesAA = contrastRatio >= 4.5;
+  const contrastPassesAAA = contrastRatio >= 7.0;
+
+  const handleApplyPreset = (preset: BrandingPreset) => {
+    setPrimaryColor(preset.primaryColor);
+    setAccentColor(preset.accentColor);
+    setPrimaryDarkColor(preset.primaryDarkColor);
+    setAccentDarkColor(preset.accentDarkColor);
+    setUseDarkOverrides(true);
+    setFontFamily(preset.fontFamily);
+    setSidebarTheme(preset.sidebarTheme);
+    setBorderRadius(preset.borderRadius);
+    toast.success(`Applied "${preset.name}" preset!`);
+  };
 
   const resolveBrandingContentType = (filename: string, rawType?: string): string => {
-    const ext = filename.split(".").pop()?.toLowerCase();
+    const ext = filename?.split(".")?.pop()?.toLowerCase();
     if (ext === "ico" || ext === "icon") return "image/x-icon";
     if (ext === "svg") return "image/svg+xml";
     if (ext === "png") return "image/png";
@@ -148,7 +200,6 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
     setUploadingType(type);
     try {
       const contentType = resolveBrandingContentType(file.name, file.type);
-      // Re-create the file object with normalized MIME type if needed so FormData headers match
       const uploadFile =
         file.type === contentType ? file : new File([file], file.name, { type: contentType });
 
@@ -209,6 +260,11 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
         faviconUrl,
         primaryColor,
         accentColor,
+        primaryDarkColor:
+          useDarkOverrides && primaryDarkColor.trim() ? primaryDarkColor.trim() : null,
+        accentDarkColor: useDarkOverrides && accentDarkColor.trim() ? accentDarkColor.trim() : null,
+        fontFamily: (fontFamily as TenantFontFamily) || "Inter",
+        sidebarTheme,
         borderRadius,
         supportEmail: supportEmail.trim() || undefined,
       };
@@ -217,6 +273,24 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
       toast.success("Workspace branding updated successfully!");
     } catch {
       toast.error("Failed to save branding changes.");
+    }
+  };
+
+  const handleReset = () => {
+    if (branding) {
+      setCompanyName(branding?.companyName || "");
+      setLogoUrl(branding?.logoUrl || null);
+      setLogoDarkUrl(branding?.logoDarkUrl || null);
+      setFaviconUrl(branding?.faviconUrl || null);
+      setPrimaryColor(branding?.primaryColor || "#4F46E5");
+      setAccentColor(branding?.accentColor || "#06B6D4");
+      setPrimaryDarkColor(branding?.primaryDarkColor || "");
+      setAccentDarkColor(branding?.accentDarkColor || "");
+      setUseDarkOverrides(Boolean(branding?.primaryDarkColor || branding?.accentDarkColor));
+      setFontFamily(branding?.fontFamily || "Inter");
+      setSidebarTheme((branding?.sidebarTheme as "DARK" | "LIGHT" | "BRAND") || "DARK");
+      setBorderRadius(branding?.borderRadius || "0.5rem");
+      setSupportEmail(branding?.supportEmail || "");
     }
   };
 
@@ -230,11 +304,67 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
               <Palette className="text-primary size-4" /> Workspace White-Label Branding
             </CardTitle>
             <CardDescription className="text-xs">
-              Configure your organization brand identity, logos, color tokens, and custom domain.
+              Configure your organization brand identity, dual-mode theme colors, typography, and
+              sidebar layout.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Display Name */}
+            {/* 1. One-Click Curated Presets */}
+            <div className="border-border/50 bg-muted/20 space-y-3 rounded-lg border p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="text-primary size-4" />
+                  <span className="text-foreground text-xs font-semibold">
+                    One-Click Theme Presets
+                  </span>
+                </div>
+                <span className="text-muted-foreground text-[11px]">Instant design system</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {BRANDING_PRESETS?.map((preset) => {
+                  const isActive =
+                    primaryColor?.toLowerCase() === preset?.primaryColor?.toLowerCase() &&
+                    accentColor?.toLowerCase() === preset?.accentColor?.toLowerCase() &&
+                    fontFamily === preset?.fontFamily &&
+                    sidebarTheme === preset?.sidebarTheme;
+                  return (
+                    <button
+                      key={preset?.id}
+                      type="button"
+                      onClick={() => handleApplyPreset(preset)}
+                      className={cn(
+                        "hover:border-primary/50 flex flex-col gap-1.5 rounded-lg border p-2.5 text-left transition-all",
+                        isActive
+                          ? "border-primary ring-primary bg-primary/5 ring-1"
+                          : "border-border/60 bg-card",
+                      )}
+                    >
+                      <div className="flex w-full items-center justify-between">
+                        <span className="truncate text-xs font-semibold">{preset?.name}</span>
+                        <div className="flex items-center -space-x-1">
+                          <span
+                            className="border-background size-3 rounded-full border shadow-2xs"
+                            style={{ backgroundColor: preset?.primaryColor }}
+                          />
+                          <span
+                            className="border-background size-3 rounded-full border shadow-2xs"
+                            style={{ backgroundColor: preset?.accentColor }}
+                          />
+                        </div>
+                      </div>
+                      <div className="text-muted-foreground flex items-center justify-between text-[10px]">
+                        <span>{preset?.fontFamily}</span>
+                        <span className="font-mono text-[9px] uppercase">
+                          {preset?.sidebarTheme}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 2. Display Name */}
             <div className="grid gap-2">
               <Label htmlFor="brand-name" className="text-xs font-semibold">
                 Company / Organization Display Name
@@ -250,12 +380,107 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
               </p>
             </div>
 
-            {/* Asset Uploaders */}
+            {/* 3. Typography Engine */}
+            <div className="border-border/50 space-y-4 rounded-lg border p-4">
+              <div className="flex items-center gap-2">
+                <Type className="text-primary size-4" />
+                <span className="text-foreground text-xs font-semibold">Typography Engine</span>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="font-family-select" className="text-xs">
+                    Primary Interface Font
+                  </Label>
+                  <span className="text-muted-foreground font-mono text-xs">{fontFamily}</span>
+                </div>
+                <Select value={fontFamily} onValueChange={(val) => setFontFamily(val)}>
+                  <SelectTrigger id="font-family-select" className="h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.keys(GOOGLE_FONTS)?.map((font) => (
+                      <SelectItem key={font} value={font}>
+                        <span style={{ fontFamily: `"${font}", sans-serif` }}>{font}</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div
+                  className="border-border/60 bg-muted/30 text-foreground/90 rounded-md border p-2.5 text-xs transition-all"
+                  style={{ fontFamily: `"${fontFamily}", sans-serif` }}
+                >
+                  The quick brown fox jumps over the lazy dog. 0123456789
+                </div>
+              </div>
+            </div>
+
+            {/* 4. Sidebar Theme Modes */}
+            <div className="border-border/50 space-y-4 rounded-lg border p-4">
+              <div className="flex items-center gap-2">
+                <LayoutTemplate className="text-primary size-4" />
+                <span className="text-foreground text-xs font-semibold">
+                  Sidebar Layout Appearance
+                </span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  {
+                    value: "DARK" as const,
+                    title: "Dark",
+                    desc: "Sleek contrast",
+                    bg: "#09090b",
+                    fg: "#fafafa",
+                  },
+                  {
+                    value: "LIGHT" as const,
+                    title: "Light",
+                    desc: "Clean & minimal",
+                    bg: "#ffffff",
+                    fg: "#09090b",
+                  },
+                  {
+                    value: "BRAND" as const,
+                    title: "Brand",
+                    desc: "Immersive tint",
+                    bg: primaryColor,
+                    fg: previewTokens.primaryForeground,
+                  },
+                ].map((mode) => {
+                  const isSelected = sidebarTheme === mode.value;
+                  return (
+                    <button
+                      key={mode.value}
+                      type="button"
+                      onClick={() => setSidebarTheme(mode.value)}
+                      className={cn(
+                        "flex flex-col items-center justify-center gap-1.5 rounded-lg border p-3 text-center transition-all",
+                        isSelected
+                          ? "border-primary ring-primary/40 bg-primary/5 ring-2"
+                          : "border-border/60 hover:border-border bg-card",
+                      )}
+                    >
+                      <div
+                        className="border-border/40 flex h-7 w-full items-center justify-center rounded border text-[11px] font-semibold"
+                        style={{ backgroundColor: mode.bg, color: mode.fg }}
+                      >
+                        Aa
+                      </div>
+                      <span className="text-xs font-medium">{mode.title}</span>
+                      <span className="text-muted-foreground text-[10px]">{mode.desc}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 5. Asset Uploaders */}
             <div className="border-border/50 space-y-4 rounded-lg border p-4">
               <span className="text-foreground text-xs font-semibold">Logo & Asset Management</span>
 
               <div className="grid gap-4 sm:grid-cols-3">
-                {/* 1. Light Mode Logo */}
+                {/* Light Mode Logo */}
                 <div className="space-y-2">
                   <Label className="text-[11px] font-medium">Light Mode Logo</Label>
                   <div className="bg-muted/30 border-border/60 relative flex h-24 flex-col items-center justify-center rounded-lg border border-dashed p-2 text-center">
@@ -280,7 +505,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                     ) : (
                       <button
                         type="button"
-                        onClick={() => lightLogoInputRef.current?.click()}
+                        onClick={() => lightLogoInputRef?.current?.click()}
                         disabled={uploadingType === "logo"}
                         className="text-muted-foreground hover:text-foreground flex flex-col items-center gap-1 text-[11px] transition-colors"
                       >
@@ -302,7 +527,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                   />
                 </div>
 
-                {/* 2. Dark Mode Logo */}
+                {/* Dark Mode Logo */}
                 <div className="space-y-2">
                   <Label className="text-[11px] font-medium">Dark Mode Logo</Label>
                   <div className="relative flex h-24 flex-col items-center justify-center rounded-lg border border-dashed border-zinc-800 bg-zinc-950 p-2 text-center">
@@ -327,7 +552,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                     ) : (
                       <button
                         type="button"
-                        onClick={() => darkLogoInputRef.current?.click()}
+                        onClick={() => darkLogoInputRef?.current?.click()}
                         disabled={uploadingType === "logo-dark"}
                         className="flex flex-col items-center gap-1 text-[11px] text-zinc-400 transition-colors hover:text-white"
                       >
@@ -349,7 +574,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                   />
                 </div>
 
-                {/* 3. Browser Favicon */}
+                {/* Browser Favicon */}
                 <div className="space-y-2">
                   <Label className="text-[11px] font-medium">Browser Favicon</Label>
                   <div className="bg-muted/30 border-border/60 relative flex h-24 flex-col items-center justify-center rounded-lg border border-dashed p-2 text-center">
@@ -374,7 +599,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                     ) : (
                       <button
                         type="button"
-                        onClick={() => faviconInputRef.current?.click()}
+                        onClick={() => faviconInputRef?.current?.click()}
                         disabled={uploadingType === "favicon"}
                         className="text-muted-foreground hover:text-foreground flex flex-col items-center gap-1 text-[11px] transition-colors"
                       >
@@ -398,7 +623,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
               </div>
             </div>
 
-            {/* Colors & Radii */}
+            {/* 6. Brand Colors & Curvature */}
             <div className="border-border/50 space-y-4 rounded-lg border p-4">
               <span className="text-foreground text-xs font-semibold">Brand Colors & Geometry</span>
 
@@ -406,7 +631,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="primary-color" className="text-xs">
-                    Primary Brand Anchor
+                    Primary Brand Anchor (Light Mode)
                   </Label>
                   <span className="text-muted-foreground font-mono text-xs">{primaryColor}</span>
                 </div>
@@ -442,7 +667,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="accent-color" className="text-xs">
-                    Accent Color
+                    Accent Color (Light Mode)
                   </Label>
                   <span className="text-muted-foreground font-mono text-xs">{accentColor}</span>
                 </div>
@@ -474,6 +699,77 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                 </div>
               </div>
 
+              {/* Dark Mode Color Overrides */}
+              <div className="border-border/40 bg-muted/20 space-y-3 rounded-lg border p-3">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="dark-mode-override" className="text-xs font-semibold">
+                      Dark Mode Palette Overrides
+                    </Label>
+                    <p className="text-muted-foreground text-[11px]">
+                      Specify optimized high-contrast primary and accent shades for Dark Mode.
+                    </p>
+                  </div>
+                  <Switch
+                    id="dark-mode-override"
+                    checked={useDarkOverrides}
+                    onCheckedChange={(checked) => {
+                      setUseDarkOverrides(checked);
+                      if (checked && !primaryDarkColor) {
+                        setPrimaryDarkColor(primaryColor);
+                        setAccentDarkColor(accentColor);
+                      }
+                    }}
+                  />
+                </div>
+
+                {useDarkOverrides && (
+                  <div className="grid gap-3 pt-2 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="dark-primary-color" className="text-[11px]">
+                        Dark Mode Primary
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          id="dark-primary-color"
+                          type="color"
+                          value={primaryDarkColor || primaryColor}
+                          onChange={(e) => setPrimaryDarkColor(e?.target?.value ?? primaryColor)}
+                          className="border-border/80 size-8 cursor-pointer rounded border p-0.5"
+                        />
+                        <Input
+                          value={primaryDarkColor || primaryColor}
+                          onChange={(e) => setPrimaryDarkColor(e?.target?.value ?? "")}
+                          className="h-8 font-mono text-xs"
+                          placeholder="#6366F1"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="dark-accent-color" className="text-[11px]">
+                        Dark Mode Accent
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          id="dark-accent-color"
+                          type="color"
+                          value={accentDarkColor || accentColor}
+                          onChange={(e) => setAccentDarkColor(e?.target?.value ?? accentColor)}
+                          className="border-border/80 size-8 cursor-pointer rounded border p-0.5"
+                        />
+                        <Input
+                          value={accentDarkColor || accentColor}
+                          onChange={(e) => setAccentDarkColor(e?.target?.value ?? "")}
+                          className="h-8 font-mono text-xs"
+                          placeholder="#22D3EE"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Border Radius */}
               <div className="space-y-2">
                 <Label htmlFor="radius-select" className="text-xs">
@@ -494,7 +790,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
               </div>
             </div>
 
-            {/* Support Contact & Domain Link */}
+            {/* 7. Support Contact & Domain Link */}
             <div className="border-border/50 space-y-4 rounded-lg border p-4">
               <div className="flex items-center justify-between">
                 <span className="text-foreground flex items-center gap-2 text-xs font-semibold">
@@ -524,21 +820,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
 
             {/* Actions */}
             <div className="flex items-center justify-end gap-3 pt-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  if (branding) {
-                    setCompanyName(branding.companyName || "");
-                    setLogoUrl(branding.logoUrl || null);
-                    setLogoDarkUrl(branding.logoDarkUrl || null);
-                    setFaviconUrl(branding.faviconUrl || null);
-                    setPrimaryColor(branding.primaryColor || "#4F46E5");
-                    setAccentColor(branding.accentColor || "#06B6D4");
-                    setBorderRadius(branding.borderRadius || "0.5rem");
-                    setSupportEmail(branding.supportEmail || "");
-                  }
-                }}
-              >
+              <Button variant="outline" onClick={handleReset}>
                 Reset Changes
               </Button>
               <Button
@@ -566,7 +848,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
               <div>
                 <CardTitle className="text-sm font-semibold">Live Experience Preview</CardTitle>
                 <CardDescription className="text-[11px]">
-                  Real-time simulation of tenant visual tokens.
+                  Real-time simulation across Light & Dark modes and Sidebar styles.
                 </CardDescription>
               </div>
 
@@ -601,134 +883,199 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
               {/* Scoped Preview Wrapper */}
               <div
                 className={cn(
-                  "overflow-hidden rounded-xl border p-4 transition-colors",
+                  "overflow-hidden rounded-xl border transition-colors",
                   previewDark ? "dark bg-zinc-950 text-white" : "bg-white text-zinc-900",
                 )}
                 style={{
-                  ["--primary" as string]: previewTokens.primary,
-                  ["--primary-foreground" as string]: previewTokens.primaryForeground,
-                  ["--accent" as string]: previewTokens.accent,
-                  ["--accent-foreground" as string]: previewTokens.accentForeground,
+                  fontFamily: `"${previewTokens.fontFamily}", sans-serif`,
+                  ["--primary" as string]: activePrimary,
+                  ["--primary-foreground" as string]: activePrimaryFg,
+                  ["--accent" as string]: previewDark
+                    ? previewTokens.darkAccent
+                    : previewTokens.accent,
+                  ["--accent-foreground" as string]: previewDark
+                    ? previewTokens.darkAccentForeground
+                    : previewTokens.accentForeground,
                   ["--radius" as string]: previewTokens.radius,
                 }}
               >
-                {/* Mock Header */}
-                <div
-                  className={cn(
-                    "flex items-center justify-between border-b pb-3",
-                    previewDark ? "border-zinc-800" : "border-zinc-200",
-                  )}
-                >
-                  <TenantLogo
-                    variant="full"
-                    branding={previewBranding}
-                    tenant={activeTenant}
-                    showName
-                  />
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      variant="outline"
-                      className="text-[10px]"
-                      style={{ borderRadius: previewTokens.radius }}
+                {/* Simulation: Split Sidebar + Content Layout */}
+                <div className="flex min-h-[360px]">
+                  {/* Mock Sidebar */}
+                  <div
+                    className="flex w-32 shrink-0 flex-col justify-between border-r p-2.5 transition-colors"
+                    style={{
+                      backgroundColor: previewDark
+                        ? previewTokens.darkSidebarBg
+                        : previewTokens.sidebarBg,
+                      color: previewDark ? previewTokens.darkSidebarFg : previewTokens.sidebarFg,
+                      borderColor: previewDark ? "#27272a" : "#e4e4e7",
+                    }}
+                  >
+                    <div className="space-y-3">
+                      {/* Logo in Sidebar */}
+                      <div className="flex items-center gap-1.5 overflow-hidden">
+                        <TenantLogo
+                          variant="icon"
+                          branding={previewBranding}
+                          tenant={activeTenant}
+                        />
+                        <span className="truncate text-[11px] font-semibold">
+                          {companyName || "Acme"}
+                        </span>
+                      </div>
+
+                      {/* Mock Navigation links */}
+                      <div className="space-y-1 text-[11px]">
+                        <div
+                          className="flex items-center gap-1.5 rounded px-2 py-1 font-semibold transition-opacity"
+                          style={{
+                            backgroundColor:
+                              sidebarTheme === "BRAND" ? "rgba(255,255,255,0.2)" : activePrimary,
+                            color: sidebarTheme === "BRAND" ? "#ffffff" : activePrimaryFg,
+                            borderRadius: previewTokens.radius,
+                          }}
+                        >
+                          <LayoutDashboard className="size-3 shrink-0" />
+                          <span className="truncate">Home</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 px-2 py-1 opacity-70">
+                          <Users className="size-3 shrink-0" />
+                          <span className="truncate">Team</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 px-2 py-1 opacity-70">
+                          <Settings className="size-3 shrink-0" />
+                          <span className="truncate">Settings</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-current/15 pt-2 text-[9px] opacity-70">
+                      {sidebarTheme} Mode
+                    </div>
+                  </div>
+
+                  {/* Mock Main Area */}
+                  <div className="flex-1 p-3">
+                    {/* Header bar */}
+                    <div
+                      className={cn(
+                        "flex items-center justify-between border-b pb-2.5",
+                        previewDark ? "border-zinc-800" : "border-zinc-200",
+                      )}
                     >
-                      PRO
-                    </Badge>
+                      <span className="text-xs font-semibold">Dashboard</span>
+                      <Badge
+                        variant="outline"
+                        className="h-4 px-1 text-[9px]"
+                        style={{ borderRadius: previewTokens.radius }}
+                      >
+                        PRO
+                      </Badge>
+                    </div>
+
+                    {/* Controls Sample */}
+                    <div className="mt-3 space-y-3">
+                      <div className="space-y-0.5">
+                        <div className="text-xs font-semibold">Typography Showcase</div>
+                        <div className="text-muted-foreground text-[10px]">
+                          Font: {previewTokens.fontFamily}
+                        </div>
+                      </div>
+
+                      {/* Buttons Mockup */}
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <button
+                          type="button"
+                          className="px-2.5 py-1 text-[11px] font-semibold shadow-2xs transition-opacity hover:opacity-90"
+                          style={{
+                            backgroundColor: activePrimary,
+                            color: activePrimaryFg,
+                            borderRadius: previewTokens.radius,
+                          }}
+                        >
+                          Primary
+                        </button>
+
+                        <button
+                          type="button"
+                          className={cn(
+                            "border px-2.5 py-1 text-[11px] font-medium shadow-2xs",
+                            previewDark
+                              ? "border-zinc-800 hover:bg-zinc-900"
+                              : "border-zinc-200 hover:bg-zinc-50",
+                          )}
+                          style={{ borderRadius: previewTokens.radius }}
+                        >
+                          Secondary
+                        </button>
+                      </div>
+
+                      {/* Mock Input */}
+                      <input
+                        type="text"
+                        readOnly
+                        placeholder="Search resources…"
+                        className={cn(
+                          "w-full border px-2.5 py-1 text-[11px] outline-none",
+                          previewDark
+                            ? "border-zinc-800 bg-zinc-900 text-white"
+                            : "border-zinc-200 bg-zinc-50 text-zinc-900",
+                        )}
+                        style={{ borderRadius: previewTokens.radius }}
+                      />
+
+                      {/* Accent Status Pill */}
+                      <div
+                        className={cn(
+                          "flex items-center justify-between rounded border p-2",
+                          previewDark
+                            ? "border-zinc-800 bg-zinc-900/50"
+                            : "border-zinc-200 bg-zinc-50",
+                        )}
+                        style={{ borderRadius: previewTokens.radius }}
+                      >
+                        <span className="text-[10px] font-medium">Accent Highlight</span>
+                        <div
+                          className="size-3.5 rounded-full"
+                          style={{
+                            backgroundColor: previewDark
+                              ? previewTokens.darkAccent
+                              : previewTokens.accent,
+                          }}
+                          title="Accent Indicator"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {/* Mock Content */}
-                <div className="mt-4 space-y-4">
-                  <div className="space-y-1">
-                    <div className="text-xs font-semibold">Workspace Navigation</div>
-                    <div className="text-muted-foreground text-[11px]">
-                      Interactive controls rendered using active brand tokens.
-                    </div>
-                  </div>
-
-                  {/* Buttons Mockup */}
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      className="px-3 py-1.5 text-xs font-semibold shadow-xs transition-opacity hover:opacity-90"
-                      style={{
-                        backgroundColor: previewTokens.primary,
-                        color: previewTokens.primaryForeground,
-                        borderRadius: previewTokens.radius,
-                      }}
-                    >
-                      Primary Action
-                    </button>
-
-                    <button
-                      type="button"
-                      className={cn(
-                        "border px-3 py-1.5 text-xs font-semibold shadow-2xs",
-                        previewDark
-                          ? "border-zinc-800 hover:bg-zinc-900"
-                          : "border-zinc-200 hover:bg-zinc-50",
-                      )}
-                      style={{ borderRadius: previewTokens.radius }}
-                    >
-                      Secondary
-                    </button>
-                  </div>
-
-                  {/* Mock Input Field */}
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-medium opacity-80">Search Directory</label>
-                    <input
-                      type="text"
-                      readOnly
-                      placeholder="Type a query…"
-                      className={cn(
-                        "w-full border px-3 py-1.5 text-xs outline-none",
-                        previewDark
-                          ? "border-zinc-800 bg-zinc-900 text-white"
-                          : "border-zinc-200 bg-zinc-50 text-zinc-900",
-                      )}
-                      style={{ borderRadius: previewTokens.radius }}
-                    />
-                  </div>
-
-                  {/* Mock Switch & Status */}
-                  <div
-                    className={cn(
-                      "flex items-center justify-between rounded-lg border p-2.5",
-                      previewDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-50",
+                {/* Accessibility & Contrast Telemetry */}
+                <div
+                  className={cn(
+                    "flex items-center justify-between border-t p-3 text-[11px]",
+                    previewDark ? "border-zinc-800 bg-zinc-950" : "border-zinc-200 bg-zinc-50",
+                  )}
+                >
+                  <div className="flex items-center gap-1.5">
+                    {contrastPassesAA ? (
+                      <CheckCircle2 className="size-3.5 text-emerald-500" />
+                    ) : (
+                      <AlertCircle className="size-3.5 text-amber-500" />
                     )}
-                    style={{ borderRadius: previewTokens.radius }}
-                  >
-                    <div className="text-[11px] font-medium">Automatic Deployment</div>
-                    <div
-                      className="size-4 rounded-full"
-                      style={{ backgroundColor: previewTokens.accent }}
-                      title="Accent Color Badge"
-                    />
+                    <span className="font-semibold">Contrast: {contrastRatio.toFixed(1)}:1</span>
                   </div>
 
-                  {/* Accessibility & Contrast Telemetry */}
-                  <div
-                    className={cn(
-                      "flex items-center justify-between border-t pt-3 text-[11px]",
-                      previewDark ? "border-zinc-800" : "border-zinc-200",
-                    )}
+                  <Badge
+                    variant={contrastPassesAA ? "default" : "destructive"}
+                    className="h-4 px-1.5 text-[9px]"
                   >
-                    <div className="flex items-center gap-1.5">
-                      {contrastPassesAA ? (
-                        <CheckCircle2 className="size-3.5 text-emerald-500" />
-                      ) : (
-                        <AlertCircle className="size-3.5 text-amber-500" />
-                      )}
-                      <span className="font-semibold">Contrast: {contrastRatio.toFixed(1)}:1</span>
-                    </div>
-
-                    <Badge
-                      variant={contrastPassesAA ? "default" : "destructive"}
-                      className="h-4 px-1.5 text-[9px]"
-                    >
-                      {contrastPassesAA ? "WCAG AA Pass" : "Low Contrast"}
-                    </Badge>
-                  </div>
+                    {contrastPassesAAA
+                      ? "WCAG AAA Pass"
+                      : contrastPassesAA
+                        ? "WCAG AA Pass"
+                        : "Low Contrast"}
+                  </Badge>
                 </div>
               </div>
             </CardContent>

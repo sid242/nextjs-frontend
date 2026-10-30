@@ -3,7 +3,7 @@
 import { useEffect, useId, type ReactNode } from "react";
 
 import { useActiveTenant, useTenantBranding } from "../queries";
-import { generateTenantThemeCss, type TenantThemeInput } from "../theme";
+import { generateTenantThemeCss, GOOGLE_FONTS, type TenantThemeInput } from "../theme";
 
 export interface TenantThemeOverride extends TenantThemeInput {
   faviconUrl?: string | null;
@@ -33,6 +33,24 @@ export function TenantThemeProvider({
 
   const branding = overrideBranding !== undefined ? overrideBranding : fetchedBranding;
   const css = generateTenantThemeCss(branding, selector);
+
+  // Synchronize dynamic Google Font
+  useEffect(() => {
+    const rawFont = branding?.fontFamily?.trim() || "Inter";
+    const fontConfig = GOOGLE_FONTS[rawFont];
+    if (!fontConfig?.href) return;
+
+    let fontLink: HTMLLinkElement | null = document.getElementById(
+      "tenant-google-font",
+    ) as HTMLLinkElement | null;
+    if (!fontLink) {
+      fontLink = document.createElement("link");
+      fontLink.id = "tenant-google-font";
+      fontLink.rel = "stylesheet";
+      document.head.appendChild(fontLink);
+    }
+    fontLink.href = fontConfig.href;
+  }, [branding?.fontFamily]);
 
   // Synchronize dynamic favicon
   useEffect(() => {

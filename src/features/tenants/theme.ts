@@ -68,34 +68,202 @@ export interface ComputedThemeTokens {
   accentForeground: string;
   ring: string;
   radius: string;
+  fontFamily: string;
+  sidebarTheme: "DARK" | "LIGHT" | "BRAND";
+  sidebarBg: string;
+  sidebarFg: string;
+  darkPrimary: string;
+  darkPrimaryForeground: string;
+  darkAccent: string;
+  darkAccentForeground: string;
+  darkRing: string;
+  darkSidebarBg: string;
+  darkSidebarFg: string;
 }
+
+export const GOOGLE_FONTS: Record<string, { family: string; href: string }> = {
+  Inter: {
+    family: "Inter",
+    href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
+  },
+  "Plus Jakarta Sans": {
+    family: "Plus Jakarta Sans",
+    href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap",
+  },
+  Geist: {
+    family: "Geist",
+    href: "https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap",
+  },
+  Poppins: {
+    family: "Poppins",
+    href: "https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap",
+  },
+  Outfit: {
+    family: "Outfit",
+    href: "https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap",
+  },
+  Roboto: {
+    family: "Roboto",
+    href: "https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap",
+  },
+};
+
+export interface BrandingPreset {
+  id: string;
+  name: string;
+  description: string;
+  primaryColor: string;
+  accentColor: string;
+  primaryDarkColor: string;
+  accentDarkColor: string;
+  fontFamily: "Inter" | "Plus Jakarta Sans" | "Geist" | "Poppins" | "Outfit" | "Roboto";
+  sidebarTheme: "DARK" | "LIGHT" | "BRAND";
+  borderRadius: string;
+}
+
+export const BRANDING_PRESETS: BrandingPreset[] = [
+  {
+    id: "modern-indigo",
+    name: "Modern Indigo",
+    description: "Deep indigo with vibrant cyan highlights and dark sleek sidebar",
+    primaryColor: "#4F46E5",
+    accentColor: "#06B6D4",
+    primaryDarkColor: "#6366F1",
+    accentDarkColor: "#22D3EE",
+    fontFamily: "Inter",
+    sidebarTheme: "DARK",
+    borderRadius: "0.5rem",
+  },
+  {
+    id: "fintech-emerald",
+    name: "Fintech Emerald",
+    description: "Clean enterprise green with sharp geometry and dark sidebar",
+    primaryColor: "#059669",
+    accentColor: "#10B981",
+    primaryDarkColor: "#10B981",
+    accentDarkColor: "#34D399",
+    fontFamily: "Plus Jakarta Sans",
+    sidebarTheme: "DARK",
+    borderRadius: "0.375rem",
+  },
+  {
+    id: "corporate-navy",
+    name: "Corporate Navy",
+    description: "Executive navy anchor with full brand-tinted sidebar",
+    primaryColor: "#1E3A8A",
+    accentColor: "#3B82F6",
+    primaryDarkColor: "#3B82F6",
+    accentDarkColor: "#60A5FA",
+    fontFamily: "Roboto",
+    sidebarTheme: "BRAND",
+    borderRadius: "0.25rem",
+  },
+  {
+    id: "vibrant-violet",
+    name: "Vibrant Violet",
+    description: "Playful purple & fuchsia with soft curved corners",
+    primaryColor: "#7C3AED",
+    accentColor: "#C026D3",
+    primaryDarkColor: "#8B5CF6",
+    accentDarkColor: "#D946EF",
+    fontFamily: "Poppins",
+    sidebarTheme: "DARK",
+    borderRadius: "0.75rem",
+  },
+  {
+    id: "warm-amber",
+    name: "Warm Amber",
+    description: "Friendly golden amber with clean light sidebar",
+    primaryColor: "#D97706",
+    accentColor: "#F59E0B",
+    primaryDarkColor: "#F59E0B",
+    accentDarkColor: "#FBBF24",
+    fontFamily: "Outfit",
+    sidebarTheme: "LIGHT",
+    borderRadius: "0.5rem",
+  },
+  {
+    id: "clean-slate",
+    name: "Clean Slate",
+    description: "Monochrome slate minimal aesthetic with geist typography",
+    primaryColor: "#334155",
+    accentColor: "#64748B",
+    primaryDarkColor: "#94A3B8",
+    accentDarkColor: "#CBD5E1",
+    fontFamily: "Geist",
+    sidebarTheme: "DARK",
+    borderRadius: "0.375rem",
+  },
+];
 
 const DEFAULT_PRIMARY = "#4F46E5";
 const DEFAULT_ACCENT = "#06B6D4";
 const DEFAULT_RADIUS = "0.5rem";
+const DEFAULT_FONT = "Inter";
+const DEFAULT_SIDEBAR_THEME: "DARK" | "LIGHT" | "BRAND" = "DARK";
 
 export interface TenantThemeInput {
   primaryColor?: string | null;
   accentColor?: string | null;
+  primaryDarkColor?: string | null;
+  accentDarkColor?: string | null;
+  fontFamily?: string | null;
+  sidebarTheme?: "DARK" | "LIGHT" | "BRAND" | string | null;
   borderRadius?: string | null;
   [key: string]: unknown;
 }
 
 /**
- * Computes runtime CSS variables with automated WCAG AA/AAA contrast matching.
+ * Computes runtime CSS variables with automated WCAG AA/AAA contrast matching for light & dark modes.
  */
 export function computeTenantThemeTokens(branding?: TenantThemeInput | null): ComputedThemeTokens {
   const primary = branding?.primaryColor?.trim() || DEFAULT_PRIMARY;
   const accent = branding?.accentColor?.trim() || DEFAULT_ACCENT;
+  const darkPrimary = branding?.primaryDarkColor?.trim() || primary;
+  const darkAccent = branding?.accentDarkColor?.trim() || accent;
   const radius = branding?.borderRadius?.trim() || DEFAULT_RADIUS;
+  const fontFamily = branding?.fontFamily?.trim() || DEFAULT_FONT;
+  const rawSidebarTheme =
+    (branding?.sidebarTheme?.trim() as "DARK" | "LIGHT" | "BRAND") || DEFAULT_SIDEBAR_THEME;
+  const sidebarTheme = ["DARK", "LIGHT", "BRAND"].includes(rawSidebarTheme)
+    ? rawSidebarTheme
+    : "DARK";
 
-  // Determine optimal foreground text based on luminance threshold
-  // Luminance > 0.45 indicates light background requiring dark text (#09090b)
+  // Light mode foregrounds
   const isPrimaryLight = getLuminance(primary) > 0.45;
   const primaryForeground = isPrimaryLight ? "#09090b" : "#ffffff";
 
   const isAccentLight = getLuminance(accent) > 0.45;
   const accentForeground = isAccentLight ? "#09090b" : "#ffffff";
+
+  // Dark mode foregrounds
+  const isDarkPrimaryLight = getLuminance(darkPrimary) > 0.45;
+  const darkPrimaryForeground = isDarkPrimaryLight ? "#09090b" : "#ffffff";
+
+  const isDarkAccentLight = getLuminance(darkAccent) > 0.45;
+  const darkAccentForeground = isDarkAccentLight ? "#09090b" : "#ffffff";
+
+  // Sidebar tokens (Light Mode)
+  let sidebarBg = "#09090b";
+  let sidebarFg = "#fafafa";
+  if (sidebarTheme === "LIGHT") {
+    sidebarBg = "#ffffff";
+    sidebarFg = "#09090b";
+  } else if (sidebarTheme === "BRAND") {
+    sidebarBg = primary;
+    sidebarFg = primaryForeground;
+  }
+
+  // Sidebar tokens (Dark Mode)
+  let darkSidebarBg = "#09090b";
+  let darkSidebarFg = "#fafafa";
+  if (sidebarTheme === "LIGHT") {
+    darkSidebarBg = "#18181b";
+    darkSidebarFg = "#fafafa";
+  } else if (sidebarTheme === "BRAND") {
+    darkSidebarBg = darkPrimary;
+    darkSidebarFg = darkPrimaryForeground;
+  }
 
   return {
     primary,
@@ -104,6 +272,17 @@ export function computeTenantThemeTokens(branding?: TenantThemeInput | null): Co
     accentForeground,
     ring: primary,
     radius,
+    fontFamily,
+    sidebarTheme,
+    sidebarBg,
+    sidebarFg,
+    darkPrimary,
+    darkPrimaryForeground,
+    darkAccent,
+    darkAccentForeground,
+    darkRing: darkPrimary,
+    darkSidebarBg,
+    darkSidebarFg,
   };
 }
 
@@ -124,6 +303,26 @@ export function generateTenantThemeCss(
       --accent-foreground: ${tokens.accentForeground};
       --ring: ${tokens.ring};
       --radius: ${tokens.radius};
+      --font-tenant: "${tokens.fontFamily}", sans-serif;
+      --sidebar: ${tokens.sidebarBg};
+      --sidebar-foreground: ${tokens.sidebarFg};
+      font-family: var(--font-tenant);
+    }
+
+    .dark ${selector},
+    ${selector}.dark {
+      --primary: ${tokens.darkPrimary};
+      --primary-foreground: ${tokens.darkPrimaryForeground};
+      --accent: ${tokens.darkAccent};
+      --accent-foreground: ${tokens.darkAccentForeground};
+      --ring: ${tokens.darkRing};
+      --sidebar: ${tokens.darkSidebarBg};
+      --sidebar-foreground: ${tokens.darkSidebarFg};
+    }
+
+    aside.bg-sidebar {
+      background-color: var(--sidebar);
+      color: var(--sidebar-foreground);
     }
   `.trim();
 }

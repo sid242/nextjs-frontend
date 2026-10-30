@@ -15,6 +15,19 @@ export type Tenant = z.infer<typeof tenantSchema>;
 
 export const hexColorRegex = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 
+export const tenantFontFamilySchema = z.enum([
+  "Inter",
+  "Plus Jakarta Sans",
+  "Geist",
+  "Poppins",
+  "Outfit",
+  "Roboto",
+]);
+export type TenantFontFamily = z.infer<typeof tenantFontFamilySchema>;
+
+export const tenantSidebarThemeSchema = z.enum(["DARK", "LIGHT", "BRAND"]);
+export type TenantSidebarTheme = z.infer<typeof tenantSidebarThemeSchema>;
+
 export const customDomainStatusSchema = z.enum(["PENDING", "VERIFIED", "ACTIVE", "FAILED"]);
 export type CustomDomainStatus = z.infer<typeof customDomainStatusSchema>;
 
@@ -63,6 +76,10 @@ export const tenantBrandingSchema = z.object({
   faviconUrl: z.string().nullable().optional(),
   primaryColor: z.string().regex(hexColorRegex, "Invalid hex color").default("#0ea5e9"),
   accentColor: z.string().regex(hexColorRegex, "Invalid hex color").default("#38bdf8"),
+  primaryDarkColor: z.string().regex(hexColorRegex, "Invalid hex color").nullable().optional(),
+  accentDarkColor: z.string().regex(hexColorRegex, "Invalid hex color").nullable().optional(),
+  fontFamily: tenantFontFamilySchema.default("Inter"),
+  sidebarTheme: tenantSidebarThemeSchema.default("DARK"),
   borderRadius: z.string().optional(),
   customDomain: z.string().nullable().optional(),
   customDomainStatus: customDomainStatusSchema.nullable().optional(),
