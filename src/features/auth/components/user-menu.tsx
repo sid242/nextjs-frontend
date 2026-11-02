@@ -18,12 +18,14 @@ import {
 import type { User } from "@/lib/api/types";
 import { initials } from "@/lib/format";
 import { resetAllStores } from "@/lib/stores/reset";
+import { useTenantHref } from "@/lib/tenancy/use-tenant-href";
 
 import { logout } from "../api";
 
 export function UserMenu({ user }: { user: Pick<User, "name" | "email"> }) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const tenantHref = useTenantHref();
 
   const signOut = useMutation({
     mutationFn: logout,
@@ -31,7 +33,7 @@ export function UserMenu({ user }: { user: Pick<User, "name" | "email"> }) {
     onSuccess: () => {
       queryClient.clear(); // never leave one user's cached data around for the next
       resetAllStores(); // ...and abort/clear client stores (e.g. in-flight uploads)
-      router.replace("/login");
+      router.replace(tenantHref("/login"));
       router.refresh();
     },
   });
@@ -52,12 +54,12 @@ export function UserMenu({ user }: { user: Pick<User, "name" | "email"> }) {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link href="/settings" className="flex items-center gap-2">
+          <Link href={tenantHref("/settings")} className="flex items-center gap-2">
             <UserIcon className="size-4" /> Profile
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href="/settings" className="flex items-center gap-2">
+          <Link href={tenantHref("/settings")} className="flex items-center gap-2">
             <SettingsIcon className="size-4" /> Settings
           </Link>
         </DropdownMenuItem>

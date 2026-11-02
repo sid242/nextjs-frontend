@@ -82,7 +82,7 @@ export function RegisterForm({
       <p className="text-muted-foreground text-center text-sm">
         Already registered?{" "}
         <Link
-          href={targetTenant?.slug ? `/${targetTenant.slug}/login` : "/login"}
+          href={targetTenant?.slug ? `/w/${targetTenant.slug}/login` : "/login"}
           className="text-foreground font-medium underline-offset-4 hover:underline"
         >
           Sign in

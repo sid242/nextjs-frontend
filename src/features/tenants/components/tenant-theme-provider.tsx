@@ -27,11 +27,14 @@ export function TenantThemeProvider({
   overrideBranding,
   selector = ":root",
 }: TenantThemeProviderProps) {
-  const { activeTenant } = useActiveTenant();
-  const { data: fetchedBranding } = useTenantBranding(activeTenant?.id);
+  const isControlled = overrideBranding !== undefined;
+  const { activeTenant } = useActiveTenant({ enabled: !isControlled });
+  const { data: fetchedBranding } = useTenantBranding(activeTenant?.id, {
+    enabled: !isControlled && Boolean(activeTenant?.id),
+  });
   const styleId = useId();
 
-  const branding = overrideBranding !== undefined ? overrideBranding : fetchedBranding;
+  const branding = isControlled ? overrideBranding : fetchedBranding;
   const css = generateTenantThemeCss(branding, selector);
 
   // Synchronize dynamic Google Font

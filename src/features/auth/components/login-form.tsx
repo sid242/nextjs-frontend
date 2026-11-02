@@ -116,7 +116,7 @@ export function LoginForm({
       <p className="text-muted-foreground text-center text-sm">
         No account?{" "}
         <Link
-          href={targetTenant?.slug ? `/${targetTenant.slug}/register` : "/register"}
+          href={targetTenant?.slug ? `/w/${targetTenant.slug}/register` : "/register"}
           className="text-foreground font-medium underline-offset-4 hover:underline"
         >
           Create one
