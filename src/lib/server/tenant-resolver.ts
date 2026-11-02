@@ -39,9 +39,12 @@ export async function resolvePublicTenant(options: {
   host?: string;
 }): Promise<PublicTenantResolution | null> {
   const params = new URLSearchParams();
-  if (options?.slug?.trim()) params.set("slug", options.slug.trim());
-  if (options?.domain?.trim()) params.set("domain", options.domain.trim());
-  if (options?.host?.trim()) params.set("host", options.host.trim());
+  if (options?.slug?.trim()) {
+    params.set("slug", options.slug.trim());
+  } else {
+    if (options?.domain?.trim()) params.set("domain", options.domain.trim());
+    if (options?.host?.trim()) params.set("host", options.host.trim());
+  }
 
   if (params.size === 0) return null;
 
