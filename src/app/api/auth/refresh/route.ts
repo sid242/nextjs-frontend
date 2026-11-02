@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { REFRESH_GUARD_COOKIE } from "@/lib/auth/constants";
 import { applyAuthCookies, clearAuthCookies, setRefreshGuard } from "@/lib/auth/cookies";
-import { safeNextPath } from "@/lib/auth/paths";
+import { safeNextPath, tenantSlugFromPath } from "@/lib/auth/paths";
 import { refreshTokens } from "@/lib/server/refresh";
 import { assertSameOrigin } from "@/lib/server/request";
 import { errorResponse, redirectTo } from "@/lib/server/response";
@@ -16,7 +16,9 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(req: NextRequest) {
   const next = safeNextPath(req.nextUrl.searchParams.get("next"));
-  const loginUrl = `/login?next=${encodeURIComponent(next)}`;
+  const slug = tenantSlugFromPath(next);
+  const loginPath = slug ? `/w/${slug}/login` : "/login";
+  const loginUrl = `${loginPath}?next=${encodeURIComponent(next)}`;
 
   // Loop guard: if we refreshed seconds ago and still landed here, the backend rejected the new token.
   if (req.cookies.get(REFRESH_GUARD_COOKIE)) return clearAuthCookies(redirectTo(loginUrl));

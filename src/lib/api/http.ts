@@ -2,7 +2,7 @@ import "client-only"; // build error if a server component imports this: server 
 
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from "axios";
 
-import { isProtectedPath } from "@/lib/auth/paths";
+import { isProtectedPath, tenantSlugFromPath } from "@/lib/auth/paths";
 import { createId } from "@/lib/id";
 
 import { toApiError } from "./errors";
@@ -40,7 +40,8 @@ let redirecting = false;
 function redirectToLogin() {
   if (typeof window === "undefined" || redirecting) return;
   const isPlatform = window.location.pathname.startsWith("/platform");
-  const loginPath = isPlatform ? "/platform/login" : "/login";
+  const slug = tenantSlugFromPath(window.location.pathname);
+  const loginPath = isPlatform ? "/platform/login" : slug ? `/w/${slug}/login` : "/login";
   if (window.location.pathname === loginPath) return;
 
   // Never bounce visitors browsing public marketing / unauthenticated pages to login

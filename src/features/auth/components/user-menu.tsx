@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { LogOutIcon, SettingsIcon, UserIcon } from "lucide-react";
 
@@ -23,7 +22,6 @@ import { useTenantHref } from "@/lib/tenancy/use-tenant-href";
 import { logout } from "../api";
 
 export function UserMenu({ user }: { user: Pick<User, "name" | "email"> }) {
-  const router = useRouter();
   const queryClient = useQueryClient();
   const tenantHref = useTenantHref();
 
@@ -33,8 +31,8 @@ export function UserMenu({ user }: { user: Pick<User, "name" | "email"> }) {
     onSuccess: () => {
       queryClient.clear(); // never leave one user's cached data around for the next
       resetAllStores(); // ...and abort/clear client stores (e.g. in-flight uploads)
-      router.replace(tenantHref("/login"));
-      router.refresh();
+      const destination = tenantHref("/login");
+      window.location.assign(destination);
     },
   });
 
