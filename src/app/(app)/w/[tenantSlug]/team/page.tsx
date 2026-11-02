@@ -8,6 +8,7 @@ import { ConfirmDialog } from "@/components/molecules/confirm-dialog";
 import { PageHeader } from "@/components/molecules/page-header";
 import { Button } from "@/components/ui/button";
 import { useTenantSubscription } from "@/features/plans";
+import { useTenantRoles } from "@/features/rbac";
 import {
   hasTenantPermission,
   InviteMemberDialog,
@@ -37,6 +38,7 @@ export default function TeamPage() {
   const canRemoveMembers = hasTenantPermission(permissions, TENANT_PERMISSIONS.MEMBERS_DELETE);
   const { data: members = [], isLoading } = useTenantMembers(activeTenantId);
   const { data: subscription } = useTenantSubscription();
+  const { data: tenantRoles = [] } = useTenantRoles(activeTenantId);
 
   const addMemberMutation = useAddTenantMember(activeTenantId ?? "");
   const removeMemberMutation = useRemoveTenantMember(activeTenantId ?? "");
@@ -146,6 +148,7 @@ export default function TeamPage() {
           isCurrentUserOwner={isCurrentUserOwner}
           canManageRoles={canManageRoles}
           canRemoveMembers={canRemoveMembers}
+          roles={tenantRoles}
         />
 
         <InviteMemberDialog
@@ -158,6 +161,7 @@ export default function TeamPage() {
           maxMembers={subscription?.usage?.maxMembers}
           activeMembers={subscription?.usage?.activeMembers}
           planName={subscription?.plan?.name}
+          roles={tenantRoles}
         />
 
         <ConfirmDialog

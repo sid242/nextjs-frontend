@@ -52,6 +52,7 @@ interface TeamMembersListProps {
   isCurrentUserOwner?: boolean;
   canManageRoles?: boolean;
   canRemoveMembers?: boolean;
+  roles?: Array<{ id?: string; name: string; description?: string | null }>;
 }
 
 export function TeamMembersList({
@@ -66,8 +67,24 @@ export function TeamMembersList({
   isCurrentUserOwner = false,
   canManageRoles = true,
   canRemoveMembers = true,
+  roles,
 }: TeamMembersListProps) {
   const [statusFilter, setStatusFilter] = useState<MemberStatusFilter>("ALL");
+
+  const availableRoleOptions = useMemo(() => {
+    if (roles && roles.length > 0) {
+      return roles.map((r) => {
+        const matchingSystem = MEMBER_ROLE_OPTIONS.find(
+          (opt) => opt.value.toUpperCase() === r.name.toUpperCase(),
+        );
+        return {
+          value: r.name,
+          label: matchingSystem?.label ?? r.name,
+        };
+      });
+    }
+    return MEMBER_ROLE_OPTIONS;
+  }, [roles]);
 
   const counts = useMemo(() => {
     return {
@@ -242,12 +259,12 @@ export function TeamMembersList({
 
                   {(() => {
                     const currentRole = member?.role ?? "MEMBER";
-                    const isKnownRole = MEMBER_ROLE_OPTIONS.some(
-                      (opt) => opt.value === currentRole,
+                    const isKnownRole = availableRoleOptions.some(
+                      (opt) => opt.value.toUpperCase() === currentRole.toUpperCase(),
                     );
                     const options = isKnownRole
-                      ? MEMBER_ROLE_OPTIONS
-                      : [...MEMBER_ROLE_OPTIONS, { value: currentRole, label: currentRole }];
+                      ? availableRoleOptions
+                      : [...availableRoleOptions, { value: currentRole, label: currentRole }];
 
                     return (
                       <Select

@@ -40,6 +40,7 @@ interface InviteMemberDialogProps {
   maxMembers?: number;
   activeMembers?: number;
   planName?: string;
+  roles?: Array<{ id?: string; name: string; description?: string | null }>;
 }
 
 export function InviteMemberDialog({
@@ -52,6 +53,7 @@ export function InviteMemberDialog({
   maxMembers,
   activeMembers,
   planName,
+  roles,
 }: InviteMemberDialogProps) {
   const methods = useForm<InviteMemberFormValues>({
     resolver: zodResolver(inviteMemberFormSchema),
@@ -63,10 +65,20 @@ export function InviteMemberDialog({
 
   const isSeatLimitReached = remainingSeats !== undefined && remainingSeats <= 0;
 
-  const roleOptions = useMemo(
-    () => ROLE_OPTIONS?.map((opt) => ({ label: opt?.label, value: opt?.value })) ?? [],
-    [],
-  );
+  const roleOptions = useMemo(() => {
+    if (roles && roles.length > 0) {
+      return roles.map((r) => {
+        const matchingSystem = ROLE_OPTIONS.find(
+          (opt) => opt.value.toUpperCase() === r.name.toUpperCase(),
+        );
+        return {
+          value: r.name,
+          label: matchingSystem?.label ?? `${r.name}${r.description ? ` (${r.description})` : ""}`,
+        };
+      });
+    }
+    return ROLE_OPTIONS?.map((opt) => ({ label: opt?.label, value: opt?.value })) ?? [];
+  }, [roles]);
 
   const onSubmit = async (values: InviteMemberFormValues) => {
     if (isSeatLimitReached) return;
