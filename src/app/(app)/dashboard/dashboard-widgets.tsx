@@ -20,8 +20,10 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTenantSubscription } from "@/features/plans";
 import { useActiveTenant, useTenantMembers } from "@/features/tenants";
+import { useTenantHref } from "@/lib/tenancy/use-tenant-href";
 
 export function DashboardWidgets() {
+  const tenantHref = useTenantHref();
   const { activeTenant, activeTenantId } = useActiveTenant();
   const { data: subscription, isLoading: isSubLoading } = useTenantSubscription();
   const { data: members = [], isLoading: isMembersLoading } = useTenantMembers(activeTenantId);
@@ -74,7 +76,7 @@ export function DashboardWidgets() {
               )}
             </span>
             <Button asChild variant="link" size="sm" className="h-auto p-0 text-xs font-medium">
-              <Link href="/team" className="inline-flex items-center gap-1">
+              <Link href={tenantHref("/team")} className="inline-flex items-center gap-1">
                 Manage Team <ArrowRight className="h-3 w-3" />
               </Link>
             </Button>
@@ -115,7 +117,10 @@ export function DashboardWidgets() {
                 : `$${((subscription?.plan?.priceCents ?? 0) / 100).toFixed(0)} / ${subscription?.plan?.billingInterval?.toLowerCase() ?? "month"}`}
             </span>
             <Button asChild variant="link" size="sm" className="h-auto p-0 text-xs font-medium">
-              <Link href="/settings/billing" className="inline-flex items-center gap-1">
+              <Link
+                href={tenantHref("/settings/billing")}
+                className="inline-flex items-center gap-1"
+              >
                 Upgrade / Manage <ArrowRight className="h-3 w-3" />
               </Link>
             </Button>
@@ -144,6 +149,7 @@ export function DashboardWidgets() {
 }
 
 export function DashboardQuickActions() {
+  const tenantHref = useTenantHref();
   return (
     <Card className="border-border/60 shadow-xs">
       <CardHeader className="pb-3">
@@ -162,7 +168,7 @@ export function DashboardQuickActions() {
             size="sm"
             className="hover:bg-accent/40 h-auto flex-col items-start gap-1 p-3 text-left"
           >
-            <Link href="/team">
+            <Link href={tenantHref("/team")}>
               <UserPlus className="text-primary h-4 w-4" />
               <div className="text-xs font-semibold">Invite Member</div>
               <div className="text-muted-foreground text-[10px] font-normal">Add collaborators</div>
@@ -175,7 +181,7 @@ export function DashboardQuickActions() {
             size="sm"
             className="hover:bg-accent/40 h-auto flex-col items-start gap-1 p-3 text-left"
           >
-            <Link href="/files">
+            <Link href={tenantHref("/files")}>
               <FileUp className="h-4 w-4 text-blue-500" />
               <div className="text-xs font-semibold">Upload Files</div>
               <div className="text-muted-foreground text-[10px] font-normal">Cloud storage</div>
@@ -188,7 +194,7 @@ export function DashboardQuickActions() {
             size="sm"
             className="hover:bg-accent/40 h-auto flex-col items-start gap-1 p-3 text-left"
           >
-            <Link href="/settings/branding">
+            <Link href={tenantHref("/settings/branding")}>
               <Palette className="h-4 w-4 text-purple-500" />
               <div className="text-xs font-semibold">Workspace Branding</div>
               <div className="text-muted-foreground text-[10px] font-normal">Logo & theme</div>
@@ -201,7 +207,7 @@ export function DashboardQuickActions() {
             size="sm"
             className="hover:bg-accent/40 h-auto flex-col items-start gap-1 p-3 text-left"
           >
-            <Link href="/audit-logs">
+            <Link href={tenantHref("/audit-logs")}>
               <ShieldCheck className="h-4 w-4 text-emerald-500" />
               <div className="text-xs font-semibold">Audit Trail</div>
               <div className="text-muted-foreground text-[10px] font-normal">Security activity</div>

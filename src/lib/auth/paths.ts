@@ -22,7 +22,16 @@ export const PROTECTED_PREFIXES = [
   "/audit-logs",
   "/w",
 ] as const;
-export const AUTH_PAGES = ["/login", "/register"] as const;
+export const AUTH_PAGES = ["/login", "/register", "/forgot-password"] as const;
+
+export function isTenantAuthPath(pathname: string): boolean {
+  return /^\/w\/[^/]+\/(login|register|forgot-password|reset-password)$/.test(pathname);
+}
+
+export function tenantSlugFromPath(pathname: string): string | null {
+  const match = pathname.match(/^\/w\/([^/]+)/);
+  return match?.[1] ? decodeURIComponent(match[1]) : null;
+}
 
 export const RESERVED_ROOT_SEGMENTS = new Set([
   "api",
@@ -60,11 +69,17 @@ export function matchTenantAuthPath(
 export const PLATFORM_PREFIX = "/platform";
 export const PLATFORM_LOGIN_PATH = "/platform/login";
 
-export const isProtectedPath = (pathname: string) =>
-  PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+export const isProtectedPath = (pathname: string): boolean => {
+  if (isTenantAuthPath(pathname)) return false;
+  if (pathname === "/select-workspace" || pathname.startsWith("/select-workspace/")) return true;
+  if (pathname.startsWith("/onboarding/")) return true;
+  return PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+};
 
-export const isAuthPage = (pathname: string) =>
-  (AUTH_PAGES as readonly string[]).includes(pathname) || matchTenantAuthPath(pathname) !== null;
+export const isAuthPage = (pathname: string): boolean =>
+  (AUTH_PAGES as readonly string[]).includes(pathname) ||
+  isTenantAuthPath(pathname) ||
+  matchTenantAuthPath(pathname) !== null;
 
 export const isPlatformPath = (pathname: string) =>
   pathname === PLATFORM_PREFIX || pathname.startsWith(`${PLATFORM_PREFIX}/`);

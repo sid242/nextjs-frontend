@@ -44,6 +44,7 @@ export async function handleCredentials(
     twoFactorRequired?: boolean;
     challengeToken?: string;
     method?: string;
+    memberships?: unknown[];
     error?: unknown;
     data?: {
       user?: unknown;
@@ -52,6 +53,7 @@ export async function handleCredentials(
       twoFactorRequired?: boolean;
       challengeToken?: string;
       method?: string;
+      memberships?: unknown[];
     };
   } | null;
 
@@ -86,7 +88,7 @@ export async function handleCredentials(
   }
 
   const res = NextResponse.json(
-    { user: authData.user },
+    { user: authData.user, memberships: authData?.memberships ?? [] },
     { status: upstream.status, headers: { "Cache-Control": "no-store" } },
   );
   return applyAuthCookies(res, {

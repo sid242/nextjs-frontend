@@ -43,7 +43,10 @@ export function MobileSidebar({
           <MenuIcon className="size-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="flex h-full w-72 flex-col justify-between p-4">
+      <SheetContent
+        side="left"
+        className="bg-sidebar text-sidebar-foreground border-sidebar-border flex h-full w-72 flex-col justify-between p-4"
+      >
         <SidebarProvider value={{ collapsed: false, toggle: () => setOpen(false), isMobile: true }}>
           <div className="flex min-h-0 flex-1 flex-col gap-4">
             <SheetHeader className="shrink-0 p-0 text-left">
@@ -68,7 +71,9 @@ export function MobileSidebar({
           </div>
 
           {userProfile && (
-            <div className="border-border/40 mt-auto shrink-0 border-t pt-3">{userProfile}</div>
+            <div className="border-sidebar-border mt-auto shrink-0 border-t pt-3">
+              {userProfile}
+            </div>
           )}
         </SidebarProvider>
       </SheetContent>

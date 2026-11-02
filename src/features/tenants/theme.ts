@@ -74,6 +74,10 @@ export interface ComputedThemeTokens {
   sidebarTheme: "DARK" | "LIGHT" | "BRAND";
   sidebarBg: string;
   sidebarFg: string;
+  sidebarBorder: string;
+  sidebarMuted: string;
+  sidebarAccent: string;
+  sidebarAccentFg: string;
   darkPrimary: string;
   darkPrimaryForeground: string;
   darkSecondary: string;
@@ -83,6 +87,10 @@ export interface ComputedThemeTokens {
   darkRing: string;
   darkSidebarBg: string;
   darkSidebarFg: string;
+  darkSidebarBorder: string;
+  darkSidebarMuted: string;
+  darkSidebarAccent: string;
+  darkSidebarAccentFg: string;
 }
 
 export const GOOGLE_FONTS: Record<string, { family: string; href: string }> = {
@@ -277,25 +285,33 @@ export function computeTenantThemeTokens(branding?: TenantThemeInput | null): Co
 
   // Sidebar tokens (Light Mode)
   let sidebarBg = "#09090b";
-  let sidebarFg = "#fafafa";
   if (sidebarTheme === "LIGHT") {
     sidebarBg = "#ffffff";
-    sidebarFg = "#09090b";
   } else if (sidebarTheme === "BRAND") {
     sidebarBg = primary;
-    sidebarFg = primaryForeground;
   }
 
   // Sidebar tokens (Dark Mode)
   let darkSidebarBg = "#09090b";
-  let darkSidebarFg = "#fafafa";
   if (sidebarTheme === "LIGHT") {
     darkSidebarBg = "#18181b";
-    darkSidebarFg = "#fafafa";
   } else if (sidebarTheme === "BRAND") {
     darkSidebarBg = darkPrimary;
-    darkSidebarFg = darkPrimaryForeground;
   }
+
+  const isSidebarDark = getLuminance(sidebarBg) < 0.45;
+  const sidebarFg = isSidebarDark ? "#fafafa" : "#09090b";
+  const sidebarBorder = isSidebarDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.08)";
+  const sidebarMuted = isSidebarDark ? "#a1a1aa" : "#71717a";
+  const sidebarAccent = isSidebarDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)";
+  const sidebarAccentFg = isSidebarDark ? "#ffffff" : "#09090b";
+
+  const isDarkSidebarDark = getLuminance(darkSidebarBg) < 0.45;
+  const darkSidebarFg = isDarkSidebarDark ? "#fafafa" : "#09090b";
+  const darkSidebarBorder = isDarkSidebarDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.08)";
+  const darkSidebarMuted = isDarkSidebarDark ? "#a1a1aa" : "#71717a";
+  const darkSidebarAccent = isDarkSidebarDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)";
+  const darkSidebarAccentFg = isDarkSidebarDark ? "#ffffff" : "#09090b";
 
   return {
     primary,
@@ -310,6 +326,10 @@ export function computeTenantThemeTokens(branding?: TenantThemeInput | null): Co
     sidebarTheme,
     sidebarBg,
     sidebarFg,
+    sidebarBorder,
+    sidebarMuted,
+    sidebarAccent,
+    sidebarAccentFg,
     darkPrimary,
     darkPrimaryForeground,
     darkSecondary,
@@ -319,6 +339,10 @@ export function computeTenantThemeTokens(branding?: TenantThemeInput | null): Co
     darkRing: darkPrimary,
     darkSidebarBg,
     darkSidebarFg,
+    darkSidebarBorder,
+    darkSidebarMuted,
+    darkSidebarAccent,
+    darkSidebarAccentFg,
   };
 }
 
@@ -344,6 +368,10 @@ export function generateTenantThemeCss(
       --font-tenant: "${tokens.fontFamily}", sans-serif;
       --sidebar: ${tokens.sidebarBg};
       --sidebar-foreground: ${tokens.sidebarFg};
+      --sidebar-border: ${tokens.sidebarBorder};
+      --sidebar-muted: ${tokens.sidebarMuted};
+      --sidebar-accent: ${tokens.sidebarAccent};
+      --sidebar-accent-foreground: ${tokens.sidebarAccentFg};
       font-family: var(--font-tenant);
     }
 
@@ -358,11 +386,16 @@ export function generateTenantThemeCss(
       --ring: ${tokens.darkRing};
       --sidebar: ${tokens.darkSidebarBg};
       --sidebar-foreground: ${tokens.darkSidebarFg};
+      --sidebar-border: ${tokens.darkSidebarBorder};
+      --sidebar-muted: ${tokens.darkSidebarMuted};
+      --sidebar-accent: ${tokens.darkSidebarAccent};
+      --sidebar-accent-foreground: ${tokens.darkSidebarAccentFg};
     }
 
     aside.bg-sidebar {
       background-color: var(--sidebar);
       color: var(--sidebar-foreground);
+      border-color: var(--sidebar-border);
     }
   `.trim();
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import { CheckIcon, ChevronsUpDownIcon } from "lucide-react";
+import { useState } from "react";
+import { CheckIcon, ChevronsUpDownIcon, Loader2Icon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useSidebar } from "@/lib/context/sidebar-context";
+import { switchWorkspaceOrHandoff } from "@/lib/tenancy/handoff";
 import { cn } from "@/lib/utils";
 
 import { useActiveTenant } from "../queries";
@@ -33,12 +35,30 @@ export function TenantSwitcher({ collapsed: propCollapsed }: TenantSwitcherProps
   const sidebar = useSidebar();
   const collapsed = propCollapsed ?? sidebar.collapsed;
   const { activeTenant, tenants, setActiveTenantId } = useActiveTenant();
+  const [switchingId, setSwitchingId] = useState<string | null>(null);
+
+  const handleSwitch = async (tenant: Tenant) => {
+    if (!tenant?.id || tenant.id === activeTenant?.id) return;
+    setSwitchingId(tenant.id);
+    try {
+      await switchWorkspaceOrHandoff({
+        tenant,
+        onLocalNavigate: () => {
+          setActiveTenantId?.(tenant.id);
+        },
+      });
+    } catch {
+      setActiveTenantId?.(tenant.id);
+    } finally {
+      setSwitchingId(null);
+    }
+  };
 
   const triggerContent = (
     <Button
       variant="ghost"
       className={cn(
-        "hover:bg-accent/60 border-border/40 flex h-12 w-full items-center gap-2.5 rounded-lg border p-2 text-left transition-all",
+        "bg-sidebar-accent/40 hover:bg-sidebar-accent border-sidebar-border text-sidebar-foreground hover:text-sidebar-foreground flex h-12 w-full items-center gap-2.5 rounded-lg border p-2 text-left transition-all",
         collapsed && "h-10 w-10 justify-center p-0",
       )}
       aria-label="Switch organization"
@@ -47,21 +67,23 @@ export function TenantSwitcher({ collapsed: propCollapsed }: TenantSwitcherProps
 
       {!collapsed && (
         <>
-          <div className="grid flex-1 text-left leading-tight">
-            <span className="text-foreground truncate text-sm font-semibold tracking-tight">
+          <div className="flex min-w-0 flex-1 flex-col text-left leading-tight">
+            <span className="text-sidebar-foreground truncate text-sm font-semibold tracking-tight">
               {activeTenant?.name ?? "Select Organization"}
             </span>
-            <span className="text-muted-foreground flex items-center gap-1.5 text-xs font-normal">
+            <div className="flex items-center gap-1.5 pt-0.5 text-xs">
               <Badge
                 variant={PLAN_BADGES[activeTenant?.plan ?? "PRO"]}
-                className="h-4 px-1 text-[10px] uppercase"
+                className="h-3.5 px-1 text-[9px] font-semibold tracking-wider uppercase"
               >
                 {activeTenant?.plan ?? "PRO"}
               </Badge>
-              <span className="truncate opacity-75">{activeTenant?.slug}</span>
-            </span>
+              <span className="text-sidebar-foreground/60 truncate text-[11px]">
+                {activeTenant?.slug}
+              </span>
+            </div>
           </div>
-          <ChevronsUpDownIcon className="text-muted-foreground/70 ml-auto size-4 shrink-0" />
+          <ChevronsUpDownIcon className="text-sidebar-foreground/60 ml-auto size-4 shrink-0" />
         </>
       )}
     </Button>
@@ -94,10 +116,12 @@ export function TenantSwitcher({ collapsed: propCollapsed }: TenantSwitcherProps
 
         {tenants?.map((tenant: Tenant) => {
           const isSelected = tenant.id === activeTenant?.id;
+          const isSwitching = tenant.id === switchingId;
           return (
             <DropdownMenuItem
               key={tenant.id}
-              onSelect={() => setActiveTenantId(tenant.id)}
+              disabled={Boolean(switchingId)}
+              onSelect={() => handleSwitch(tenant)}
               className="flex items-center justify-between gap-2 py-2"
             >
               <div className="flex items-center gap-2.5 overflow-hidden">
@@ -117,7 +141,11 @@ export function TenantSwitcher({ collapsed: propCollapsed }: TenantSwitcherProps
                 <Badge variant={PLAN_BADGES[tenant.plan]} className="h-4 px-1 text-[9px]">
                   {tenant.plan}
                 </Badge>
-                {isSelected && <CheckIcon className="text-primary size-4 shrink-0" />}
+                {isSwitching ? (
+                  <Loader2Icon className="text-primary size-4 animate-spin" />
+                ) : isSelected ? (
+                  <CheckIcon className="text-primary size-4 shrink-0" />
+                ) : null}
               </div>
             </DropdownMenuItem>
           );

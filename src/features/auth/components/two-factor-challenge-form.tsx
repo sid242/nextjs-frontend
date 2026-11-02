@@ -12,9 +12,12 @@ import { SubmitButton } from "@/components/molecules/submit-button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { getErrorMessage } from "@/lib/api/errors";
-import { safeNextPath } from "@/lib/auth/paths";
-import { tenantStorage } from "@/lib/storage";
 import { resetAllStores } from "@/lib/stores/reset";
+import {
+  executePostLoginRouting,
+  routeAfterLogin,
+  type UserMembershipSummary,
+} from "@/lib/tenancy/after-login";
 
 import { useVerifyTwoFactorChallenge } from "../queries";
 import { twoFactorChallengeSchema, type TwoFactorChallengeValues } from "../schemas";
@@ -29,7 +32,6 @@ interface TwoFactorChallengeFormProps {
 export function TwoFactorChallengeForm({
   challengeToken,
   next,
-  targetTenant,
   onCancel,
 }: TwoFactorChallengeFormProps) {
   const router = useRouter();
@@ -49,7 +51,7 @@ export function TwoFactorChallengeForm({
   const onSubmit = async (values: TwoFactorChallengeValues) => {
     setErrorMsg(null);
     try {
-      await verifyMutation.mutateAsync({
+      const response = await verifyMutation.mutateAsync({
         challengeToken,
         code: values?.code?.trim() ?? "",
       });
@@ -57,12 +59,16 @@ export function TwoFactorChallengeForm({
       toast.success("Identity verified successfully");
       resetAllStores();
 
-      if (targetTenant?.id) {
-        tenantStorage?.set?.(targetTenant.id);
-      }
-
-      router?.replace?.(safeNextPath(next));
-      router?.refresh?.();
+      const currentHost = typeof window !== "undefined" ? window.location.host : "";
+      const memberships =
+        response &&
+        "memberships" in response &&
+        Array.isArray((response as { memberships?: unknown }).memberships)
+          ? ((response as { memberships: unknown[] })
+              .memberships as unknown as UserMembershipSummary[])
+          : undefined;
+      const result = routeAfterLogin(memberships, currentHost, next);
+      await executePostLoginRouting(result, router);
     } catch (err) {
       const message = getErrorMessage(err);
       setErrorMsg(message);

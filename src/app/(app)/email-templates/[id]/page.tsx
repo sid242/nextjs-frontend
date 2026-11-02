@@ -30,8 +30,10 @@ import {
   useEmailTemplate,
 } from "@/features/email-templates";
 import { formatDate } from "@/lib/format";
+import { useTenantHref } from "@/lib/tenancy/use-tenant-href";
 
 export default function EmailTemplateDetailPage() {
+  const tenantHref = useTenantHref();
   const params = useParams<{ id: string }>();
   const id = params?.id;
   const router = useRouter();
@@ -75,7 +77,7 @@ export default function EmailTemplateDetailPage() {
           </p>
         </div>
         <Button variant="outline" size="sm" asChild className="gap-2 shadow-2xs">
-          <Link href="/email-templates">
+          <Link href={tenantHref("/email-templates")}>
             <ArrowLeftIcon className="size-4" />
             <span>Return to Templates</span>
           </Link>
@@ -89,7 +91,7 @@ export default function EmailTemplateDetailPage() {
       try {
         await deleteMutation.mutateAsync(template.id);
         toast.success(`Template "${template.name}" deleted`);
-        router.push("/email-templates");
+        router.push(tenantHref("/email-templates"));
       } catch {
         toast.error("Failed to delete template");
       }
@@ -128,7 +130,7 @@ export default function EmailTemplateDetailPage() {
         className="text-muted-foreground flex items-center gap-1.5 text-xs"
       >
         <Link
-          href="/email-templates"
+          href={tenantHref("/email-templates")}
           className="hover:text-foreground flex items-center gap-1 font-medium transition-colors"
         >
           <ArrowLeftIcon className="size-3.5" />
@@ -217,7 +219,7 @@ export default function EmailTemplateDetailPage() {
               asChild
               className="flex-1 gap-1.5 text-xs font-semibold shadow-xs sm:flex-initial"
             >
-              <Link href={`/email-templates/${template?.id}/edit`}>
+              <Link href={tenantHref(`/email-templates/${template?.id}/edit`)}>
                 <EditIcon className="size-3.5" />
                 <span>Edit in Studio</span>
               </Link>

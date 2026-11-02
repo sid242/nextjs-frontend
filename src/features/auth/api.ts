@@ -1,5 +1,6 @@
 import { authApi } from "@/lib/api/http";
 import type { User } from "@/lib/api/types";
+import type { UserMembershipSummary } from "@/lib/tenancy/after-login";
 
 import type {
   ChangePasswordValues,
@@ -20,8 +21,14 @@ import type {
 } from "./schemas";
 
 export type LoginResult =
-  | { user: User; twoFactorRequired?: false }
-  | { user?: never; twoFactorRequired: true; challengeToken: string; method: "totp" };
+  | { user: User; memberships?: UserMembershipSummary[]; twoFactorRequired?: false }
+  | {
+      user?: never;
+      memberships?: never;
+      twoFactorRequired: true;
+      challengeToken: string;
+      method: "totp";
+    };
 
 // These hit our own Next.js BFF routes (/api/auth/*), which keep tokens in httpOnly cookies.
 export const login = (values: LoginValues) => authApi.post<LoginResult>("/login", values);
@@ -40,7 +47,7 @@ export const disableTwoFactor = (values: TwoFactorDisableValues) =>
   authApi.post<{ message: string }>("/2fa/disable", values);
 
 export const verifyTwoFactorChallenge = (values: TwoFactorChallengeValues) =>
-  authApi.post<{ user: User }>("/2fa/verify", values);
+  authApi.post<{ user: User; memberships?: UserMembershipSummary[] }>("/2fa/verify", values);
 
 export const getTwoFactorStatus = (signal?: AbortSignal) =>
   authApi.get<TwoFactorStatus>("/2fa/status", { signal });

@@ -4,7 +4,6 @@ import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse 
 
 import { isProtectedPath } from "@/lib/auth/paths";
 import { createId } from "@/lib/id";
-import { tenantStorage } from "@/lib/storage";
 
 import { toApiError } from "./errors";
 import { refreshSession } from "./refresh";
@@ -32,13 +31,6 @@ function createInstance(baseURL: string): AxiosInstance {
   // End-to-end tracing: the BFF forwards this id to the backend, so one id spans browser -> Next -> API logs.
   instance.interceptors.request.use((config) => {
     if (!config.headers.has("x-request-id")) config.headers.set("x-request-id", createId());
-    const isPlatformUrl = config.url ? /^\/?platform(\/|$)/.test(config.url) : false;
-    if (!isPlatformUrl) {
-      const tenantId = tenantStorage.get();
-      if (tenantId && !config.headers.has("x-tenant-id")) {
-        config.headers.set("x-tenant-id", tenantId);
-      }
-    }
     return config;
   });
   return instance;

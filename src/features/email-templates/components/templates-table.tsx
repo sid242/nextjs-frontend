@@ -54,6 +54,7 @@ import {
   useTableColumns,
   type TableColumnDef,
 } from "@/lib/hooks";
+import { useTenantHref } from "@/lib/tenancy";
 
 import {
   CATEGORY_FILTER_OPTIONS,
@@ -90,6 +91,7 @@ const TEMPLATE_COLUMN_LABELS: Record<TemplateColumnId, string> = {
 
 export function TemplatesTable() {
   const router = useRouter();
+  const tenantHref = useTenantHref();
   const { get, getNumber, setParam, setParams } = useSearchQueryParams();
   const [searchInput, setSearchInput] = useState<string>(() => get("q") ?? "");
 
@@ -209,7 +211,7 @@ export function TemplatesTable() {
         return (
           <TableCell key={colId} className="font-medium">
             <Link
-              href={`/email-templates/${tpl?.id}`}
+              href={tenantHref(`/email-templates/${tpl?.id}`)}
               className="group flex flex-col focus:outline-none"
             >
               <span className="text-foreground group-hover:text-primary text-sm font-semibold transition-colors">
@@ -299,7 +301,7 @@ export function TemplatesTable() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-44 text-xs">
                 <DropdownMenuItem
-                  onClick={() => router.push(`/email-templates/${tpl.id}`)}
+                  onClick={() => router.push(tenantHref(`/email-templates/${tpl?.id}`))}
                   className="gap-2"
                 >
                   <EyeIcon className="text-muted-foreground size-3.5" />
@@ -310,7 +312,7 @@ export function TemplatesTable() {
                   <span>Test Send</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => router.push(`/email-templates/${tpl.id}/edit`)}
+                  onClick={() => router.push(tenantHref(`/email-templates/${tpl?.id}/edit`))}
                   className="gap-2"
                 >
                   <EditIcon className="text-muted-foreground size-3.5" />
@@ -318,7 +320,7 @@ export function TemplatesTable() {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  onClick={() => handleDelete(tpl.id, tpl.name)}
+                  onClick={() => handleDelete(tpl?.id, tpl?.name)}
                   className="text-destructive focus:text-destructive gap-2"
                 >
                   <Trash2Icon className="size-3.5" />
@@ -333,22 +335,6 @@ export function TemplatesTable() {
 
   return (
     <div className="space-y-5">
-      {/* Top Header & Actions: BrixUI Elevated Action Bar */}
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div className="space-y-1">
-          <h1 className="text-foreground text-2xl font-bold tracking-tight">Email Templates</h1>
-          <p className="text-muted-foreground text-xs sm:text-sm">
-            Create, manage, and dispatch responsive email templates with dynamic merge variables.
-          </p>
-        </div>
-        <Button asChild className="h-10 shrink-0 gap-2 rounded-xl px-4 font-semibold shadow-xs">
-          <Link href="/email-templates/new">
-            <PlusIcon className="size-4" />
-            <span>New Email Template</span>
-          </Link>
-        </Button>
-      </div>
-
       {/* Filter and Search Bar: BrixUI Elevated Card */}
       <div className="border-border/80 bg-card flex flex-col gap-3 rounded-2xl border p-3.5 shadow-xs sm:p-4">
         <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">

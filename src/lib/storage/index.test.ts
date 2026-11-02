@@ -1,12 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import {
-  ACTIVE_TENANT_COOKIE_KEY,
-  ACTIVE_TENANT_STORAGE_KEY,
-  clientCookie,
-  clientStorage,
-  tenantStorage,
-} from "./index";
+import { clientCookie, clientStorage } from "./index";
 
 describe("clientStorage in Node / SSR environment", () => {
   it("returns safe defaults when window is undefined", () => {
@@ -110,29 +104,5 @@ describe("clientStorage & tenantStorage in Browser environment", () => {
     expect(clientCookie.get("session_test")).toBe("xyz-token");
     clientCookie.remove("session_test");
     expect(clientCookie.get("session_test")).toBeNull();
-  });
-
-  it("synchronizes both localStorage and document.cookie when setting tenant", () => {
-    const tenantId = "tenant-uuid-12345";
-    tenantStorage.set(tenantId);
-
-    expect(clientStorage.getItem(ACTIVE_TENANT_STORAGE_KEY)).toBe(tenantId);
-    expect(clientCookie.get(ACTIVE_TENANT_COOKIE_KEY)).toBe(tenantId);
-    expect(tenantStorage.get()).toBe(tenantId);
-  });
-
-  it("atomically clears both localStorage and document.cookie", () => {
-    tenantStorage.set("tenant-uuid-12345");
-    tenantStorage.clear();
-
-    expect(clientStorage.getItem(ACTIVE_TENANT_STORAGE_KEY)).toBeNull();
-    expect(clientCookie.get(ACTIVE_TENANT_COOKIE_KEY)).toBeNull();
-    expect(tenantStorage.get()).toBeNull();
-  });
-
-  it("purges and ignores legacy 'tenant-acme'", () => {
-    window.localStorage.setItem(ACTIVE_TENANT_STORAGE_KEY, "tenant-acme");
-    expect(tenantStorage.get()).toBeNull();
-    expect(window.localStorage.getItem(ACTIVE_TENANT_STORAGE_KEY)).toBeNull();
   });
 });

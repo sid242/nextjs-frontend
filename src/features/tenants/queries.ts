@@ -10,6 +10,7 @@ import {
   type MutationOverrides,
   type QueryOverrides,
 } from "@/lib/query/hooks";
+import { useTenantUrl } from "@/lib/tenancy/context";
 
 import {
   addTenantMember,
@@ -182,48 +183,40 @@ export function useActiveTenant(options?: QueryOverrides<Tenant[]>) {
   const queryClient = useQueryClient();
   const params = useParams();
   const router = useRouter();
+  const tenantUrlCtx = useTenantUrl();
   const { data: tenants = [], isLoading } = useTenants(options);
   const activeTenantId = useTenantStore((s) => s.activeTenantId);
-  const storeSetActiveTenantId = useTenantStore((s) => s.setActiveTenantId);
+  const setActiveTenantState = useTenantStore((s) => s.setActiveTenant);
 
-  const slugFromUrl = typeof params?.tenantSlug === "string" ? params.tenantSlug : undefined;
+  const slugFromParam = typeof params?.tenantSlug === "string" ? params.tenantSlug : undefined;
+  const activeSlug = tenantUrlCtx?.slug ?? slugFromParam;
 
-  const activeTenant: Tenant | undefined = slugFromUrl
-    ? (tenants?.find((t) => t?.slug === slugFromUrl || t?.id === slugFromUrl) ??
-      tenants?.find((t) => t?.id === activeTenantId) ??
-      tenants?.[0])
-    : (tenants?.find((t) => t?.id === activeTenantId) ?? tenants?.[0]);
+  const activeTenant: Tenant | undefined = activeSlug
+    ? tenants?.find((t) => t?.slug === activeSlug || t?.id === activeSlug)
+    : undefined;
 
   useEffect(() => {
-    if (!isLoading && tenants && tenants.length > 0) {
-      if (slugFromUrl && activeTenant?.id && activeTenant.id !== activeTenantId) {
-        storeSetActiveTenantId(activeTenant.id);
-        return;
-      }
-      const isValidActive = tenants.some((t) => t?.id === activeTenantId);
-      if (!isValidActive && activeTenant?.id) {
-        storeSetActiveTenantId(activeTenant.id);
-      }
+    if (activeTenant?.id && activeTenant.id !== activeTenantId) {
+      setActiveTenantState({ id: activeTenant.id, slug: activeTenant.slug });
     }
-  }, [isLoading, tenants, activeTenantId, activeTenant?.id, slugFromUrl, storeSetActiveTenantId]);
+  }, [activeTenant?.id, activeTenant?.slug, activeTenantId, setActiveTenantState]);
 
   const setActiveTenantId = useCallback(
     (nextTenantId: string) => {
       if (nextTenantId === activeTenantId) return;
 
       const targetTenant = tenants?.find((t) => t?.id === nextTenantId);
-      if (slugFromUrl && targetTenant?.slug && targetTenant.slug !== slugFromUrl) {
+      if (targetTenant?.slug && targetTenant.slug !== activeSlug) {
         router.push(`/w/${targetTenant.slug}/dashboard`);
       }
 
-      // 1. Update active tenant in store and localStorage
-      storeSetActiveTenantId(nextTenantId);
+      // 1. Update active tenant in in-memory store
+      setActiveTenantState({ id: nextTenantId, slug: targetTenant?.slug ?? null });
 
       // 2. Clear tenant-scoped queries to prevent cache leakage across tenants
       queryClient.removeQueries({
         predicate: (query) => {
           const firstKey = String(query.queryKey[0]);
-          // Preserve global user session and list of available tenants; wipe everything else
           return !["user", "auth", "tenants"].includes(firstKey);
         },
       });
@@ -231,7 +224,7 @@ export function useActiveTenant(options?: QueryOverrides<Tenant[]>) {
       // 3. Immediately trigger background refetches for new tenant context
       void queryClient.invalidateQueries();
     },
-    [activeTenantId, slugFromUrl, tenants, router, storeSetActiveTenantId, queryClient],
+    [activeTenantId, activeSlug, tenants, router, setActiveTenantState, queryClient],
   );
 
   return {

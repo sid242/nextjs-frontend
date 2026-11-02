@@ -10,7 +10,6 @@ import { ControlledInput, FormWrapper } from "@/components/molecules/forms";
 import { SubmitButton } from "@/components/molecules/submit-button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { getErrorMessage } from "@/lib/api/errors";
-import { tenantStorage } from "@/lib/storage";
 import { resetAllStores } from "@/lib/stores/reset";
 
 import { register } from "../api";
@@ -34,10 +33,10 @@ export function RegisterForm({
     onSuccess: () => {
       queryClient?.clear?.();
       resetAllStores();
-      if (targetTenant?.id) {
-        tenantStorage.set(targetTenant.id);
-      }
-      router?.replace?.("/dashboard");
+      const targetPath = targetTenant?.slug
+        ? `/w/${targetTenant.slug}/dashboard`
+        : "/select-workspace";
+      router?.replace?.(targetPath);
       router?.refresh?.();
     },
   });

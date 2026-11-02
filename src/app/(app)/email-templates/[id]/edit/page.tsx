@@ -7,8 +7,10 @@ import { ArrowLeftIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { TemplateStudio, useEmailTemplate } from "@/features/email-templates";
+import { useTenantHref } from "@/lib/tenancy/use-tenant-href";
 
 export default function EditEmailTemplatePage() {
+  const tenantHref = useTenantHref();
   const params = useParams<{ id: string }>();
   const id = params?.id;
 
@@ -33,7 +35,7 @@ export default function EditEmailTemplatePage() {
           </p>
         </div>
         <Button variant="outline" size="sm" asChild className="gap-1.5">
-          <Link href="/email-templates">
+          <Link href={tenantHref("/email-templates")}>
             <ArrowLeftIcon className="size-3.5" />
             <span>Return to Templates</span>
           </Link>

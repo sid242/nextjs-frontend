@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAcceptWorkspaceInvite } from "@/features/auth";
 import { getErrorMessage } from "@/lib/api/errors";
-import { tenantStorage } from "@/lib/storage";
 import { resetAllStores } from "@/lib/stores/reset";
 
 function AcceptInviteContent() {
@@ -33,20 +32,15 @@ function AcceptInviteContent() {
 
     async function executeAcceptance() {
       try {
-        const result = await acceptMutation.mutateAsync({
+        await acceptMutation.mutateAsync({
           token: token!,
           tenantId: tenantId ?? undefined,
         });
         if (!isMounted) return;
         resetAllStores();
 
-        const activeId = result?.activeTenantId || tenantId;
-        if (activeId) {
-          tenantStorage.set(activeId);
-        }
-
         setTimeout(() => {
-          router.replace("/dashboard");
+          router.replace("/select-workspace");
           router.refresh();
         }, 1200);
       } catch (err: unknown) {

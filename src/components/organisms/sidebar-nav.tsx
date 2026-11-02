@@ -33,6 +33,7 @@ import {
   type NavSection,
 } from "@/config/site";
 import { useSidebar } from "@/lib/context/sidebar-context";
+import { useTenantHref } from "@/lib/tenancy/use-tenant-href";
 import { cn } from "@/lib/utils";
 
 const ICONS: Record<NavIcon, LucideIcon> = {
@@ -98,6 +99,7 @@ export function SidebarNav({
 }: SidebarNavProps) {
   const pathname = usePathname();
   const sidebar = useSidebar();
+  const tenantHref = useTenantHref();
   const handleNavigate = onNavigate ?? (sidebar?.isMobile ? sidebar.toggle : undefined);
   // Track user manual toggle overrides without needing an effect
   const [toggledItems, setToggledItems] = useState<Record<string, boolean>>({});
@@ -140,19 +142,19 @@ export function SidebarNav({
           const active = hasActiveDescendant(item, pathname);
           return (
             <Link
-              key={item.href ?? item.title}
-              href={item.href ?? "#"}
+              key={item?.href ?? item?.title}
+              href={item?.href ? tenantHref(item.href) : "#"}
               onClick={handleNavigate}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "hover:bg-accent/80 hover:text-accent-foreground flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                "hover:bg-sidebar-accent hover:text-sidebar-foreground flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                 active
-                  ? "bg-accent text-accent-foreground font-semibold shadow-xs"
-                  : "text-muted-foreground",
+                  ? "bg-sidebar-accent text-sidebar-foreground font-semibold shadow-xs"
+                  : "text-sidebar-foreground/70",
               )}
             >
               <Icon className="size-4 shrink-0" />
-              <span>{item.title}</span>
+              <span>{item?.title}</span>
             </Link>
           );
         })}
@@ -169,22 +171,22 @@ export function SidebarNav({
           <div key={section?.title ?? `section-${sIdx}`} className="flex flex-col gap-1">
             {/* Section Heading or Divider */}
             {collapsed
-              ? sIdx > 0 && <div className="border-border/40 mx-1 my-1.5 border-t" />
+              ? sIdx > 0 && <div className="border-sidebar-border/40 mx-1 my-1.5 border-t" />
               : hasSectionTitle && (
                   <div
                     className={cn(
-                      "text-muted-foreground/70 px-3 text-[11px] font-semibold tracking-wider uppercase select-none",
+                      "text-sidebar-foreground/50 px-3 text-[11px] font-semibold tracking-wider uppercase select-none",
                       sIdx === 0 ? "pt-1 pb-1" : "pt-3 pb-1",
                     )}
                   >
-                    {section.title}
+                    {section?.title}
                   </div>
                 )}
 
             {/* Section Items */}
             <div className="flex flex-col gap-1">
               {section?.items?.map((item, iIdx) => {
-                const itemKey = `${sIdx}-${iIdx}-${item.title}`;
+                const itemKey = `${sIdx}-${iIdx}-${item?.title ?? "item"}`;
                 const hasChildren = Boolean(item?.items && item.items.length > 0);
                 const isChildActive = hasActiveDescendant(item, pathname);
                 const active = isPathActive(item?.href, pathname);
@@ -201,23 +203,23 @@ export function SidebarNav({
                             <DropdownMenuTrigger asChild>
                               <button
                                 type="button"
-                                aria-label={item.title}
+                                aria-label={item?.title}
                                 className={cn(
-                                  "hover:bg-accent/80 hover:text-accent-foreground relative mx-auto flex size-9 cursor-pointer items-center justify-center rounded-md text-sm font-medium transition-all duration-150",
+                                  "hover:bg-sidebar-accent hover:text-sidebar-foreground relative mx-auto flex size-9 cursor-pointer items-center justify-center rounded-md text-sm font-medium transition-all duration-150",
                                   isChildActive || active
-                                    ? "bg-accent text-accent-foreground font-semibold shadow-xs"
-                                    : "text-muted-foreground",
+                                    ? "bg-sidebar-accent text-sidebar-foreground font-semibold shadow-xs"
+                                    : "text-sidebar-foreground/70",
                                 )}
                               >
                                 {(isChildActive || active) && (
                                   <span className="bg-primary absolute top-1.5 bottom-1.5 left-0 w-1 rounded-r-full" />
                                 )}
                                 <Icon className="size-4 shrink-0" />
-                                <span className="sr-only">{item.title}</span>
+                                <span className="sr-only">{item?.title}</span>
                               </button>
                             </DropdownMenuTrigger>
                           </TooltipTrigger>
-                          <TooltipContent side="right">{item.title}</TooltipContent>
+                          <TooltipContent side="right">{item?.title}</TooltipContent>
                         </Tooltip>
 
                         <DropdownMenuContent
@@ -226,7 +228,7 @@ export function SidebarNav({
                           className="min-w-48 p-1.5 shadow-lg"
                         >
                           <DropdownMenuLabel className="text-muted-foreground px-2 py-1 text-xs font-semibold tracking-wider uppercase">
-                            {item.title}
+                            {item?.title}
                           </DropdownMenuLabel>
                           <DropdownMenuSeparator />
                           {item?.items?.map((subItem) => {
@@ -236,7 +238,7 @@ export function SidebarNav({
                             return (
                               <DropdownMenuItem key={subItem?.href ?? subItem?.title} asChild>
                                 <Link
-                                  href={subItem?.href ?? "#"}
+                                  href={subItem?.href ? tenantHref(subItem.href) : "#"}
                                   onClick={handleNavigate}
                                   className={cn(
                                     "flex cursor-pointer items-center gap-2.5 rounded-sm px-2 py-1.5 text-xs font-medium",
@@ -255,7 +257,7 @@ export function SidebarNav({
                                       )}
                                     />
                                   )}
-                                  <span className="flex-1 truncate">{subItem.title}</span>
+                                  <span className="flex-1 truncate">{subItem?.title}</span>
                                   {subItem?.badge != null && (
                                     <span className="bg-muted text-muted-foreground ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-semibold">
                                       {subItem.badge}
@@ -275,28 +277,28 @@ export function SidebarNav({
                     <Tooltip key={itemKey}>
                       <TooltipTrigger asChild>
                         <Link
-                          href={item.href ?? "#"}
+                          href={item?.href ? tenantHref(item.href) : "#"}
                           onClick={handleNavigate}
                           aria-current={active ? "page" : undefined}
                           className={cn(
-                            "hover:bg-accent/80 hover:text-accent-foreground relative mx-auto flex size-9 items-center justify-center rounded-md text-sm font-medium transition-all duration-150",
+                            "hover:bg-sidebar-accent hover:text-sidebar-foreground relative mx-auto flex size-9 items-center justify-center rounded-md text-sm font-medium transition-all duration-150",
                             active
-                              ? "bg-accent text-accent-foreground font-semibold shadow-xs"
-                              : "text-muted-foreground",
-                            item.disabled && "pointer-events-none opacity-50",
+                              ? "bg-sidebar-accent text-sidebar-foreground font-semibold shadow-xs"
+                              : "text-sidebar-foreground/70",
+                            item?.disabled && "pointer-events-none opacity-50",
                           )}
                         >
                           {active && (
                             <span className="bg-primary absolute top-1.5 bottom-1.5 left-0 w-1 rounded-r-full" />
                           )}
                           <Icon className="size-4 shrink-0" />
-                          <span className="sr-only">{item.title}</span>
+                          <span className="sr-only">{item?.title}</span>
                         </Link>
                       </TooltipTrigger>
                       <TooltipContent side="right">
                         <div className="flex items-center gap-2">
-                          <span>{item.title}</span>
-                          {item.badge != null && (
+                          <span>{item?.title}</span>
+                          {item?.badge != null && (
                             <span className="bg-muted text-muted-foreground rounded-full px-1.5 py-0.5 text-[10px] font-semibold">
                               {item.badge}
                             </span>
@@ -316,45 +318,45 @@ export function SidebarNav({
                         onClick={() => toggleItem(itemKey, isOpen)}
                         aria-expanded={isOpen}
                         className={cn(
-                          "group hover:bg-accent/80 hover:text-accent-foreground relative flex w-full cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium transition-all duration-150 select-none",
+                          "group hover:bg-sidebar-accent hover:text-sidebar-foreground relative flex w-full cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium transition-all duration-150 select-none",
                           isChildActive || active
-                            ? "text-foreground font-semibold"
-                            : "text-muted-foreground",
+                            ? "text-sidebar-foreground font-semibold"
+                            : "text-sidebar-foreground/70",
                         )}
                       >
-                        <Icon className="group-hover:text-foreground size-4 shrink-0 transition-colors" />
-                        <span className="flex-1 truncate">{item.title}</span>
-                        {item.badge != null && (
-                          <span className="bg-muted text-muted-foreground mr-1 rounded-full px-2 py-0.5 text-[10px] font-semibold">
+                        <Icon className="group-hover:text-sidebar-foreground size-4 shrink-0 transition-colors" />
+                        <span className="flex-1 truncate">{item?.title}</span>
+                        {item?.badge != null && (
+                          <span className="bg-sidebar-accent text-sidebar-foreground/80 mr-1 rounded-full px-2 py-0.5 text-[10px] font-semibold">
                             {item.badge}
                           </span>
                         )}
                         <ChevronDownIcon
                           className={cn(
-                            "text-muted-foreground/70 size-3.5 shrink-0 transition-transform duration-200",
+                            "text-sidebar-foreground/50 size-3.5 shrink-0 transition-transform duration-200",
                             isOpen ? "rotate-0" : "-rotate-90",
                           )}
                         />
                       </button>
 
                       {isOpen && (
-                        <div className="border-border/60 mt-1 mb-1 ml-5 flex flex-col gap-0.5 border-l pl-2.5">
+                        <div className="border-sidebar-border/60 mt-1 mb-1 ml-5 flex flex-col gap-0.5 border-l pl-2.5">
                           {item?.items?.map((subItem) => {
-                            const subActive = isPathActive(subItem.href, pathname);
-                            const SubIcon = subItem.icon ? ICONS[subItem.icon] : null;
+                            const subActive = isPathActive(subItem?.href, pathname);
+                            const SubIcon = subItem?.icon ? ICONS[subItem.icon] : null;
 
                             return (
                               <Link
-                                key={subItem.href ?? subItem.title}
-                                href={subItem.href ?? "#"}
+                                key={subItem?.href ?? subItem?.title}
+                                href={subItem?.href ? tenantHref(subItem.href) : "#"}
                                 onClick={handleNavigate}
                                 aria-current={subActive ? "page" : undefined}
                                 className={cn(
-                                  "group hover:bg-accent/80 hover:text-accent-foreground relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-all duration-150",
+                                  "group hover:bg-sidebar-accent hover:text-sidebar-foreground relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-all duration-150",
                                   subActive
-                                    ? "bg-accent text-accent-foreground font-semibold shadow-xs"
-                                    : "text-muted-foreground",
-                                  subItem.disabled && "pointer-events-none opacity-50",
+                                    ? "bg-sidebar-accent text-sidebar-foreground font-semibold shadow-xs"
+                                    : "text-sidebar-foreground/70",
+                                  subItem?.disabled && "pointer-events-none opacity-50",
                                 )}
                               >
                                 {subActive && (
@@ -368,13 +370,13 @@ export function SidebarNav({
                                       "size-1.5 shrink-0 rounded-full transition-colors",
                                       subActive
                                         ? "bg-primary"
-                                        : "bg-muted-foreground/40 group-hover:bg-foreground/60",
+                                        : "bg-sidebar-foreground/40 group-hover:bg-sidebar-foreground/70",
                                     )}
                                   />
                                 )}
-                                <span className="flex-1 truncate">{subItem.title}</span>
-                                {subItem.badge != null && (
-                                  <span className="bg-muted text-muted-foreground ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-semibold">
+                                <span className="flex-1 truncate">{subItem?.title}</span>
+                                {subItem?.badge != null && (
+                                  <span className="bg-sidebar-accent text-sidebar-foreground/80 ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-semibold">
                                     {subItem.badge}
                                   </span>
                                 )}
@@ -391,24 +393,24 @@ export function SidebarNav({
                 return (
                   <Link
                     key={itemKey}
-                    href={item.href ?? "#"}
+                    href={item?.href ? tenantHref(item.href) : "#"}
                     onClick={handleNavigate}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "group hover:bg-accent/80 hover:text-accent-foreground relative flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all duration-150",
+                      "group hover:bg-sidebar-accent hover:text-sidebar-foreground relative flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all duration-150",
                       active
-                        ? "bg-accent text-accent-foreground font-semibold shadow-xs"
-                        : "text-muted-foreground",
-                      item.disabled && "pointer-events-none opacity-50",
+                        ? "bg-sidebar-accent text-sidebar-foreground font-semibold shadow-xs"
+                        : "text-sidebar-foreground/70",
+                      item?.disabled && "pointer-events-none opacity-50",
                     )}
                   >
                     {active && (
                       <span className="bg-primary absolute top-1.5 bottom-1.5 left-0 w-1 rounded-r-full" />
                     )}
-                    <Icon className="group-hover:text-foreground size-4 shrink-0 transition-colors" />
-                    <span className="flex-1 truncate">{item.title}</span>
-                    {item.badge != null && (
-                      <span className="bg-muted text-muted-foreground ml-auto rounded-full px-2 py-0.5 text-[10px] font-semibold">
+                    <Icon className="group-hover:text-sidebar-foreground size-4 shrink-0 transition-colors" />
+                    <span className="flex-1 truncate">{item?.title}</span>
+                    {item?.badge != null && (
+                      <span className="bg-sidebar-accent text-sidebar-foreground/80 ml-auto rounded-full px-2 py-0.5 text-[10px] font-semibold">
                         {item.badge}
                       </span>
                     )}

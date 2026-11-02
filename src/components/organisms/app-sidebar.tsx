@@ -27,7 +27,7 @@ export function AppSidebar({ tenantSwitcher, userProfile, navigationSlot }: AppS
     <SidebarProvider value={{ collapsed, toggle, isMobile: false }}>
       <aside
         className={cn(
-          "bg-sidebar sticky top-0 hidden h-screen shrink-0 flex-col justify-between border-r p-3 transition-[width] duration-200 md:flex",
+          "bg-sidebar text-sidebar-foreground border-sidebar-border sticky top-0 hidden h-screen shrink-0 flex-col justify-between border-r p-3 transition-[width] duration-200 md:flex",
           collapsed ? "w-16" : "w-64",
         )}
       >
@@ -42,7 +42,10 @@ export function AppSidebar({ tenantSwitcher, userProfile, navigationSlot }: AppS
                 )}
               >
                 {!collapsed && (
-                  <Link href="/dashboard" className="px-2 text-lg font-semibold tracking-tight">
+                  <Link
+                    href="/dashboard"
+                    className="text-sidebar-foreground px-2 text-lg font-semibold tracking-tight"
+                  >
                     {siteConfig.name}
                   </Link>
                 )}
@@ -52,6 +55,7 @@ export function AppSidebar({ tenantSwitcher, userProfile, navigationSlot }: AppS
                   onClick={toggle}
                   aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
                   aria-expanded={!collapsed}
+                  className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                 >
                   {collapsed ? <PanelLeftOpenIcon /> : <PanelLeftCloseIcon />}
                 </Button>
@@ -66,7 +70,7 @@ export function AppSidebar({ tenantSwitcher, userProfile, navigationSlot }: AppS
         </div>
 
         {/* User profile footer */}
-        <div className="border-border/40 mt-auto shrink-0 border-t pt-3">
+        <div className="border-sidebar-border mt-auto shrink-0 border-t pt-3">
           {userProfile ?? (
             <div className="flex justify-center">
               <Button
@@ -74,6 +78,7 @@ export function AppSidebar({ tenantSwitcher, userProfile, navigationSlot }: AppS
                 size="icon"
                 onClick={toggle}
                 aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+                className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
               >
                 {collapsed ? <PanelLeftOpenIcon /> : <PanelLeftCloseIcon />}
               </Button>

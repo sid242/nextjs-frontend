@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { isAuthPage, isProtectedPath, safeNextPath } from "./paths";
+import {
+  isAuthPage,
+  isProtectedPath,
+  isTenantAuthPath,
+  safeNextPath,
+  tenantSlugFromPath,
+} from "./paths";
 
 describe("safeNextPath", () => {
   it("keeps safe relative paths", () => {
@@ -34,6 +40,16 @@ describe("route matching", () => {
   });
   it("matches auth pages", () => {
     expect(isAuthPage("/login")).toBe(true);
+    expect(isAuthPage("/register")).toBe(true);
+    expect(isAuthPage("/forgot-password")).toBe(true);
+    expect(isAuthPage("/w/acme/login")).toBe(true);
+    expect(isAuthPage("/w/acme/register")).toBe(true);
     expect(isAuthPage("/login/x")).toBe(false);
+  });
+  it("detects tenant auth paths and extracts slug", () => {
+    expect(isTenantAuthPath("/w/acme/login")).toBe(true);
+    expect(isTenantAuthPath("/w/acme/dashboard")).toBe(false);
+    expect(tenantSlugFromPath("/w/acme/login")).toBe("acme");
+    expect(tenantSlugFromPath("/dashboard")).toBeNull();
   });
 });

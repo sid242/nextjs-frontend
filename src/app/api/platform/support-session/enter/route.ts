@@ -15,7 +15,6 @@ export async function POST(req: NextRequest) {
 
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   const sessionId = body?.sessionId;
-  const tenantId = body?.tenantId;
   const accessToken = body?.accessToken;
 
   if (!sessionId || typeof sessionId !== "string") {
@@ -23,7 +22,9 @@ export async function POST(req: NextRequest) {
   }
 
   const secure = process.env.NODE_ENV === "production" && process.env.COOKIE_SECURE !== "false";
-  const res = NextResponse.json({ ok: true, redirectUrl: "/dashboard" });
+  const slug = (body?.slug || body?.tenantSlug) as string | undefined;
+  const redirectUrl = slug ? `/w/${slug}/dashboard` : "/dashboard";
+  const res = NextResponse.json({ ok: true, redirectUrl });
 
   res.cookies.set(SUPPORT_SESSION_COOKIE, sessionId, {
     httpOnly: true,
@@ -43,9 +44,9 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  if (tenantId && typeof tenantId === "string") {
-    res.cookies.set("active_tenant_id", tenantId, {
-      httpOnly: false,
+  if (slug) {
+    res.cookies.set("ctx_slug", slug, {
+      httpOnly: true,
       secure,
       sameSite: "lax",
       path: "/",

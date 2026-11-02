@@ -10,6 +10,7 @@ import {
 } from "@/lib/server/platform-auth";
 import { assertSameOrigin, forwardedHeaders } from "@/lib/server/request";
 import { errorResponse } from "@/lib/server/response";
+import { tenantIdFromRequest } from "@/lib/server/tenant-context";
 
 export const dynamic = "force-dynamic";
 
@@ -30,8 +31,8 @@ const MAX_BODY_BYTES = 1_000_000; // matches the backend's 1mb JSON limit; uploa
  * and isolates platform staff credentials from customer tenant credentials.
  */
 async function handler(req: NextRequest, { params }: Ctx) {
-  const { path } = await params;
-  const upstreamPath = `/${path.map(encodeURIComponent).join("/")}`;
+  const { path } = (await params) ?? {};
+  const upstreamPath = `/${path?.map?.(encodeURIComponent)?.join("/") ?? ""}`;
 
   // Impersonation handlers
   if (upstreamPath === "/auth/impersonate") {
@@ -57,7 +58,7 @@ async function handler(req: NextRequest, { params }: Ctx) {
     return handlePlatformLogoutRequest(req);
   }
 
-  if (req.method !== "GET" && req.method !== "HEAD") {
+  if (req?.method !== "GET" && req?.method !== "HEAD") {
     const blocked = assertSameOrigin(req);
     if (blocked) return blocked;
   }
@@ -80,8 +81,8 @@ async function handler(req: NextRequest, { params }: Ctx) {
     upstreamPath.startsWith("/tenants/public/");
 
   const token = isPlatformRoute
-    ? req.cookies.get(PLATFORM_STAFF_COOKIE)?.value
-    : req.cookies.get(ACCESS_COOKIE)?.value;
+    ? req?.cookies?.get?.(PLATFORM_STAFF_COOKIE)?.value
+    : req?.cookies?.get?.(ACCESS_COOKIE)?.value;
 
   if (!token && !isPublicRoute) return errorResponse(401, "UNAUTHORIZED", "Not signed in");
 
@@ -89,8 +90,8 @@ async function handler(req: NextRequest, { params }: Ctx) {
   // UTF-16 string .length miscalculates multibyte characters; we check Content-Length header
   // and arrayBuffer.byteLength against the exact 1MB threshold.
   let body: string | undefined;
-  if (req.method !== "GET" && req.method !== "HEAD") {
-    const contentLengthHeader = req.headers.get("content-length");
+  if (req?.method !== "GET" && req?.method !== "HEAD") {
+    const contentLengthHeader = req?.headers?.get?.("content-length");
     if (contentLengthHeader) {
       const parsedLength = parseInt(contentLengthHeader, 10);
       if (!Number.isNaN(parsedLength) && parsedLength > MAX_BODY_BYTES) {
@@ -98,23 +99,28 @@ async function handler(req: NextRequest, { params }: Ctx) {
       }
     }
 
-    const arrayBuffer = await req.arrayBuffer();
-    if (arrayBuffer.byteLength > MAX_BODY_BYTES) {
+    const arrayBuffer = await req?.arrayBuffer?.();
+    if (arrayBuffer && arrayBuffer.byteLength > MAX_BODY_BYTES) {
       return errorResponse(413, "PAYLOAD_TOO_LARGE", "Payload too large");
     }
-    if (arrayBuffer.byteLength > 0) {
+    if (arrayBuffer && arrayBuffer.byteLength > 0) {
       body = new TextDecoder().decode(arrayBuffer);
     }
   }
 
   let upstream: Response;
+  const tenantId = await tenantIdFromRequest(req);
   try {
     upstream = await backendFetch(upstreamPath, {
-      method: req.method,
+      method: req?.method,
       token,
-      search: req.nextUrl.search,
+      search: req?.nextUrl?.search ?? "",
       body: body || undefined,
-      headers: { ...forwardedHeaders(req), "content-type": body ? "application/json" : undefined },
+      headers: {
+        ...forwardedHeaders(req),
+        "content-type": body ? "application/json" : undefined,
+        ...(tenantId ? { "x-tenant-id": tenantId } : {}),
+      },
     });
   } catch {
     return errorResponse(503, "UPSTREAM_UNAVAILABLE", "Service temporarily unavailable");
@@ -122,13 +128,13 @@ async function handler(req: NextRequest, { params }: Ctx) {
 
   const headers = new Headers({ "Cache-Control": "no-store" });
   for (const name of PASSTHROUGH_HEADERS) {
-    const value = upstream.headers.get(name);
+    const value = upstream?.headers?.get?.(name);
     if (value) headers.set(name, value);
   }
-  const setCookie = upstream.headers.get("set-cookie");
+  const setCookie = upstream?.headers?.get?.("set-cookie");
   if (setCookie) headers.set("set-cookie", setCookie);
-  return new Response(upstream.status === 204 ? null : upstream.body, {
-    status: upstream.status,
+  return new Response(upstream?.status === 204 ? null : upstream?.body, {
+    status: upstream?.status ?? 200,
     headers,
   });
 }

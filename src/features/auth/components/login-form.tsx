@@ -11,9 +11,8 @@ import { ControlledInput, FormWrapper } from "@/components/molecules/forms";
 import { SubmitButton } from "@/components/molecules/submit-button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { getErrorMessage } from "@/lib/api/errors";
-import { safeNextPath } from "@/lib/auth/paths";
-import { tenantStorage } from "@/lib/storage";
 import { resetAllStores } from "@/lib/stores/reset";
+import { executePostLoginRouting, routeAfterLogin } from "@/lib/tenancy/after-login";
 
 import { login } from "../api";
 import { loginSchema, type LoginValues } from "../schemas";
@@ -38,7 +37,7 @@ export function LoginForm({
   const loginMutation = useMutation({
     mutationFn: login,
     meta: { silent: true },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       if (data?.twoFactorRequired && data?.challengeToken) {
         setChallengeToken(data.challengeToken);
         return;
@@ -46,11 +45,10 @@ export function LoginForm({
 
       queryClient?.clear?.();
       resetAllStores();
-      if (targetTenant?.id) {
-        tenantStorage.set(targetTenant.id);
-      }
-      router?.replace?.(safeNextPath(next));
-      router?.refresh?.();
+
+      const currentHost = typeof window !== "undefined" ? window.location.host : "";
+      const result = routeAfterLogin(data?.memberships, currentHost, next);
+      await executePostLoginRouting(result, router);
     },
   });
 

@@ -25,12 +25,16 @@ export interface ResolvedTenantBranding {
   [key: string]: unknown;
 }
 
+export function isTenantUnavailable(status?: string | null): boolean {
+  return status === "SUSPENDED" || status === "DEACTIVATED";
+}
+
 export interface PublicTenantResolution {
   kind: "platform" | "tenant";
   tenantId?: string;
   slug?: string;
   name?: string;
-  status?: "ACTIVE" | "SUSPENDED" | "ARCHIVED";
+  status?: "ACTIVE" | "TRIALING" | "SUSPENDED" | "DEACTIVATED";
   pathOnly?: boolean;
   canonicalBase: string;
   urlMode?: "path" | "subdomain" | "customDomain";
