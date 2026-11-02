@@ -240,22 +240,36 @@ export function TeamMembersList({
                     {member?.status}
                   </Badge>
 
-                  <Select
-                    defaultValue={member?.role}
-                    onValueChange={(val) => onRoleChange(member.id, val)}
-                    disabled={!canManageRoles}
-                  >
-                    <SelectTrigger className="h-8 w-28 text-xs font-medium">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MEMBER_ROLE_OPTIONS?.map((option) => (
-                        <SelectItem key={option?.value} value={option?.value}>
-                          {option?.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {(() => {
+                    const currentRole = member?.role ?? "MEMBER";
+                    const isKnownRole = MEMBER_ROLE_OPTIONS.some(
+                      (opt) => opt.value === currentRole,
+                    );
+                    const options = isKnownRole
+                      ? MEMBER_ROLE_OPTIONS
+                      : [...MEMBER_ROLE_OPTIONS, { value: currentRole, label: currentRole }];
+
+                    return (
+                      <Select
+                        value={currentRole}
+                        onValueChange={(val) => onRoleChange(member.id, val)}
+                        disabled={
+                          !canManageRoles || (member?.role === "OWNER" && !isCurrentUserOwner)
+                        }
+                      >
+                        <SelectTrigger className="h-8 w-28 text-xs font-medium">
+                          <SelectValue placeholder="Select role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {options.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    );
+                  })()}
 
                   {canRemoveMembers ||
                   (isCurrentUserOwner && member?.role !== "OWNER") ||

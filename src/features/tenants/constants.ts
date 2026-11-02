@@ -5,6 +5,7 @@ export const ROLE_OPTIONS = [
   { value: "MEMBER", label: "Member (Standard Access)" },
   { value: "ADMIN", label: "Administrator (Manage Workspace)" },
   { value: "OWNER", label: "Owner (Full Permissions)" },
+  { value: "VIEWER", label: "Viewer (Read Only Access)" },
 ] as const;
 
 /**
@@ -14,6 +15,7 @@ export const MEMBER_ROLE_OPTIONS = [
   { value: "OWNER", label: "Owner" },
   { value: "ADMIN", label: "Admin" },
   { value: "MEMBER", label: "Member" },
+  { value: "VIEWER", label: "Viewer" },
 ] as const;
 
 export type TenantRole = (typeof MEMBER_ROLE_OPTIONS)[number]["value"];
