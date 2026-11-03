@@ -28,13 +28,20 @@ export function FormWrapper<T extends FieldValues>({
   onSubmit,
   className,
   children,
+  method = "POST",
+  action = "#",
   ...props
 }: FormWrapperProps<T>) {
   return (
     <FormProvider {...methods}>
       <form
         className={cn("space-y-4", className)}
-        onSubmit={methods.handleSubmit(onSubmit)}
+        onSubmit={(e) => {
+          e.preventDefault();
+          void methods.handleSubmit(onSubmit)(e);
+        }}
+        method={method}
+        action={action}
         noValidate
         {...props}
       >

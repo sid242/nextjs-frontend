@@ -122,11 +122,20 @@ export function FormInput({
         {isPassword && !hidePasswordToggle ? (
           <Button
             type="button"
+            tabIndex={-1}
             variant="ghost"
             size="icon"
-            onClick={() => setShowPassword((prev) => !prev)}
+            onPointerDown={(e) => {
+              // Prevent mobile input blur and keyboard dismissal
+              e.preventDefault();
+            }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setShowPassword((prev) => !prev);
+            }}
             aria-label={showPassword ? "Hide password" : "Show password"}
-            className="text-muted-foreground hover:text-foreground absolute right-1 size-7"
+            className="text-muted-foreground hover:text-foreground absolute right-1 size-8 cursor-pointer touch-manipulation"
           >
             {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
           </Button>
