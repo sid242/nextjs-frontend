@@ -64,11 +64,7 @@ export function AddressForm({ initialData, onSubmit, isLoading, onCancel }: Addr
   const selectedType = methods.watch("type");
 
   return (
-    <FormWrapper
-      methods={methods}
-      onSubmit={onSubmit}
-      className="grid max-h-[75vh] gap-4 overflow-y-auto px-1 pr-2"
-    >
+    <FormWrapper methods={methods} onSubmit={onSubmit} className="grid gap-5">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <Label htmlFor="address-type">Address Type</Label>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MapPin, Plus } from "lucide-react";
+import { MapPin, Plus, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +17,7 @@ import {
 } from "../queries";
 import type { Address, AddressInput } from "../schemas";
 import { AddressCard } from "./address-card";
-import { AddressDialog } from "./address-dialog";
+import { AddressForm } from "./address-form";
 
 export interface AddressBookProps {
   scope: AddressScope;
@@ -36,7 +36,7 @@ export function AddressBook({
 }: AddressBookProps) {
   const { data: addresses, isLoading } = useAddresses(scope);
 
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
 
   const createMutation = useCreateAddress(scope);
@@ -46,12 +46,17 @@ export function AddressBook({
 
   const handleOpenAdd = () => {
     setEditingAddress(null);
-    setIsDialogOpen(true);
+    setIsFormOpen(true);
   };
 
   const handleEdit = (addr: Address) => {
     setEditingAddress(addr);
-    setIsDialogOpen(true);
+    setIsFormOpen(true);
+  };
+
+  const handleCancel = () => {
+    setIsFormOpen(false);
+    setEditingAddress(null);
   };
 
   const handleSubmit = async (values: AddressInput) => {
@@ -60,6 +65,8 @@ export function AddressBook({
     } else {
       await createMutation.mutateAsync(values);
     }
+    setIsFormOpen(false);
+    setEditingAddress(null);
   };
 
   return (
@@ -75,7 +82,7 @@ export function AddressBook({
           </CardDescription>
         </div>
 
-        {canWrite && (
+        {canWrite && !isFormOpen && (
           <Button type="button" size="sm" onClick={handleOpenAdd}>
             <Plus className="mr-1.5 h-4 w-4" />
             Add Address
@@ -83,13 +90,42 @@ export function AddressBook({
         )}
       </CardHeader>
 
-      <CardContent>
+      <CardContent className="space-y-6">
+        {/* Inline Form Section (Replaces modal popup) */}
+        {isFormOpen && (
+          <div className="border-border/80 bg-muted/20 rounded-2xl border p-5">
+            <div className="flex items-center justify-between pb-4">
+              <div>
+                <h3 className="text-base font-semibold">
+                  {editingAddress ? "Edit Address" : "Add New Address"}
+                </h3>
+                <p className="text-muted-foreground text-xs">
+                  {editingAddress
+                    ? "Update location details and administrative boundaries."
+                    : "Enter address details with verified Indian administrative boundaries."}
+                </p>
+              </div>
+              <Button variant="ghost" size="icon" onClick={handleCancel} className="h-8 w-8">
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <AddressForm
+              initialData={editingAddress}
+              onSubmit={handleSubmit}
+              isLoading={createMutation.isPending || updateMutation.isPending}
+              onCancel={handleCancel}
+            />
+          </div>
+        )}
+
+        {/* Address Cards Grid */}
         {isLoading ? (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Skeleton className="h-40 w-full rounded-lg" />
             <Skeleton className="h-40 w-full rounded-lg" />
           </div>
-        ) : (addresses?.length ?? 0) === 0 ? (
+        ) : (addresses?.length ?? 0) === 0 && !isFormOpen ? (
           <div className="bg-muted/20 flex flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center">
             <MapPin className="text-muted-foreground/50 mb-3 h-10 w-10" />
             <p className="text-foreground text-sm font-medium">No addresses found</p>
@@ -101,38 +137,32 @@ export function AddressBook({
                 type="button"
                 variant="outline"
                 size="sm"
-                className="mt-4"
                 onClick={handleOpenAdd}
+                className="mt-4"
               >
-                <Plus className="mr-1 h-3.5 w-3.5" />
+                <Plus className="mr-1.5 h-4 w-4" />
                 Add Address
               </Button>
             )}
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {addresses?.map((address) => (
+            {addresses?.map((addr) => (
               <AddressCard
-                key={address.id}
-                address={address}
-                onEdit={handleEdit}
-                onDelete={(id) => deleteMutation.mutate(id)}
-                onSetDefault={(id) => setDefaultMutation.mutate(id)}
-                canWrite={canWrite}
-                canDelete={canDelete}
+                key={addr.id}
+                address={addr}
+                onEdit={canWrite ? () => handleEdit(addr) : undefined}
+                onDelete={canDelete ? () => deleteMutation.mutateAsync(addr.id) : undefined}
+                onSetDefault={
+                  canWrite && !addr.isDefault
+                    ? () => setDefaultMutation.mutateAsync(addr.id)
+                    : undefined
+                }
               />
             ))}
           </div>
         )}
       </CardContent>
-
-      <AddressDialog
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
-        initialData={editingAddress}
-        onSubmit={handleSubmit}
-        isLoading={createMutation.isPending || updateMutation.isPending}
-      />
     </Card>
   );
 }

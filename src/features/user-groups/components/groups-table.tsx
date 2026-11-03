@@ -33,6 +33,7 @@ interface GroupsTableProps {
   onFiltersChange: (filters: GroupFilters) => void;
   createHref?: string;
   detailHref?: (group: UserGroup) => string;
+  editHref?: (group: UserGroup) => string;
   onCreateClick?: () => void;
   onEditClick?: (group: UserGroup) => void;
   onArchiveClick?: (group: UserGroup) => void;
@@ -51,6 +52,7 @@ export function GroupsTable({
   onFiltersChange,
   createHref,
   detailHref,
+  editHref,
   onCreateClick,
   onEditClick,
   onArchiveClick,
@@ -201,15 +203,26 @@ export function GroupsTable({
                       <GroupStatusBadge status={group.status} />
                     </TableCell>
                     <TableCell className="text-center font-medium">
-                      <button
-                        type="button"
-                        onClick={() => onManageMembersClick?.(group)}
-                        className="bg-muted hover:bg-muted/80 text-foreground inline-flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors"
-                        title="Click to view/manage group members"
-                      >
-                        <Users className="text-muted-foreground h-3 w-3" />
-                        {group.memberCount ?? 0}
-                      </button>
+                      {detailHref ? (
+                        <Link
+                          href={detailHref(group)}
+                          className="bg-muted hover:bg-muted/80 text-foreground inline-flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors"
+                          title="Click to view/manage group members"
+                        >
+                          <Users className="text-muted-foreground h-3 w-3" />
+                          {group.memberCount ?? 0}
+                        </Link>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => onManageMembersClick?.(group)}
+                          className="bg-muted hover:bg-muted/80 text-foreground inline-flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors"
+                          title="Click to view/manage group members"
+                        >
+                          <Users className="text-muted-foreground h-3 w-3" />
+                          {group.memberCount ?? 0}
+                        </button>
+                      )}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-xs">
                       {new Date(group.createdAt).toLocaleDateString()}
@@ -235,17 +248,35 @@ export function GroupsTable({
                             </DropdownMenuItem>
                           )}
 
-                          <DropdownMenuItem onClick={() => onManageMembersClick?.(group)}>
-                            <Users className="mr-2 h-4 w-4" />
-                            {canManageMembers ? "Manage Members" : "View Members"}
-                          </DropdownMenuItem>
-
-                          {canEdit && !isArchived && onEditClick && (
-                            <DropdownMenuItem onClick={() => onEditClick(group)}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Edit Group
+                          {detailHref ? (
+                            <DropdownMenuItem asChild>
+                              <Link href={detailHref(group)} className="cursor-pointer">
+                                <Users className="mr-2 h-4 w-4" />
+                                {canManageMembers ? "Manage Members" : "View Members"}
+                              </Link>
                             </DropdownMenuItem>
-                          )}
+                          ) : onManageMembersClick ? (
+                            <DropdownMenuItem onClick={() => onManageMembersClick(group)}>
+                              <Users className="mr-2 h-4 w-4" />
+                              {canManageMembers ? "Manage Members" : "View Members"}
+                            </DropdownMenuItem>
+                          ) : null}
+
+                          {canEdit &&
+                            !isArchived &&
+                            (editHref ? (
+                              <DropdownMenuItem asChild>
+                                <Link href={editHref(group)} className="cursor-pointer">
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Edit Group
+                                </Link>
+                              </DropdownMenuItem>
+                            ) : onEditClick ? (
+                              <DropdownMenuItem onClick={() => onEditClick(group)}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit Group
+                              </DropdownMenuItem>
+                            ) : null)}
 
                           {canArchive && !isArchived && onArchiveClick && (
                             <>

@@ -5,28 +5,13 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
+import { ConfirmDialog } from "@/components/molecules/confirm-dialog";
 import { PageHeader } from "@/components/molecules/page-header";
 import { Button } from "@/components/ui/button";
-import {
-  hasTenantPermission,
-  useActiveTenant,
-  useTenantContext,
-  useTenantMembers,
-} from "@/features/tenants";
+import { hasTenantPermission, useActiveTenant, useTenantContext } from "@/features/tenants";
 
-import {
-  useAddTenantGroupMembers,
-  useArchiveTenantGroup,
-  useCreateTenantGroup,
-  useRemoveTenantGroupMember,
-  useTenantGroupMembers,
-  useTenantGroups,
-  useUpdateTenantGroup,
-} from "../queries";
-import type { CreateGroupValues, UpdateGroupValues } from "../schemas";
+import { useArchiveTenantGroup, useTenantGroups } from "../queries";
 import type { GroupFilters, UserGroup } from "../types";
-import { GroupFormDialog } from "./group-form-dialog";
-import { GroupMembersDialog, type CandidateMember } from "./group-members-dialog";
 import { GroupStatsCards } from "./group-stats-cards";
 import { GroupsTable } from "./groups-table";
 
@@ -58,38 +43,11 @@ export function TenantGroupsManager() {
     return groups.length;
   }, [groupsData, groups]);
 
-  // Tenant members (for candidate selection)
-  const { data: tenantMembers = [] } = useTenantMembers(activeTenantId);
-  const candidateMembers: CandidateMember[] = useMemo(() => {
-    return (tenantMembers ?? [])
-      .filter((m) => m?.status === "ACTIVE")
-      .map((m) => ({
-        id: m?.userId ?? m?.id,
-        name: m?.name ?? "Unknown",
-        email: m?.email ?? "",
-      }));
-  }, [tenantMembers]);
-
   // Mutations
-  const createGroupMutation = useCreateTenantGroup(activeTenantId);
-  const updateGroupMutation = useUpdateTenantGroup(activeTenantId);
   const archiveGroupMutation = useArchiveTenantGroup(activeTenantId);
-  const addMembersMutation = useAddTenantGroupMembers(activeTenantId);
-  const removeMemberMutation = useRemoveTenantGroupMember(activeTenantId);
 
-  // Modal states
-  const [formDialogOpen, setFormDialogOpen] = useState(false);
-  const [groupToEdit, setGroupToEdit] = useState<UserGroup | null>(null);
-  const [membersDialogOpen, setMembersDialogOpen] = useState(false);
-  const [selectedGroup, setSelectedGroup] = useState<UserGroup | null>(null);
-
-  // Group members query for the selected group
-  const { data: membersData, isLoading: isLoadingMembers } = useTenantGroupMembers(
-    activeTenantId,
-    selectedGroup?.id,
-    { page: 1, limit: 100 },
-  );
-  const groupMembers = membersData?.items ?? [];
+  // Archive modal state
+  const [groupToArchive, setGroupToArchive] = useState<UserGroup | null>(null);
 
   // Permissions check
   const canCreate = hasTenantPermission(permissions, "groups:create");
@@ -102,6 +60,11 @@ export function TenantGroupsManager() {
   const getDetailHref = (group: UserGroup) =>
     activeTenant?.slug ? `/w/${activeTenant.slug}/groups/${group.id}` : `/groups/${group.id}`;
 
+  const getEditHref = (group: UserGroup) =>
+    activeTenant?.slug
+      ? `/w/${activeTenant.slug}/groups/${group.id}/edit`
+      : `/groups/${group.id}/edit`;
+
   const activeGroupsCount = useMemo(
     () => groups.filter((g) => g.status === "ACTIVE").length,
     [groups],
@@ -112,65 +75,14 @@ export function TenantGroupsManager() {
     [groups],
   );
 
-  const handleCreateOrEditSubmit = async (values: CreateGroupValues) => {
+  const handleArchiveConfirm = async () => {
+    if (!groupToArchive) return;
     try {
-      if (groupToEdit) {
-        await updateGroupMutation.mutateAsync({
-          groupId: groupToEdit.id,
-          input: values as UpdateGroupValues,
-        });
-        toast.success(`User group "${values?.name}" updated successfully.`);
-      } else {
-        await createGroupMutation.mutateAsync(values);
-        toast.success(`User group "${values?.name}" created successfully.`);
-      }
-      setFormDialogOpen(false);
-      setGroupToEdit(null);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to save user group.";
-      toast.error(message);
-      throw err;
-    }
-  };
-
-  const handleArchive = async (group: UserGroup) => {
-    if (!confirm(`Are you sure you want to archive "${group?.name}"?`)) return;
-    try {
-      await archiveGroupMutation.mutateAsync(group.id);
-      toast.success(`Group "${group?.name}" has been archived.`);
+      await archiveGroupMutation.mutateAsync(groupToArchive.id);
+      toast.success(`Group "${groupToArchive.name}" has been archived.`);
+      setGroupToArchive(null);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to archive user group.";
-      toast.error(message);
-    }
-  };
-
-  const handleAddMembers = async (memberIds: string[]) => {
-    if (!selectedGroup) return;
-    try {
-      const res = await addMembersMutation.mutateAsync({
-        groupId: selectedGroup.id,
-        userIds: memberIds,
-      });
-      toast.success(
-        `Added ${res?.addedCount ?? memberIds?.length} members to ${selectedGroup?.name}.`,
-      );
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to add members to group.";
-      toast.error(message);
-      throw err;
-    }
-  };
-
-  const handleRemoveMember = async (userId: string) => {
-    if (!selectedGroup) return;
-    try {
-      await removeMemberMutation.mutateAsync({
-        groupId: selectedGroup.id,
-        userId,
-      });
-      toast.success("Member removed from group.");
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to remove member from group.";
       toast.error(message);
     }
   };
@@ -206,43 +118,23 @@ export function TenantGroupsManager() {
         onFiltersChange={setFilters}
         createHref={canCreate ? createHref : undefined}
         detailHref={getDetailHref}
-        onCreateClick={() => {
-          setGroupToEdit(null);
-          setFormDialogOpen(true);
-        }}
-        onEditClick={(group) => {
-          setGroupToEdit(group);
-          setFormDialogOpen(true);
-        }}
-        onArchiveClick={handleArchive}
-        onManageMembersClick={(group) => {
-          setSelectedGroup(group);
-          setMembersDialogOpen(true);
-        }}
+        editHref={canEdit ? getEditHref : undefined}
+        onArchiveClick={(group) => setGroupToArchive(group)}
         canCreate={canCreate}
         canEdit={canEdit}
         canArchive={canArchive}
         canManageMembers={canManageMembers}
       />
 
-      <GroupFormDialog
-        open={formDialogOpen}
-        onOpenChange={setFormDialogOpen}
-        groupToEdit={groupToEdit}
-        onSubmit={handleCreateOrEditSubmit}
-        isLoading={createGroupMutation.isPending || updateGroupMutation.isPending}
-      />
-
-      <GroupMembersDialog
-        open={membersDialogOpen}
-        onOpenChange={setMembersDialogOpen}
-        group={selectedGroup}
-        members={groupMembers}
-        isLoadingMembers={isLoadingMembers}
-        onRemoveMember={handleRemoveMember}
-        onAddMembers={handleAddMembers}
-        candidateMembers={candidateMembers}
-        canManageMembers={canManageMembers}
+      <ConfirmDialog
+        open={Boolean(groupToArchive)}
+        onOpenChange={(open) => !open && setGroupToArchive(null)}
+        title="Archive User Group"
+        description={`Are you sure you want to archive "${groupToArchive?.name}"? Assigned members will be preserved in historical audit records.`}
+        confirmLabel="Archive Group"
+        destructive
+        onConfirm={handleArchiveConfirm}
+        pending={archiveGroupMutation.isPending}
       />
     </div>
   );

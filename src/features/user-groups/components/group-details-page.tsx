@@ -16,6 +16,7 @@ import {
   Search,
   Trash2,
   Users,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -23,6 +24,7 @@ import { ConfirmDialog } from "@/components/molecules/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -58,12 +60,8 @@ import {
   useRemoveTenantGroupMember,
   useTenantGroup,
   useTenantGroupMembers,
-  useUpdatePlatformGroup,
-  useUpdateTenantGroup,
 } from "../queries";
 import type { PlatformGroupMember, TenantGroupMember } from "../types";
-import { GroupFormDialog } from "./group-form-dialog";
-import { GroupMembersDialog, type CandidateMember } from "./group-members-dialog";
 import { GroupStatusBadge } from "./group-status-badge";
 
 interface GroupDetailsPageProps {
@@ -134,16 +132,25 @@ export function GroupDetailsPage({ scope, groupId, backHref }: GroupDetailsPageP
   );
   const isLoadingMembers = scope === "TENANT" ? loadingTenantMembers : loadingPlatformMembers;
 
-  // Candidate members for Add Dialog
+  // Candidate members for inline assignment
   const { data: allTenantMembers = [] } = useTenantMembers(
     scope === "TENANT" ? activeTenantId : undefined,
   );
   const { data: allStaffData } = useStaffList(scope === "PLATFORM" ? { limit: 100 } : undefined);
 
-  const candidateMembers: CandidateMember[] = useMemo(() => {
+  // Existing assigned member IDs
+  const assignedMemberIds = useMemo(() => {
+    return new Set(
+      members.map((m: TenantGroupMember | PlatformGroupMember) =>
+        "userId" in m ? m.userId : m.staffId,
+      ),
+    );
+  }, [members]);
+
+  const candidates = useMemo(() => {
     if (scope === "TENANT") {
       return (allTenantMembers ?? [])
-        .filter((m) => m?.status === "ACTIVE")
+        .filter((m) => m?.status === "ACTIVE" && !assignedMemberIds.has(m?.userId ?? m?.id))
         .map((m) => ({
           id: m?.userId ?? m?.id,
           name: m?.name ?? "Unknown",
@@ -151,17 +158,15 @@ export function GroupDetailsPage({ scope, groupId, backHref }: GroupDetailsPageP
         }));
     }
     return (allStaffData?.items ?? [])
-      .filter((s) => s?.status === "ACTIVE")
+      .filter((s) => s?.status === "ACTIVE" && !assignedMemberIds.has(s?.id))
       .map((s) => ({
         id: s?.id,
         name: s?.displayName ?? "Unknown",
         email: s?.email ?? "",
       }));
-  }, [scope, allTenantMembers, allStaffData]);
+  }, [scope, allTenantMembers, allStaffData, assignedMemberIds]);
 
   // Mutations
-  const updateTenantGroupMutation = useUpdateTenantGroup(activeTenantId);
-  const updatePlatformGroupMutation = useUpdatePlatformGroup();
   const archiveTenantGroupMutation = useArchiveTenantGroup(activeTenantId);
   const archivePlatformGroupMutation = useArchivePlatformGroup();
   const addTenantMembersMutation = useAddTenantGroupMembers(activeTenantId);
@@ -169,9 +174,12 @@ export function GroupDetailsPage({ scope, groupId, backHref }: GroupDetailsPageP
   const removeTenantMemberMutation = useRemoveTenantGroupMember(activeTenantId);
   const removePlatformMemberMutation = useRemovePlatformGroupMember();
 
-  // Modals state
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [addMembersDialogOpen, setAddMembersDialogOpen] = useState(false);
+  // Inline assignment panel state
+  const [isAssigningOpen, setIsAssigningOpen] = useState(false);
+  const [selectedCandidateIds, setSelectedCandidateIds] = useState<string[]>([]);
+  const [candidateSearch, setCandidateSearch] = useState("");
+
+  // Confirmation modals state
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState<{ id: string; name: string } | null>(null);
   const [memberSearch, setMemberSearch] = useState("");
@@ -184,6 +192,13 @@ export function GroupDetailsPage({ scope, groupId, backHref }: GroupDetailsPageP
         : "/groups"
       : "/platform/groups");
 
+  const editHref =
+    scope === "TENANT"
+      ? activeTenant?.slug
+        ? `/w/${activeTenant.slug}/groups/${groupId}/edit`
+        : `/groups/${groupId}/edit`
+      : `/platform/groups/${groupId}/edit`;
+
   const filteredMembers = useMemo(() => {
     if (!memberSearch.trim()) return members;
     const term = memberSearch.toLowerCase();
@@ -193,6 +208,20 @@ export function GroupDetailsPage({ scope, groupId, backHref }: GroupDetailsPageP
       return name.toLowerCase().includes(term) || email.toLowerCase().includes(term);
     });
   }, [members, memberSearch]);
+
+  const filteredCandidates = useMemo(() => {
+    if (!candidateSearch.trim()) return candidates;
+    const term = candidateSearch.toLowerCase();
+    return candidates.filter(
+      (c) => c.name.toLowerCase().includes(term) || c.email.toLowerCase().includes(term),
+    );
+  }, [candidates, candidateSearch]);
+
+  const toggleCandidate = (id: string) => {
+    setSelectedCandidateIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+    );
+  };
 
   const handleArchive = async () => {
     try {
@@ -224,17 +253,19 @@ export function GroupDetailsPage({ scope, groupId, backHref }: GroupDetailsPageP
     }
   };
 
-  const handleAddMembers = async (selectedIds: string[]) => {
+  const handleAssignSelected = async () => {
+    if (selectedCandidateIds.length === 0) return;
     try {
       if (scope === "TENANT") {
-        await addTenantMembersMutation.mutateAsync({ groupId, userIds: selectedIds });
+        await addTenantMembersMutation.mutateAsync({ groupId, userIds: selectedCandidateIds });
       } else {
-        await addPlatformMembersMutation.mutateAsync({ groupId, staffIds: selectedIds });
+        await addPlatformMembersMutation.mutateAsync({ groupId, staffIds: selectedCandidateIds });
       }
-      toast.success(`${selectedIds.length} members assigned to group.`);
-      setAddMembersDialogOpen(false);
+      toast.success(`Assigned ${selectedCandidateIds.length} members to ${group?.name}.`);
+      setSelectedCandidateIds([]);
+      setIsAssigningOpen(false);
     } catch {
-      toast.error("Failed to add members to group.");
+      toast.error("Failed to assign members.");
     }
   };
 
@@ -324,16 +355,21 @@ export function GroupDetailsPage({ scope, groupId, backHref }: GroupDetailsPageP
               </div>
             </div>
 
-            {/* Quick Actions */}
+            {/* Quick Actions (All full-page links or confirmation modals) */}
             <div className="flex flex-wrap items-center gap-2">
               {canManageMembers && group.status === "ACTIVE" && (
-                <Button onClick={() => setAddMembersDialogOpen(true)} className="gap-2 shadow-xs">
+                <Button
+                  onClick={() => setIsAssigningOpen((prev) => !prev)}
+                  className="gap-2 shadow-xs"
+                >
                   <Plus className="h-4 w-4" /> Add Members
                 </Button>
               )}
               {canEdit && (
-                <Button variant="outline" onClick={() => setEditDialogOpen(true)} className="gap-2">
-                  <Edit className="h-4 w-4" /> Edit Details
+                <Button variant="outline" asChild className="gap-2">
+                  <Link href={editHref}>
+                    <Edit className="h-4 w-4" /> Edit Details
+                  </Link>
                 </Button>
               )}
               {canArchive && group.status === "ACTIVE" && (
@@ -365,6 +401,103 @@ export function GroupDetailsPage({ scope, groupId, backHref }: GroupDetailsPageP
 
         {/* Tab 1: Members */}
         <TabsContent value="members" className="space-y-4">
+          {/* Inline Member Assignment Panel (Replaces popup modal) */}
+          {isAssigningOpen && (
+            <Card className="border-border/80 bg-muted/20 rounded-2xl border p-5">
+              <div className="flex items-center justify-between pb-3">
+                <div>
+                  <h3 className="text-base font-semibold">Assign Members to {group.name}</h3>
+                  <p className="text-muted-foreground text-xs">
+                    Select active accounts to add to this group.
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsAssigningOpen(false)}
+                  className="h-8 w-8"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="space-y-3 pt-2">
+                <div className="relative">
+                  <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+                  <Input
+                    placeholder="Search candidate members..."
+                    value={candidateSearch}
+                    onChange={(e) => setCandidateSearch(e.target.value)}
+                    className="h-9 pl-9 text-sm"
+                  />
+                </div>
+
+                <div className="divide-border max-h-56 divide-y overflow-y-auto rounded-xl border">
+                  {filteredCandidates.length === 0 ? (
+                    <div className="text-muted-foreground p-4 text-center text-xs">
+                      {candidates.length === 0
+                        ? "All active members are already assigned to this group."
+                        : "No candidate members matched your search."}
+                    </div>
+                  ) : (
+                    filteredCandidates.map((c) => {
+                      const isSelected = selectedCandidateIds.includes(c.id);
+                      return (
+                        <div
+                          key={c.id}
+                          onClick={() => toggleCandidate(c.id)}
+                          className="hover:bg-muted/40 flex cursor-pointer items-center justify-between p-2.5 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => toggleCandidate(c.id)}
+                            />
+                            <div>
+                              <div className="text-sm font-medium">{c.name}</div>
+                              <div className="text-muted-foreground text-xs">{c.email}</div>
+                            </div>
+                          </div>
+                          {isSelected && (
+                            <Badge variant="outline" className="text-primary text-[10px]">
+                              Selected
+                            </Badge>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setIsAssigningOpen(false);
+                      setSelectedCandidateIds([]);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleAssignSelected}
+                    disabled={
+                      selectedCandidateIds.length === 0 ||
+                      addTenantMembersMutation.isPending ||
+                      addPlatformMembersMutation.isPending
+                    }
+                  >
+                    {addTenantMembersMutation.isPending || addPlatformMembersMutation.isPending
+                      ? "Assigning..."
+                      : `Assign (${selectedCandidateIds.length}) Selected`}
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          )}
+
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="relative max-w-sm flex-1">
               <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
@@ -375,11 +508,11 @@ export function GroupDetailsPage({ scope, groupId, backHref }: GroupDetailsPageP
                 className="h-10 pl-9"
               />
             </div>
-            {canManageMembers && group.status === "ACTIVE" && (
+            {canManageMembers && group.status === "ACTIVE" && !isAssigningOpen && (
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setAddMembersDialogOpen(true)}
+                onClick={() => setIsAssigningOpen(true)}
                 className="gap-2"
               >
                 <Plus className="h-3.5 w-3.5" /> Assign More Members
@@ -417,16 +550,19 @@ export function GroupDetailsPage({ scope, groupId, backHref }: GroupDetailsPageP
                           ? "No assigned members matched your search query."
                           : "Assign workspace accounts to organize them within this group."}
                       </p>
-                      {canManageMembers && group.status === "ACTIVE" && !memberSearch && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setAddMembersDialogOpen(true)}
-                          className="mt-3 gap-1.5"
-                        >
-                          <Plus className="h-3.5 w-3.5" /> Add First Member
-                        </Button>
-                      )}
+                      {canManageMembers &&
+                        group.status === "ACTIVE" &&
+                        !memberSearch &&
+                        !isAssigningOpen && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setIsAssigningOpen(true)}
+                            className="mt-3 gap-1.5"
+                          >
+                            <Plus className="h-3.5 w-3.5" /> Add First Member
+                          </Button>
+                        )}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -542,47 +678,7 @@ export function GroupDetailsPage({ scope, groupId, backHref }: GroupDetailsPageP
         </TabsContent>
       </Tabs>
 
-      {/* Edit Group Dialog */}
-      <GroupFormDialog
-        open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
-        groupToEdit={group}
-        onSubmit={async (values) => {
-          if (scope === "TENANT") {
-            await updateTenantGroupMutation.mutateAsync({ groupId: group.id, input: values });
-          } else {
-            await updatePlatformGroupMutation.mutateAsync({ groupId: group.id, input: values });
-          }
-          toast.success(`Group "${values.name}" updated successfully.`);
-          setEditDialogOpen(false);
-        }}
-        isLoading={
-          scope === "TENANT"
-            ? updateTenantGroupMutation.isPending
-            : updatePlatformGroupMutation.isPending
-        }
-      />
-
-      {/* Add Members Dialog */}
-      <GroupMembersDialog
-        open={addMembersDialogOpen}
-        onOpenChange={setAddMembersDialogOpen}
-        group={group}
-        candidateMembers={candidateMembers}
-        members={members}
-        isLoadingMembers={isLoadingMembers}
-        onAddMembers={handleAddMembers}
-        onRemoveMember={async (userId) => {
-          if (scope === "TENANT") {
-            await removeTenantMemberMutation.mutateAsync({ groupId, userId });
-          } else {
-            await removePlatformMemberMutation.mutateAsync({ groupId, staffId: userId });
-          }
-        }}
-        canManageMembers={canManageMembers}
-      />
-
-      {/* Confirm Archive Dialog */}
+      {/* Confirm Archive Dialog (Destructive confirmation only) */}
       <ConfirmDialog
         open={archiveDialogOpen}
         onOpenChange={setArchiveDialogOpen}
@@ -598,7 +694,7 @@ export function GroupDetailsPage({ scope, groupId, backHref }: GroupDetailsPageP
         }
       />
 
-      {/* Confirm Remove Member Dialog */}
+      {/* Confirm Remove Member Dialog (Destructive confirmation only) */}
       <ConfirmDialog
         open={Boolean(memberToRemove)}
         onOpenChange={(open) => !open && setMemberToRemove(null)}
