@@ -12,7 +12,25 @@ export function assertSameOrigin(req: Request): Response | null {
 
   if (origin) {
     try {
-      if (new URL(origin).host === host) return null;
+      const originHost = new URL(origin).host.toLowerCase().replace(/:(?:80|443)$/, "");
+      const currentHost = host?.toLowerCase().replace(/:(?:80|443)$/, "");
+      if (originHost === currentHost) return null;
+
+      // In development mode, allow local testing via LAN IP (192.168.*, 10.*, 172.16-31.*) and dev tunnels
+      if (process.env.NODE_ENV !== "production") {
+        const originHostname = new URL(origin).hostname.toLowerCase();
+        if (
+          originHostname === "localhost" ||
+          originHostname === "127.0.0.1" ||
+          /^(?:192\.168\.|10\.|172\.(?:1[6-9]|2[0-9]|3[0-1])\.)\d+/.test(originHostname) ||
+          originHostname.endsWith(".devtunnels.ms") ||
+          originHostname.endsWith(".ngrok-free.app") ||
+          originHostname.endsWith(".ngrok.io") ||
+          originHostname.endsWith(".loca.lt")
+        ) {
+          return null;
+        }
+      }
     } catch {
       /* fall through */
     }

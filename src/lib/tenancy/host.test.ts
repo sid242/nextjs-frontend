@@ -92,5 +92,14 @@ describe("host utilities", () => {
       const reservedRes = classifyHost("www.localhost", localhostOptions);
       expect(reservedRes.classification).toBe("platform");
     });
+
+    it("classifies local network IPs and dev tunnels as platform", () => {
+      expect(classifyHost("192.168.1.45:3001", defaultOptions).classification).toBe("platform");
+      expect(classifyHost("127.0.0.1:3001", defaultOptions).classification).toBe("platform");
+      expect(classifyHost("10.0.0.5:3001", defaultOptions).classification).toBe("platform");
+      expect(classifyHost("xyz-3001.devtunnels.ms", defaultOptions).classification).toBe(
+        "platform",
+      );
+    });
   });
 });
