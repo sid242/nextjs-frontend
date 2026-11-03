@@ -38,25 +38,7 @@ function resolveMembershipDestination(
   requestedNext?: string | null,
 ): AfterLoginResult {
   const targetHost = getHostFromBase(membership?.canonicalBase);
-  const isDev = process.env.NODE_ENV !== "production";
-  const isLocalDevHost =
-    cleanHost === "localhost" ||
-    cleanHost === "127.0.0.1" ||
-    /^(?:192\.168\.|10\.|172\.(?:1[6-9]|2[0-9]|3[0-1])\.)\d+/.test(cleanHost) ||
-    cleanHost.endsWith(".devtunnels.ms") ||
-    cleanHost.endsWith(".ngrok-free.app") ||
-    cleanHost.endsWith(".ngrok.io") ||
-    cleanHost.endsWith(".loca.lt");
-
-  const isSameHost =
-    !targetHost ||
-    targetHost === cleanHost ||
-    (isDev &&
-      isLocalDevHost &&
-      (targetHost === "localhost" ||
-        targetHost === "127.0.0.1" ||
-        targetHost.endsWith(".localhost") ||
-        isLocalDevHost));
+  const isSameHost = !targetHost || targetHost === cleanHost;
 
   if (isSameHost) {
     if (requestedNext && requestedNext.startsWith(`/w/${membership?.slug}`)) {
@@ -135,10 +117,6 @@ export async function executePostLoginRouting(
   router: { replace: (url: string) => void; refresh?: () => void },
 ): Promise<void> {
   if (result?.type === "navigate") {
-    if (typeof window !== "undefined") {
-      window.location.assign(result.path);
-      return;
-    }
     router?.replace?.(result?.path);
     router?.refresh?.();
     return;

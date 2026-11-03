@@ -61,12 +61,8 @@ export function PlatformLoginForm({ next }: { next?: string }) {
       }
 
       const target = safeNextPath(next, "/platform/dashboard");
-      if (typeof window !== "undefined") {
-        window.location.assign(target);
-      } else {
-        router?.push?.(target);
-        router?.refresh?.();
-      }
+      router?.push?.(target);
+      router?.refresh?.();
     } catch (err: unknown) {
       setErrorMsg(getErrorMessage(err, "Invalid platform credentials or account suspended"));
     }
@@ -83,12 +79,8 @@ export function PlatformLoginForm({ next }: { next?: string }) {
         code: code.trim(),
       });
       const target = safeNextPath(next, "/platform/dashboard");
-      if (typeof window !== "undefined") {
-        window.location.assign(target);
-      } else {
-        router?.push?.(target);
-        router?.refresh?.();
-      }
+      router?.push?.(target);
+      router?.refresh?.();
     } catch (err: unknown) {
       setErrorMsg(getErrorMessage(err, "Invalid verification code or expired challenge"));
     }
