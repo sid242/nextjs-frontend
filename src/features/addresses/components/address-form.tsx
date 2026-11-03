@@ -3,7 +3,12 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, type Resolver } from "react-hook-form";
 
-import { ControlledCheckbox, ControlledInput, FormWrapper } from "@/components/molecules/forms";
+import {
+  ControlledCheckbox,
+  ControlledInput,
+  ControlledPhoneInput,
+  FormWrapper,
+} from "@/components/molecules/forms";
 import { SubmitButton } from "@/components/molecules/submit-button";
 import { Label } from "@/components/ui/label";
 import {
@@ -103,10 +108,10 @@ export function AddressForm({ initialData, onSubmit, isLoading, onCancel }: Addr
           placeholder="e.g. Siddharth Prajapati"
           disabled={isLoading}
         />
-        <ControlledInput
+        <ControlledPhoneInput
           name="phone"
           label="Phone Number (Optional)"
-          placeholder="e.g. +91 9876543210"
+          defaultCountryCode={initialData?.countryCode ?? "IN"}
           disabled={isLoading}
         />
       </div>

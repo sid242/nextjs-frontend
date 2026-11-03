@@ -11,3 +11,4 @@ export * from "./controlled-checkbox";
 export * from "./controlled-radio-group";
 export * from "./controlled-textarea";
 export * from "./controlled-switch";
+export * from "./phone-input";
