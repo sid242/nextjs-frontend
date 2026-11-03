@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { COUNTRY_DIAL_OPTIONS, parsePhoneNumber } from "./phone-input";
+import { COUNTRY_DIAL_OPTIONS, DEFAULT_COUNTRY_CODE, parsePhoneNumber } from "./phone.constants";
 
-describe("parsePhoneNumber", () => {
+describe("phone.constants and parsePhoneNumber", () => {
   it("defaults to India (+91) when value is empty or undefined", () => {
+    expect(DEFAULT_COUNTRY_CODE).toBe("IN");
+
     expect(parsePhoneNumber("")).toEqual({
       dialCode: "+91",
       nationalNumber: "",
