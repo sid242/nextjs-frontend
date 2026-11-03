@@ -125,10 +125,6 @@ export function FormInput({
             tabIndex={-1}
             variant="ghost"
             size="icon"
-            onPointerDown={(e) => {
-              // Prevent mobile input blur and keyboard dismissal
-              e.preventDefault();
-            }}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();

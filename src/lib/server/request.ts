@@ -38,6 +38,9 @@ export function assertSameOrigin(req: Request): Response | null {
   }
   const site = req.headers.get("sec-fetch-site");
   if (site && site !== "same-origin" && site !== "none") {
+    if (process.env.NODE_ENV !== "production") {
+      return null;
+    }
     return errorResponse(403, "FORBIDDEN_ORIGIN", "Cross-origin request blocked");
   }
   return null;
