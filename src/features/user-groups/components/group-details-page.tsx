@@ -44,6 +44,7 @@ import {
 } from "@/features/platform";
 import {
   hasTenantPermission,
+  TENANT_PERMISSIONS,
   useActiveTenant,
   useTenantContext,
   useTenantMembers,
@@ -81,17 +82,20 @@ export function GroupDetailsPage({ scope, groupId, backHref }: GroupDetailsPageP
 
   const canEdit =
     scope === "TENANT"
-      ? hasTenantPermission(tenantContext?.permissions ?? [], "groups:update")
+      ? hasTenantPermission(tenantContext?.permissions ?? [], TENANT_PERMISSIONS.GROUPS_UPDATE)
       : hasPlatformPermission(platformStaff, PLATFORM_PERMISSION_KEYS.GROUPS_UPDATE);
 
   const canArchive =
     scope === "TENANT"
-      ? hasTenantPermission(tenantContext?.permissions ?? [], "groups:delete")
+      ? hasTenantPermission(tenantContext?.permissions ?? [], TENANT_PERMISSIONS.GROUPS_DELETE)
       : hasPlatformPermission(platformStaff, PLATFORM_PERMISSION_KEYS.GROUPS_DELETE);
 
   const canManageMembers =
     scope === "TENANT"
-      ? hasTenantPermission(tenantContext?.permissions ?? [], "groups:manage-members")
+      ? hasTenantPermission(
+          tenantContext?.permissions ?? [],
+          TENANT_PERMISSIONS.GROUPS_MANAGE_MEMBERS,
+        )
       : hasPlatformPermission(platformStaff, PLATFORM_PERMISSION_KEYS.GROUPS_MANAGE_MEMBERS);
 
   // Group Details Query

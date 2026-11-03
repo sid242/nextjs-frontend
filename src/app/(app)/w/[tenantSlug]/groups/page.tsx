@@ -1,11 +1,11 @@
 "use client";
 
-import { TenantPermissionGate } from "@/features/tenants";
+import { TENANT_PERMISSIONS, TenantPermissionGate } from "@/features/tenants";
 import { TenantGroupsManager } from "@/features/user-groups";
 
 export default function TenantGroupsPage() {
   return (
-    <TenantPermissionGate permission="groups:read">
+    <TenantPermissionGate permission={TENANT_PERMISSIONS.GROUPS_READ}>
       <TenantGroupsManager />
     </TenantPermissionGate>
   );

@@ -8,7 +8,12 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/molecules/confirm-dialog";
 import { PageHeader } from "@/components/molecules/page-header";
 import { Button } from "@/components/ui/button";
-import { hasTenantPermission, useActiveTenant, useTenantContext } from "@/features/tenants";
+import {
+  hasTenantPermission,
+  TENANT_PERMISSIONS,
+  useActiveTenant,
+  useTenantContext,
+} from "@/features/tenants";
 
 import { useArchiveTenantGroup, useTenantGroups } from "../queries";
 import type { GroupFilters, UserGroup } from "../types";
@@ -50,10 +55,13 @@ export function TenantGroupsManager() {
   const [groupToArchive, setGroupToArchive] = useState<UserGroup | null>(null);
 
   // Permissions check
-  const canCreate = hasTenantPermission(permissions, "groups:create");
-  const canEdit = hasTenantPermission(permissions, "groups:update");
-  const canArchive = hasTenantPermission(permissions, "groups:delete");
-  const canManageMembers = hasTenantPermission(permissions, "groups:manage-members");
+  const canCreate = hasTenantPermission(permissions, TENANT_PERMISSIONS.GROUPS_CREATE);
+  const canEdit = hasTenantPermission(permissions, TENANT_PERMISSIONS.GROUPS_UPDATE);
+  const canArchive = hasTenantPermission(permissions, TENANT_PERMISSIONS.GROUPS_DELETE);
+  const canManageMembers = hasTenantPermission(
+    permissions,
+    TENANT_PERMISSIONS.GROUPS_MANAGE_MEMBERS,
+  );
 
   const createHref = activeTenant?.slug ? `/w/${activeTenant.slug}/groups/new` : "/groups/new";
 

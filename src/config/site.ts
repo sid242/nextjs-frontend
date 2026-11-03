@@ -1,3 +1,5 @@
+import { TENANT_PERMISSIONS } from "./permissions";
+
 export type NavIcon =
   | "layout-dashboard"
   | "users"
@@ -46,19 +48,19 @@ export const navSections: NavSection[] = [
           {
             title: "Members",
             href: "/team",
-            permission: "members:read",
+            permission: TENANT_PERMISSIONS.MEMBERS_READ,
           },
           {
             title: "User Groups",
             href: "/groups",
             icon: "users",
-            permission: "groups:read",
+            permission: TENANT_PERMISSIONS.GROUPS_READ,
           },
           {
             title: "Roles & Permissions",
             href: "/roles",
             icon: "shield-check",
-            permission: "roles:read",
+            permission: TENANT_PERMISSIONS.ROLES_READ,
           },
         ],
       },
@@ -66,13 +68,13 @@ export const navSections: NavSection[] = [
         title: "Files",
         href: "/files",
         icon: "folder",
-        permission: "files:read",
+        permission: TENANT_PERMISSIONS.FILES_READ,
       },
       {
         title: "Email Templates",
         href: "/email-templates",
         icon: "mail",
-        permission: "tenants:read",
+        permission: TENANT_PERMISSIONS.TENANTS_READ,
       },
     ],
   },
@@ -83,7 +85,7 @@ export const navSections: NavSection[] = [
         title: "Audit Logs",
         href: "/audit-logs",
         icon: "scroll-text",
-        permission: "audit:read",
+        permission: TENANT_PERMISSIONS.AUDIT_READ,
       },
       {
         title: "Settings",
