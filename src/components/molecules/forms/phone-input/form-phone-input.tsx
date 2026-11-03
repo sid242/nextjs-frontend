@@ -14,7 +14,8 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
-import { COUNTRY_DIAL_OPTIONS, DEFAULT_COUNTRY_CODE, parsePhoneNumber } from "./phone.constants";
+import { COUNTRY_DIAL_OPTIONS, DEFAULT_COUNTRY_CODE } from "./phone.constants";
+import { parsePhoneNumber } from "./phone.utils";
 
 export interface FormPhoneInputProps {
   id?: string;
