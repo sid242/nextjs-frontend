@@ -121,3 +121,25 @@ To prevent sterile white/black canvases, use BrixUI subtle background textures:
   ```
 - **Device Viewport Canvas**:
   Use `bg-neutral-100/90 dark:bg-neutral-950/60` with a smooth inset border for device previews.
+
+---
+
+## 9. Component Structure & Colocation Standards
+
+When scaffolding or modifying form controls or complex molecule components, use a dedicated folder rather than a single monolithic file:
+
+```text
+src/components/molecules/forms/<control-name>/
+├── controlled-<control-name>.tsx  # Pure controlled UI component (value, onChange, disabled, error)
+├── form-<control-name>.tsx        # React Hook Form integration (consumes Control / FormWrapper)
+├── <control-name>.constants.ts    # PURE static data: option arrays, regex patterns (NO FUNCTIONS)
+├── <control-name>.utils.ts        # Pure utility functions: formatters, parsers, validators
+├── form-<control-name>.test.ts    # Colocated unit tests
+└── index.ts                       # Public barrel export
+```
+
+### Invariants:
+
+1. **Never Put Functions in Constants Files**: `*.constants.ts` is strictly for static configurations, option lists, and lookup tables. All logic/functions must live in `*.utils.ts`.
+2. **Decouple Form State from UI Rendering**: `controlled-<name>.tsx` handles presentation; `form-<name>.tsx` connects to React Hook Form.
+3. **Public API Barrel**: External consumers import through `index.ts`.

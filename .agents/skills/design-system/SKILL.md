@@ -116,3 +116,30 @@ Follow BrixUI's 12-column responsive layout:
   ```
 - **Simulated Device Viewport Canvas**:
   Use `bg-neutral-100/90 dark:bg-neutral-950/60` with smooth inset border.
+
+---
+
+## 8. Form & Molecule Component Architecture (Folder-Based Colocation)
+
+Never create monolithic standalone files for form inputs or molecule controls. Always place them in a dedicated folder under `src/components/molecules/forms/<control-name>/` (or `src/components/molecules/<component-name>/`):
+
+```text
+src/components/molecules/forms/<control-name>/
+├── controlled-<control-name>.tsx  # Pure controlled UI component (value, onChange, disabled, error)
+├── form-<control-name>.tsx        # React Hook Form integration (consumes Control / FormWrapper)
+├── <control-name>.constants.ts    # PURE static data: options, default values, regex patterns (NO FUNCTIONS)
+├── <control-name>.utils.ts        # Pure utility functions: formatters, parsers, validators
+├── form-<control-name>.test.ts    # Colocated unit tests for component & form integration
+└── index.ts                       # Public barrel export
+```
+
+### Key Rules:
+
+1. **Separation of Constants vs Utilities**:
+   - `*.constants.ts` files must **never** contain executable functions or logic. They are strictly for static lookup objects, arrays, schemas, and regex constants.
+   - All formatting, parsing, and transformation functions must reside in `*.utils.ts`.
+2. **Controlled vs Form Integration**:
+   - Visual and interactive rendering must be handled inside `controlled-<name>.tsx`.
+   - React Hook Form state binding (`useController` or `FormWrapper`) must be isolated in `form-<name>.tsx`.
+3. **Public Barrel Export (`index.ts`)**:
+   - Expose the clean public API (`Form<Name>`, `Controlled<Name>`, relevant prop types, constants, and utilities).

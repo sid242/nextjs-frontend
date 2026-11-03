@@ -138,6 +138,19 @@ src/features/<feature-name>/
   - Do NOT create separate individual `useState` hooks for properties of the same logical domain.
   - Group table pagination (`{ page, pageSize }`), table filters (`{ search, category, status }`), and sorting (`{ sortBy, sortOrder }`) into cohesive state objects.
   - Group modal operations (`{ isOpen, item, email, phone, step }`) into a single state object instead of maintaining separate open flags, entity pointers, and temporary form inputs. See `.agents/rules/cohesive-state.md`.
+- **Form & Molecule Component Architecture (Folder-Based Colocation)**:
+  - Never create standalone, monolithic component files for form controls or complex inputs (e.g. do not create loose `phone-input.tsx`).
+  - Always create a dedicated folder under `src/components/molecules/forms/<control-name>/` (e.g. `phone-input/`, `input/`, `checkbox/`) with the following strict colocation pattern:
+    ```text
+    src/components/molecules/forms/<control-name>/
+    ├── controlled-<control-name>.tsx  # Pure controlled UI component (value, onChange, disabled, error)
+    ├── form-<control-name>.tsx        # React Hook Form integration (consumes Control / FormWrapper)
+    ├── <control-name>.constants.ts    # PURE static data: option arrays, regex patterns, lookup tables (NO FUNCTIONS)
+    ├── <control-name>.utils.ts        # Pure utility functions: formatters, parsers, extractors, validators
+    ├── form-<control-name>.test.ts    # Colocated unit tests for component & form integration
+    └── index.ts                       # Public barrel export
+    ```
+  - **Strict Constants vs Utilities Boundary**: `*.constants.ts` files must contain **only** static declarations and objects (`as const`). They must **never** contain executable functions or business logic. All helper functions must live in `*.utils.ts`.
 
 ---
 

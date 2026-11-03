@@ -36,3 +36,11 @@ See [AGENTS.md](./AGENTS.md) for full architecture and engineering guidelines.
    - Never create separate, fragmented `useState` hooks for properties belonging to the same logical domain or operation.
    - Consolidate pagination (`{ page, pageSize }`), filters (`{ search, category, status }`), and sorting into cohesive state objects.
    - Consolidate modal operations (`{ isOpen, item, email, phone, step }`) into a single state object instead of scattered open booleans and target item states. Follow `.agents/rules/cohesive-state.md`.
+10. **Form & Molecule Component Colocation**:
+    - Form inputs and molecule controls must live in dedicated folders (`src/components/molecules/forms/<control-name>/`) containing:
+      - `controlled-<name>.tsx`: Pure presentational / controlled component.
+      - `form-<name>.tsx`: React Hook Form integration wrapper.
+      - `<name>.constants.ts`: Pure static data, lookup lists, regexes, option tables. **Never place executable functions in constants files.**
+      - `<name>.utils.ts`: Pure helper functions, formatting, parsing, and data manipulation.
+      - `form-<name>.test.ts`: Colocated test suite.
+      - `index.ts`: Clean public barrel export.
