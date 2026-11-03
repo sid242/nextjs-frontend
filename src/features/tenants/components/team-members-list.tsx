@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import {
   Clock,
   MailIcon,
+  MapPin,
   MoreVerticalIcon,
   RefreshCw,
   SearchIcon,
@@ -49,6 +50,7 @@ interface TeamMembersListProps {
   onRemoveMember: (memberId: string, memberName: string) => void;
   onTransferOwnership?: (memberId: string, memberName: string) => void;
   onResendInvite?: (email: string, role: string) => void;
+  onManageAddresses?: (memberId: string, memberName: string) => void;
   isCurrentUserOwner?: boolean;
   canManageRoles?: boolean;
   canRemoveMembers?: boolean;
@@ -67,6 +69,7 @@ export function TeamMembersList({
   isCurrentUserOwner = false,
   canManageRoles = true,
   canRemoveMembers = true,
+  onManageAddresses,
   roles,
 }: TeamMembersListProps) {
   const [statusFilter, setStatusFilter] = useState<MemberStatusFilter>("ALL");
@@ -300,6 +303,14 @@ export function TeamMembersList({
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel className="text-xs">Member Actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
+                        {onManageAddresses ? (
+                          <DropdownMenuItem
+                            className="gap-2 text-xs"
+                            onClick={() => onManageAddresses(member.id, member.name)}
+                          >
+                            <MapPin className="size-3.5" /> Addresses
+                          </DropdownMenuItem>
+                        ) : null}
                         {member?.status === "INVITED" && onResendInvite ? (
                           <DropdownMenuItem
                             className="gap-2 text-xs"

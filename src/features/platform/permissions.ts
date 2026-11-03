@@ -7,6 +7,12 @@ export const PLATFORM_PERMISSION_KEYS = {
   STAFF_DISABLE: "platform_staff::disable",
   STAFF_SUSPEND: "platform_staff::disable",
 
+  GROUPS_READ: "platform_groups::read",
+  GROUPS_CREATE: "platform_groups::create",
+  GROUPS_UPDATE: "platform_groups::update",
+  GROUPS_DELETE: "platform_groups::delete",
+  GROUPS_MANAGE_MEMBERS: "platform_groups::manage_members",
+
   USERS_READ: "platform_users::read",
   USERS_UPDATE: "platform_users::update",
   USERS_SUSPEND: "platform_users::suspend",

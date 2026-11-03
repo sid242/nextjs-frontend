@@ -63,6 +63,13 @@ export const PLATFORM_NAV_GROUPS: NavGroup[] = [
         permission: PLATFORM_PERMISSION_KEYS.STAFF_READ,
       },
       {
+        href: "/platform/groups",
+        label: "Staff Groups",
+        description: "Staff user groups and operator teams",
+        icon: Users,
+        permission: PLATFORM_PERMISSION_KEYS.GROUPS_READ,
+      },
+      {
         href: "/platform/users",
         label: "User Accounts",
         description: "Customer accounts, status & suspension",

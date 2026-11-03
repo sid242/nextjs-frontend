@@ -7,6 +7,14 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/molecules/confirm-dialog";
 import { PageHeader } from "@/components/molecules/page-header";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { AddressBook } from "@/features/addresses";
 import { useTenantSubscription } from "@/features/plans";
 import { useTenantRoles } from "@/features/rbac";
 import {
@@ -36,6 +44,7 @@ export default function TeamPage() {
     TENANT_PERMISSIONS.MEMBERS_UPDATE,
   ]);
   const canRemoveMembers = hasTenantPermission(permissions, TENANT_PERMISSIONS.MEMBERS_DELETE);
+  const canUpdateMembers = hasTenantPermission(permissions, TENANT_PERMISSIONS.MEMBERS_UPDATE);
   const { data: members = [], isLoading } = useTenantMembers(activeTenantId);
   const { data: subscription } = useTenantSubscription();
   const { data: tenantRoles = [] } = useTenantRoles(activeTenantId);
@@ -48,6 +57,7 @@ export default function TeamPage() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [transferTarget, setTransferTarget] = useState<{ id: string; name: string } | null>(null);
+  const [addressMember, setAddressMember] = useState<{ id: string; name: string } | null>(null);
 
   const handleInvite = async (email: string, role: string) => {
     if (!email || !activeTenantId) return;
@@ -145,6 +155,9 @@ export default function TeamPage() {
           onRemoveMember={handleRemove}
           onTransferOwnership={(id, name) => setTransferTarget({ id, name })}
           onResendInvite={handleInvite}
+          onManageAddresses={
+            canUpdateMembers ? (id, name) => setAddressMember({ id, name }) : undefined
+          }
           isCurrentUserOwner={isCurrentUserOwner}
           canManageRoles={canManageRoles}
           canRemoveMembers={canRemoveMembers}
@@ -174,6 +187,29 @@ export default function TeamPage() {
           pending={transferOwnershipMutation.isPending}
           onConfirm={handleTransferOwnership}
         />
+
+        <Dialog
+          open={Boolean(addressMember)}
+          onOpenChange={(open) => !open && setAddressMember(null)}
+        >
+          <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Member Addresses: {addressMember?.name}</DialogTitle>
+              <DialogDescription>
+                Manage physical locations and verified addresses for this team member.
+              </DialogDescription>
+            </DialogHeader>
+            {addressMember && (
+              <AddressBook
+                scope={{ kind: "member", memberId: addressMember.id }}
+                title="Member Addresses"
+                description={`Physical locations for ${addressMember.name}`}
+                canWrite={canUpdateMembers}
+                canDelete={canUpdateMembers}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </TenantPermissionGate>
   );

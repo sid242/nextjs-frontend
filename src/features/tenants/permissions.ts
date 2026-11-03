@@ -29,6 +29,11 @@ export const TENANT_PERMISSIONS = {
 
   // Audit Logs
   AUDIT_READ: "audit:read",
+
+  // Addresses & Locations
+  ADDRESSES_READ: "addresses:read",
+  ADDRESSES_WRITE: "addresses:write",
+  ADDRESSES_DELETE: "addresses:delete",
 } as const;
 
 export type TenantPermissionKey = (typeof TENANT_PERMISSIONS)[keyof typeof TENANT_PERMISSIONS];

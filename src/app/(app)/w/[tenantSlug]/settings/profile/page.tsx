@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AddressBook } from "@/features/addresses";
 import { ProfileForm } from "@/features/users";
 import { requireUser } from "@/lib/auth/session";
 
@@ -24,6 +25,12 @@ export default async function ProfileSettingsPage() {
           <ProfileForm user={user} />
         </CardContent>
       </Card>
+
+      <AddressBook
+        scope={{ kind: "me" }}
+        title="Personal Addresses"
+        description="Manage your personal residential and delivery addresses."
+      />
     </div>
   );
 }

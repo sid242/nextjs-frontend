@@ -49,6 +49,12 @@ export const navSections: NavSection[] = [
             permission: "members:read",
           },
           {
+            title: "User Groups",
+            href: "/groups",
+            icon: "users",
+            permission: "groups:read",
+          },
+          {
             title: "Roles & Permissions",
             href: "/roles",
             icon: "shield-check",
@@ -96,6 +102,7 @@ export const siteConfig = {
   nav: [
     { title: "Dashboard", href: "/dashboard", icon: "layout-dashboard" as const },
     { title: "Team", href: "/team", icon: "users" as const },
+    { title: "User Groups", href: "/groups", icon: "folder" as const },
     { title: "Roles & Permissions", href: "/roles", icon: "shield-check" as const },
     { title: "Files", href: "/files", icon: "folder" as const },
     { title: "Email Templates", href: "/email-templates", icon: "mail" as const },
