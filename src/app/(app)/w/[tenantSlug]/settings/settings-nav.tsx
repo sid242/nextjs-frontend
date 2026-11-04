@@ -5,10 +5,13 @@ import { usePathname } from "next/navigation";
 import {
   Building2Icon,
   CreditCardIcon,
+  FileTextIcon,
   GlobeIcon,
+  KeyRoundIcon,
   MailIcon,
   PaletteIcon,
   ShieldIcon,
+  SparklesIcon,
   UserIcon,
 } from "lucide-react";
 
@@ -59,6 +62,13 @@ export function SettingsNav() {
       visible: hasTenantPermission(permissions, TENANT_PERMISSIONS.TENANTS_UPDATE),
     },
     {
+      href: "/settings/sso",
+      label: "SSO & SCIM",
+      icon: KeyRoundIcon,
+      active: normalizedPathname === "/settings/sso",
+      visible: hasTenantPermission(permissions, TENANT_PERMISSIONS.TENANTS_UPDATE),
+    },
+    {
       href: "/settings/billing",
       label: "Plans & Billing",
       icon: CreditCardIcon,
@@ -78,6 +88,22 @@ export function SettingsNav() {
       icon: ShieldIcon,
       active: normalizedPathname === "/settings/security",
       visible: true,
+    },
+    {
+      href: "/settings/audit",
+      label: "Audit Logs",
+      icon: FileTextIcon,
+      active: normalizedPathname === "/settings/audit",
+      visible: hasTenantPermission(permissions, TENANT_PERMISSIONS.AUDIT_READ),
+    },
+    {
+      href: "/settings/access",
+      label: "Access & Simulator",
+      icon: SparklesIcon,
+      active: normalizedPathname === "/settings/access",
+      visible:
+        hasTenantPermission(permissions, TENANT_PERMISSIONS.ROLES_READ) ||
+        hasTenantPermission(permissions, TENANT_PERMISSIONS.ACCESS_READ),
     },
   ];
 

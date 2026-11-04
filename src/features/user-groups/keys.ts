@@ -9,6 +9,10 @@ export const groupKeys = {
     [...groupKeys.tenantAll(tenantId), "detail", groupId ?? ""] as const,
   tenantMembers: (tenantId?: string, groupId?: string, page = 1) =>
     [...groupKeys.tenantAll(tenantId), "members", groupId ?? "", page] as const,
+  tenantRoles: (tenantId?: string, groupId?: string) =>
+    [...groupKeys.tenantAll(tenantId), "roles", groupId ?? ""] as const,
+  tenantPermissions: (tenantId?: string, groupId?: string) =>
+    [...groupKeys.tenantAll(tenantId), "permissions", groupId ?? ""] as const,
 
   // Platform Scoped Keys
   platformAll: ["platform", "groups"] as const,

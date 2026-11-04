@@ -68,8 +68,10 @@ import {
 import { hasPlatformPermission, PLATFORM_PERMISSION_KEYS } from "../permissions";
 import {
   useActivateTenant,
+  useCloseTenant,
   usePlatformMe,
   usePlatformTenants,
+  useRetryTenantProvisioning,
   useStartSupportSession,
   useSuspendTenant,
 } from "../queries";
@@ -117,7 +119,7 @@ const TENANT_PLAN_OPTIONS: Array<{ label: string; value: string }> = [
 ];
 
 interface TenantModalState {
-  type: "suspend" | "activate" | "support" | "provision" | null;
+  type: "suspend" | "activate" | "support" | "provision" | "close" | null;
   tenant: PlatformTenant | null;
   reason: string;
 }
@@ -183,6 +185,8 @@ export function TenantsTable() {
   const { data: tenantsData, isLoading } = usePlatformTenants();
   const { mutateAsync: suspendTenant, isPending: isSuspending } = useSuspendTenant();
   const { mutateAsync: activateTenant, isPending: isActivating } = useActivateTenant();
+  const { mutateAsync: retryProvisioning, isPending: isRetrying } = useRetryTenantProvisioning();
+  const { mutateAsync: closeTenantAction, isPending: isClosing } = useCloseTenant();
   const { mutateAsync: startSupportSession, isPending: isStartingSupport } =
     useStartSupportSession();
   const { data: staffMe } = usePlatformMe();
@@ -266,6 +270,27 @@ export function TenantsTable() {
         // eslint-disable-next-line @next/next/no-location-assign-relative-destination
         window.location.assign("/dashboard");
       }
+    } catch {
+      /* handled */
+    }
+  };
+
+  const handleClose = async () => {
+    if (!modalState.tenant) return;
+    try {
+      await closeTenantAction({
+        id: modalState.tenant.id,
+        reason: modalState.reason.trim() || "Closed by platform operator",
+      });
+      setModalState({ type: null, tenant: null, reason: "" });
+    } catch {
+      /* handled */
+    }
+  };
+
+  const handleRetryProvisioning = async (tenantId: string) => {
+    try {
+      await retryProvisioning(tenantId);
     } catch {
       /* handled */
     }
@@ -397,6 +422,16 @@ export function TenantsTable() {
                     </DropdownMenuItem>
                   ) : null}
 
+                  {t.provisioningStatus === "FAILED" ? (
+                    <DropdownMenuItem
+                      onClick={() => handleRetryProvisioning(t.id)}
+                      disabled={isRetrying}
+                      className="gap-2 text-amber-600 dark:text-amber-400"
+                    >
+                      <RotateCcw className="size-3.5" /> Retry Provisioning
+                    </DropdownMenuItem>
+                  ) : null}
+
                   {canSuspendTenant ? (
                     <>
                       <DropdownMenuSeparator />
@@ -407,14 +442,22 @@ export function TenantsTable() {
                         >
                           <PowerOff className="size-3.5" /> Suspend Workspace
                         </DropdownMenuItem>
-                      ) : (
+                      ) : t.status === "SUSPENDED" ? (
                         <DropdownMenuItem
                           onClick={() => setModalState({ type: "activate", tenant: t, reason: "" })}
                           className="gap-2 text-emerald-600 dark:text-emerald-400"
                         >
                           <Power className="size-3.5" /> Reactivate Workspace
                         </DropdownMenuItem>
-                      )}
+                      ) : null}
+                      {t.status !== "DEACTIVATED" ? (
+                        <DropdownMenuItem
+                          onClick={() => setModalState({ type: "close", tenant: t, reason: "" })}
+                          className="gap-2 text-red-700 dark:text-red-400"
+                        >
+                          <PowerOff className="size-3.5" /> Close Workspace
+                        </DropdownMenuItem>
+                      ) : null}
                     </>
                   ) : null}
                 </DropdownMenuContent>
@@ -792,6 +835,54 @@ export function TenantsTable() {
               disabled={!modalState.reason.trim() || isStartingSupport}
             >
               {isStartingSupport ? "Starting Delegation…" : "Start Support Session"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Close Workspace Confirmation Dialog */}
+      <Dialog
+        open={modalState.type === "close"}
+        onOpenChange={(open) =>
+          setModalState({ type: open ? "close" : null, tenant: null, reason: "" })
+        }
+      >
+        <DialogContent className="border-border/80 rounded-2xl shadow-xl">
+          <DialogHeader>
+            <DialogTitle className="text-destructive flex items-center gap-2">
+              <PowerOff className="size-5" /> Close Organization Workspace
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to permanently close <strong>{modalState.tenant?.name}</strong>?
+              This will deactivate the tenant, suspend member access, and cancel active
+              subscriptions.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2 py-2">
+            <Label htmlFor="close-reason" className="text-xs font-semibold">
+              Closure Reason
+            </Label>
+            <Textarea
+              id="close-reason"
+              placeholder="e.g. Account closed at customer request"
+              value={modalState.reason}
+              onChange={(e) =>
+                setModalState((prev) => ({ ...prev, reason: e?.target?.value ?? "" }))
+              }
+              rows={3}
+            />
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setModalState({ type: null, tenant: null, reason: "" })}
+            >
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleClose} disabled={isClosing}>
+              {isClosing ? "Closing…" : "Confirm Closure"}
             </Button>
           </DialogFooter>
         </DialogContent>

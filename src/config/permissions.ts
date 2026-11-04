@@ -24,6 +24,7 @@ export const TENANT_PERMISSIONS = {
   GROUPS_UPDATE: "groups:update",
   GROUPS_DELETE: "groups:delete",
   GROUPS_MANAGE_MEMBERS: "groups:manage-members",
+  GROUPS_ASSIGN_ROLES: "groups:assign-roles",
 
   // Dynamic RBAC Roles
   ROLES_READ: "roles:read",
@@ -42,8 +43,12 @@ export const TENANT_PERMISSIONS = {
   FILES_UPLOAD: "files:write",
   FILES_DELETE: "files:delete",
 
-  // Audit Logs
+  // Audit Logs & Access Simulator
   AUDIT_READ: "audit:read",
+  AUDIT_EXPORT: "audit:export",
+  AUDIT_POLICY_MANAGE: "audit:retention:manage",
+  ACCESS_READ: "access:read",
+  ACCESS_SIMULATE: "access:simulate",
 
   // Addresses & Locations
   ADDRESSES_READ: "addresses:read",

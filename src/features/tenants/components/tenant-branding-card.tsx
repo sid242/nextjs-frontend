@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, type ChangeEvent } from "react";
+import Link from "next/link";
 import {
   AlertCircle,
   Check,
@@ -103,41 +104,63 @@ interface TenantBrandingFormProps {
   activeTenantId: string;
 }
 
+interface BrandingFormData {
+  companyName: string;
+  logoUrl: string | null;
+  logoDarkUrl: string | null;
+  faviconUrl: string | null;
+  primaryColor: string;
+  secondaryColor: string;
+  accentColor: string;
+  primaryDarkColor: string;
+  secondaryDarkColor: string;
+  accentDarkColor: string;
+  fontFamily: string;
+  sidebarTheme: "DARK" | "LIGHT" | "BRAND";
+  borderRadius: string;
+  supportEmail: string;
+  authHeadline: string;
+  authSubtitle: string;
+  authCoverUrl: string | null;
+  authLayout: "SPLIT" | "CARD";
+  hideWatermark: boolean;
+}
+
 function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBrandingFormProps) {
   const updateBrandingMutation = useUpdateTenantBranding(activeTenantId);
 
-  // Form state initialized directly from props (pure state, no effect needed)
-  const [companyName, setCompanyName] = useState(branding?.companyName || activeTenant?.name || "");
-  const [logoUrl, setLogoUrl] = useState<string | null>(branding?.logoUrl || null);
-  const [logoDarkUrl, setLogoDarkUrl] = useState<string | null>(branding?.logoDarkUrl || null);
-  const [faviconUrl, setFaviconUrl] = useState<string | null>(branding?.faviconUrl || null);
-  const [primaryColor, setPrimaryColor] = useState(branding?.primaryColor || "#4F46E5");
-  const [secondaryColor, setSecondaryColor] = useState(branding?.secondaryColor || "");
-  const [accentColor, setAccentColor] = useState(branding?.accentColor || "#06B6D4");
-  const [primaryDarkColor, setPrimaryDarkColor] = useState<string>(
-    branding?.primaryDarkColor || "",
-  );
-  const [secondaryDarkColor, setSecondaryDarkColor] = useState<string>(
-    branding?.secondaryDarkColor || "",
-  );
-  const [accentDarkColor, setAccentDarkColor] = useState<string>(branding?.accentDarkColor || "");
+  // Grouped form state (single state container with typed updater)
+  const [formData, setFormData] = useState<BrandingFormData>({
+    companyName: branding?.companyName || activeTenant?.name || "",
+    logoUrl: branding?.logoUrl || null,
+    logoDarkUrl: branding?.logoDarkUrl || null,
+    faviconUrl: branding?.faviconUrl || null,
+    primaryColor: branding?.primaryColor || "#4F46E5",
+    secondaryColor: branding?.secondaryColor || "",
+    accentColor: branding?.accentColor || "#06B6D4",
+    primaryDarkColor: branding?.primaryDarkColor || "",
+    secondaryDarkColor: branding?.secondaryDarkColor || "",
+    accentDarkColor: branding?.accentDarkColor || "",
+    fontFamily: branding?.fontFamily || "Inter",
+    sidebarTheme: (branding?.sidebarTheme as "DARK" | "LIGHT" | "BRAND") || "DARK",
+    borderRadius: branding?.borderRadius || "0.5rem",
+    supportEmail: branding?.supportEmail || "",
+    authHeadline: branding?.authHeadline || "",
+    authSubtitle: branding?.authSubtitle || "",
+    authCoverUrl: branding?.authCoverUrl || null,
+    authLayout: (branding?.authLayout as "SPLIT" | "CARD") || "SPLIT",
+    hideWatermark: branding?.hideWatermark ?? false,
+  });
+
   const [useDarkOverrides, setUseDarkOverrides] = useState<boolean>(
     Boolean(
       branding?.primaryDarkColor || branding?.secondaryDarkColor || branding?.accentDarkColor,
     ),
   );
-  const [fontFamily, setFontFamily] = useState<string>(branding?.fontFamily || "Inter");
-  const [sidebarTheme, setSidebarTheme] = useState<"DARK" | "LIGHT" | "BRAND">(
-    (branding?.sidebarTheme as "DARK" | "LIGHT" | "BRAND") || "DARK",
-  );
-  const [borderRadius, setBorderRadius] = useState(branding?.borderRadius || "0.5rem");
-  const [supportEmail, setSupportEmail] = useState(branding?.supportEmail || "");
-  const [authHeadline, setAuthHeadline] = useState(branding?.authHeadline || "");
-  const [authSubtitle, setAuthSubtitle] = useState(branding?.authSubtitle || "");
-  const [authCoverUrl, setAuthCoverUrl] = useState<string | null>(branding?.authCoverUrl || null);
-  const [authLayout, setAuthLayout] = useState<"SPLIT" | "CARD">(
-    (branding?.authLayout as "SPLIT" | "CARD") || "SPLIT",
-  );
+
+  const updateField = <K extends keyof BrandingFormData>(key: K, value: BrandingFormData[K]) => {
+    setFormData((prev) => ({ ...prev, [key]: value }));
+  };
 
   // Uploading state
   const [uploadingType, setUploadingType] = useState<string | null>(null);
@@ -159,25 +182,32 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
   const coverInputRef = useRef<HTMLInputElement>(null);
 
   const previewBranding: Partial<TenantBranding> = {
-    companyName: companyName.trim() || activeTenant?.name || "Organization",
-    logoUrl,
-    logoDarkUrl,
-    faviconUrl,
-    primaryColor,
-    secondaryColor: secondaryColor.trim() ? secondaryColor.trim() : null,
-    accentColor,
-    primaryDarkColor: useDarkOverrides && primaryDarkColor.trim() ? primaryDarkColor.trim() : null,
+    companyName: formData.companyName.trim() || activeTenant?.name || "Organization",
+    logoUrl: formData.logoUrl,
+    logoDarkUrl: formData.logoDarkUrl,
+    faviconUrl: formData.faviconUrl,
+    primaryColor: formData.primaryColor,
+    secondaryColor: formData.secondaryColor.trim() ? formData.secondaryColor.trim() : null,
+    accentColor: formData.accentColor,
+    primaryDarkColor:
+      useDarkOverrides && formData.primaryDarkColor.trim()
+        ? formData.primaryDarkColor.trim()
+        : null,
     secondaryDarkColor:
-      useDarkOverrides && secondaryDarkColor.trim() ? secondaryDarkColor.trim() : null,
-    accentDarkColor: useDarkOverrides && accentDarkColor.trim() ? accentDarkColor.trim() : null,
-    fontFamily: (fontFamily as TenantFontFamily) || "Inter",
-    sidebarTheme,
-    borderRadius,
-    authHeadline: authHeadline.trim() || undefined,
-    authSubtitle: authSubtitle.trim() || undefined,
-    authCoverUrl,
-    authLayout,
-    supportEmail,
+      useDarkOverrides && formData.secondaryDarkColor.trim()
+        ? formData.secondaryDarkColor.trim()
+        : null,
+    accentDarkColor:
+      useDarkOverrides && formData.accentDarkColor.trim() ? formData.accentDarkColor.trim() : null,
+    fontFamily: (formData.fontFamily as TenantFontFamily) || "Inter",
+    sidebarTheme: formData.sidebarTheme,
+    borderRadius: formData.borderRadius,
+    authHeadline: formData.authHeadline.trim() || undefined,
+    authSubtitle: formData.authSubtitle.trim() || undefined,
+    authCoverUrl: formData.authCoverUrl,
+    authLayout: formData.authLayout,
+    hideWatermark: formData.hideWatermark,
+    supportEmail: formData.supportEmail,
   };
 
   const previewTokens = computeTenantThemeTokens(previewBranding);
@@ -196,16 +226,19 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
   const contrastPassesAAA = contrastRatio >= 7.0;
 
   const handleApplyPreset = (preset: BrandingPreset) => {
-    setPrimaryColor(preset.primaryColor);
-    setSecondaryColor(preset.secondaryColor);
-    setAccentColor(preset.accentColor);
-    setPrimaryDarkColor(preset.primaryDarkColor);
-    setSecondaryDarkColor(preset.secondaryDarkColor);
-    setAccentDarkColor(preset.accentDarkColor);
+    setFormData((prev) => ({
+      ...prev,
+      primaryColor: preset.primaryColor,
+      secondaryColor: preset.secondaryColor,
+      accentColor: preset.accentColor,
+      primaryDarkColor: preset.primaryDarkColor,
+      secondaryDarkColor: preset.secondaryDarkColor,
+      accentDarkColor: preset.accentDarkColor,
+      fontFamily: preset.fontFamily,
+      sidebarTheme: preset.sidebarTheme,
+      borderRadius: preset.borderRadius,
+    }));
     setUseDarkOverrides(true);
-    setFontFamily(preset.fontFamily);
-    setSidebarTheme(preset.sidebarTheme);
-    setBorderRadius(preset.borderRadius);
     toast.success(`Applied "${preset.name}" preset!`);
   };
 
@@ -251,16 +284,16 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
       await uploadBrandingAsset(presigned.uploadUrl, presigned.fields, uploadFile);
 
       if (type === "logo") {
-        setLogoUrl(presigned.publicUrl);
+        updateField("logoUrl", presigned.publicUrl);
         await updateBrandingMutation.mutateAsync({ logoUrl: presigned.publicUrl });
       } else if (type === "logo-dark") {
-        setLogoDarkUrl(presigned.publicUrl);
+        updateField("logoDarkUrl", presigned.publicUrl);
         await updateBrandingMutation.mutateAsync({ logoDarkUrl: presigned.publicUrl });
       } else if (type === "favicon") {
-        setFaviconUrl(presigned.publicUrl);
+        updateField("faviconUrl", presigned.publicUrl);
         await updateBrandingMutation.mutateAsync({ faviconUrl: presigned.publicUrl });
       } else if (type === "cover") {
-        setAuthCoverUrl(presigned.publicUrl);
+        updateField("authCoverUrl", presigned.publicUrl);
         await updateBrandingMutation.mutateAsync({ authCoverUrl: presigned.publicUrl });
       }
 
@@ -304,16 +337,16 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
     if (!activeTenantId) return;
     try {
       if (type === "logo") {
-        setLogoUrl(null);
+        updateField("logoUrl", null);
         await updateBrandingMutation.mutateAsync({ logoUrl: null });
       } else if (type === "logo-dark") {
-        setLogoDarkUrl(null);
+        updateField("logoDarkUrl", null);
         await updateBrandingMutation.mutateAsync({ logoDarkUrl: null });
       } else if (type === "favicon") {
-        setFaviconUrl(null);
+        updateField("faviconUrl", null);
         await updateBrandingMutation.mutateAsync({ faviconUrl: null });
       } else if (type === "cover") {
-        setAuthCoverUrl(null);
+        updateField("authCoverUrl", null);
         await updateBrandingMutation.mutateAsync({ authCoverUrl: null });
       }
       toast.success(`${type.toUpperCase()} removed successfully`);
@@ -326,61 +359,71 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
     if (!activeTenantId) return;
     try {
       const payload: UpdateTenantBrandingInput = {
-        companyName: companyName.trim() || undefined,
-        logoUrl,
-        logoDarkUrl,
-        faviconUrl,
-        primaryColor,
-        secondaryColor: secondaryColor.trim() ? secondaryColor.trim() : null,
-        accentColor,
+        companyName: formData.companyName.trim() || undefined,
+        logoUrl: formData.logoUrl,
+        logoDarkUrl: formData.logoDarkUrl,
+        faviconUrl: formData.faviconUrl,
+        primaryColor: formData.primaryColor,
+        secondaryColor: formData.secondaryColor.trim() ? formData.secondaryColor.trim() : null,
+        accentColor: formData.accentColor,
         primaryDarkColor:
-          useDarkOverrides && primaryDarkColor.trim() ? primaryDarkColor.trim() : null,
+          useDarkOverrides && formData.primaryDarkColor.trim()
+            ? formData.primaryDarkColor.trim()
+            : null,
         secondaryDarkColor:
-          useDarkOverrides && secondaryDarkColor.trim() ? secondaryDarkColor.trim() : null,
-        accentDarkColor: useDarkOverrides && accentDarkColor.trim() ? accentDarkColor.trim() : null,
-        fontFamily: (fontFamily as TenantFontFamily) || "Inter",
-        sidebarTheme,
-        borderRadius,
-        authHeadline: authHeadline.trim() || undefined,
-        authSubtitle: authSubtitle.trim() || undefined,
-        authCoverUrl,
-        authLayout,
-        supportEmail: supportEmail.trim() || undefined,
+          useDarkOverrides && formData.secondaryDarkColor.trim()
+            ? formData.secondaryDarkColor.trim()
+            : null,
+        accentDarkColor:
+          useDarkOverrides && formData.accentDarkColor.trim()
+            ? formData.accentDarkColor.trim()
+            : null,
+        fontFamily: (formData.fontFamily as TenantFontFamily) || "Inter",
+        sidebarTheme: formData.sidebarTheme,
+        borderRadius: formData.borderRadius,
+        authHeadline: formData.authHeadline.trim() || undefined,
+        authSubtitle: formData.authSubtitle.trim() || undefined,
+        authCoverUrl: formData.authCoverUrl,
+        authLayout: formData.authLayout,
+        hideWatermark: formData.hideWatermark,
+        supportEmail: formData.supportEmail.trim() || undefined,
       };
 
       await updateBrandingMutation.mutateAsync(payload);
       toast.success("Workspace branding updated successfully!");
-    } catch {
-      toast.error("Failed to save branding changes.");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to save branding changes."));
     }
   };
 
   const handleReset = () => {
-    if (branding) {
-      setCompanyName(branding?.companyName || "");
-      setLogoUrl(branding?.logoUrl || null);
-      setLogoDarkUrl(branding?.logoDarkUrl || null);
-      setFaviconUrl(branding?.faviconUrl || null);
-      setPrimaryColor(branding?.primaryColor || "#4F46E5");
-      setSecondaryColor(branding?.secondaryColor || "");
-      setAccentColor(branding?.accentColor || "#06B6D4");
-      setPrimaryDarkColor(branding?.primaryDarkColor || "");
-      setSecondaryDarkColor(branding?.secondaryDarkColor || "");
-      setAccentDarkColor(branding?.accentDarkColor || "");
-      setUseDarkOverrides(
-        Boolean(
-          branding?.primaryDarkColor || branding?.secondaryDarkColor || branding?.accentDarkColor,
-        ),
-      );
-      setFontFamily(branding?.fontFamily || "Inter");
-      setSidebarTheme((branding?.sidebarTheme as "DARK" | "LIGHT" | "BRAND") || "DARK");
-      setBorderRadius(branding?.borderRadius || "0.5rem");
-      setAuthHeadline(branding?.authHeadline || "");
-      setAuthSubtitle(branding?.authSubtitle || "");
-      setAuthCoverUrl(branding?.authCoverUrl || null);
-      setAuthLayout((branding?.authLayout as "SPLIT" | "CARD") || "SPLIT");
-      setSupportEmail(branding?.supportEmail || "");
-    }
+    setFormData({
+      companyName: branding?.companyName || activeTenant?.name || "",
+      logoUrl: branding?.logoUrl || null,
+      logoDarkUrl: branding?.logoDarkUrl || null,
+      faviconUrl: branding?.faviconUrl || null,
+      primaryColor: branding?.primaryColor || "#4F46E5",
+      secondaryColor: branding?.secondaryColor || "",
+      accentColor: branding?.accentColor || "#06B6D4",
+      primaryDarkColor: branding?.primaryDarkColor || "",
+      secondaryDarkColor: branding?.secondaryDarkColor || "",
+      accentDarkColor: branding?.accentDarkColor || "",
+      fontFamily: branding?.fontFamily || "Inter",
+      sidebarTheme: (branding?.sidebarTheme as "DARK" | "LIGHT" | "BRAND") || "DARK",
+      borderRadius: branding?.borderRadius || "0.5rem",
+      supportEmail: branding?.supportEmail || "",
+      authHeadline: branding?.authHeadline || "",
+      authSubtitle: branding?.authSubtitle || "",
+      authCoverUrl: branding?.authCoverUrl || null,
+      authLayout: (branding?.authLayout as "SPLIT" | "CARD") || "SPLIT",
+      hideWatermark: branding?.hideWatermark ?? false,
+    });
+    setUseDarkOverrides(
+      Boolean(
+        branding?.primaryDarkColor || branding?.secondaryDarkColor || branding?.accentDarkColor,
+      ),
+    );
+    toast.info("Branding customizations reset to current saved values");
   };
 
   return (
@@ -412,13 +455,14 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {BRANDING_PRESETS?.map((preset) => {
                   const isActive =
-                    primaryColor?.toLowerCase() === preset?.primaryColor?.toLowerCase() &&
-                    (secondaryColor
-                      ? secondaryColor.toLowerCase() === preset?.secondaryColor?.toLowerCase()
+                    formData.primaryColor?.toLowerCase() === preset?.primaryColor?.toLowerCase() &&
+                    (formData.secondaryColor
+                      ? formData.secondaryColor.toLowerCase() ===
+                        preset?.secondaryColor?.toLowerCase()
                       : true) &&
-                    accentColor?.toLowerCase() === preset?.accentColor?.toLowerCase() &&
-                    fontFamily === preset?.fontFamily &&
-                    sidebarTheme === preset?.sidebarTheme;
+                    formData.accentColor?.toLowerCase() === preset?.accentColor?.toLowerCase() &&
+                    formData.fontFamily === preset?.fontFamily &&
+                    formData.sidebarTheme === preset?.sidebarTheme;
                   return (
                     <button
                       key={preset?.id}
@@ -470,8 +514,8 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
               </Label>
               <Input
                 id="brand-name"
-                value={companyName}
-                onChange={(e) => setCompanyName(e?.target?.value ?? "")}
+                value={formData.companyName}
+                onChange={(e) => updateField("companyName", e?.target?.value ?? "")}
                 placeholder="e.g. Acme Corporation"
               />
               <p className="text-muted-foreground text-[11px]">
@@ -491,9 +535,14 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                   <Label htmlFor="font-family-select" className="text-xs">
                     Primary Interface Font
                   </Label>
-                  <span className="text-muted-foreground font-mono text-xs">{fontFamily}</span>
+                  <span className="text-muted-foreground font-mono text-xs">
+                    {formData.fontFamily}
+                  </span>
                 </div>
-                <Select value={fontFamily} onValueChange={(val) => setFontFamily(val)}>
+                <Select
+                  value={formData.fontFamily}
+                  onValueChange={(val) => updateField("fontFamily", val)}
+                >
                   <SelectTrigger id="font-family-select" className="h-9">
                     <SelectValue />
                   </SelectTrigger>
@@ -507,7 +556,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                 </Select>
                 <div
                   className="border-border/60 bg-muted/30 text-foreground/90 rounded-md border p-2.5 text-xs transition-all"
-                  style={{ fontFamily: `"${fontFamily}", sans-serif` }}
+                  style={{ fontFamily: `"${formData.fontFamily}", sans-serif` }}
                 >
                   The quick brown fox jumps over the lazy dog. 0123456789
                 </div>
@@ -543,16 +592,16 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                     value: "BRAND" as const,
                     title: "Brand",
                     desc: "Immersive tint",
-                    bg: primaryColor,
+                    bg: formData.primaryColor,
                     fg: previewTokens.primaryForeground,
                   },
                 ].map((mode) => {
-                  const isSelected = sidebarTheme === mode.value;
+                  const isSelected = formData.sidebarTheme === mode.value;
                   return (
                     <button
                       key={mode.value}
                       type="button"
-                      onClick={() => setSidebarTheme(mode.value)}
+                      onClick={() => updateField("sidebarTheme", mode.value)}
                       className={cn(
                         "flex flex-col items-center justify-center gap-1.5 rounded-lg border p-3 text-center transition-all",
                         isSelected
@@ -583,11 +632,11 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                 <div className="space-y-2">
                   <Label className="text-[11px] font-medium">Light Mode Logo</Label>
                   <div className="bg-muted/30 border-border/60 relative flex h-24 flex-col items-center justify-center rounded-lg border border-dashed p-2 text-center">
-                    {logoUrl ? (
+                    {formData.logoUrl ? (
                       <div className="relative flex size-full items-center justify-center">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={logoUrl}
+                          src={formData.logoUrl}
                           alt="Light Logo"
                           className="max-h-16 max-w-full object-contain"
                         />
@@ -630,11 +679,11 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                 <div className="space-y-2">
                   <Label className="text-[11px] font-medium">Dark Mode Logo</Label>
                   <div className="relative flex h-24 flex-col items-center justify-center rounded-lg border border-dashed border-zinc-800 bg-zinc-950 p-2 text-center">
-                    {logoDarkUrl ? (
+                    {formData.logoDarkUrl ? (
                       <div className="relative flex size-full items-center justify-center">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={logoDarkUrl}
+                          src={formData.logoDarkUrl}
                           alt="Dark Logo"
                           className="max-h-16 max-w-full object-contain"
                         />
@@ -677,11 +726,11 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                 <div className="space-y-2">
                   <Label className="text-[11px] font-medium">Browser Favicon</Label>
                   <div className="bg-muted/30 border-border/60 relative flex h-24 flex-col items-center justify-center rounded-lg border border-dashed p-2 text-center">
-                    {faviconUrl ? (
+                    {formData.faviconUrl ? (
                       <div className="relative flex size-full items-center justify-center">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={faviconUrl}
+                          src={formData.faviconUrl}
                           alt="Favicon"
                           className="size-8 rounded-sm object-contain"
                         />
@@ -732,14 +781,16 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                   <Label htmlFor="primary-color" className="text-xs">
                     Primary Brand Anchor (Light Mode)
                   </Label>
-                  <span className="text-muted-foreground font-mono text-xs">{primaryColor}</span>
+                  <span className="text-muted-foreground font-mono text-xs">
+                    {formData.primaryColor}
+                  </span>
                 </div>
                 <div className="flex items-center gap-3">
                   <input
                     id="primary-color"
                     type="color"
-                    value={primaryColor}
-                    onChange={(e) => setPrimaryColor(e?.target?.value ?? "#4F46E5")}
+                    value={formData.primaryColor}
+                    onChange={(e) => updateField("primaryColor", e?.target?.value ?? "#4F46E5")}
                     className="border-border/80 size-9 cursor-pointer rounded-md border p-0.5"
                   />
                   <div className="flex flex-wrap items-center gap-1.5">
@@ -747,10 +798,10 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                       <button
                         key={c.value}
                         type="button"
-                        onClick={() => setPrimaryColor(c.value)}
+                        onClick={() => updateField("primaryColor", c.value)}
                         className={cn(
                           "size-6 rounded-full border transition-all",
-                          primaryColor.toLowerCase() === c.value.toLowerCase()
+                          formData.primaryColor.toLowerCase() === c.value.toLowerCase()
                             ? "ring-foreground scale-110 ring-2"
                             : "opacity-80 hover:opacity-100",
                         )}
@@ -772,17 +823,17 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                     <span className="text-muted-foreground text-[10px]">(Optional)</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    {secondaryColor && (
+                    {formData.secondaryColor && (
                       <button
                         type="button"
-                        onClick={() => setSecondaryColor("")}
+                        onClick={() => updateField("secondaryColor", "")}
                         className="text-muted-foreground hover:text-foreground text-[10px] underline"
                       >
                         Reset to default
                       </button>
                     )}
                     <span className="text-muted-foreground font-mono text-xs">
-                      {secondaryColor || "Default (#F4F4F5)"}
+                      {formData.secondaryColor || "Default (#F4F4F5)"}
                     </span>
                   </div>
                 </div>
@@ -790,8 +841,8 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                   <input
                     id="secondary-color"
                     type="color"
-                    value={secondaryColor || "#F4F4F5"}
-                    onChange={(e) => setSecondaryColor(e?.target?.value ?? "#F4F4F5")}
+                    value={formData.secondaryColor || "#F4F4F5"}
+                    onChange={(e) => updateField("secondaryColor", e?.target?.value ?? "#F4F4F5")}
                     className="border-border/80 size-9 cursor-pointer rounded-md border p-0.5"
                   />
                   <div className="flex flex-wrap items-center gap-1.5">
@@ -799,10 +850,10 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                       <button
                         key={c.value}
                         type="button"
-                        onClick={() => setSecondaryColor(c.value)}
+                        onClick={() => updateField("secondaryColor", c.value)}
                         className={cn(
                           "size-6 rounded-full border transition-all",
-                          secondaryColor.toLowerCase() === c.value.toLowerCase()
+                          formData.secondaryColor.toLowerCase() === c.value.toLowerCase()
                             ? "ring-foreground scale-110 ring-2"
                             : "opacity-80 hover:opacity-100",
                         )}
@@ -820,14 +871,16 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                   <Label htmlFor="accent-color" className="text-xs">
                     Accent Color (Light Mode)
                   </Label>
-                  <span className="text-muted-foreground font-mono text-xs">{accentColor}</span>
+                  <span className="text-muted-foreground font-mono text-xs">
+                    {formData.accentColor}
+                  </span>
                 </div>
                 <div className="flex items-center gap-3">
                   <input
                     id="accent-color"
                     type="color"
-                    value={accentColor}
-                    onChange={(e) => setAccentColor(e?.target?.value ?? "#06B6D4")}
+                    value={formData.accentColor}
+                    onChange={(e) => updateField("accentColor", e?.target?.value ?? "#06B6D4")}
                     className="border-border/80 size-9 cursor-pointer rounded-md border p-0.5"
                   />
                   <div className="flex flex-wrap items-center gap-1.5">
@@ -835,10 +888,10 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                       <button
                         key={c.value}
                         type="button"
-                        onClick={() => setAccentColor(c.value)}
+                        onClick={() => updateField("accentColor", c.value)}
                         className={cn(
                           "size-6 rounded-full border transition-all",
-                          accentColor.toLowerCase() === c.value.toLowerCase()
+                          formData.accentColor.toLowerCase() === c.value.toLowerCase()
                             ? "ring-foreground scale-110 ring-2"
                             : "opacity-80 hover:opacity-100",
                         )}
@@ -868,10 +921,12 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                     onCheckedChange={(checked) => {
                       setUseDarkOverrides(checked);
                       if (checked) {
-                        if (!primaryDarkColor) setPrimaryDarkColor(primaryColor);
-                        if (!secondaryDarkColor && secondaryColor)
-                          setSecondaryDarkColor(secondaryColor);
-                        if (!accentDarkColor) setAccentDarkColor(accentColor);
+                        if (!formData.primaryDarkColor)
+                          updateField("primaryDarkColor", formData.primaryColor);
+                        if (!formData.secondaryDarkColor && formData.secondaryColor)
+                          updateField("secondaryDarkColor", formData.secondaryColor);
+                        if (!formData.accentDarkColor)
+                          updateField("accentDarkColor", formData.accentColor);
                       }
                     }}
                   />
@@ -887,13 +942,18 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                         <input
                           id="dark-primary-color"
                           type="color"
-                          value={primaryDarkColor || primaryColor}
-                          onChange={(e) => setPrimaryDarkColor(e?.target?.value ?? primaryColor)}
+                          value={formData.primaryDarkColor || formData.primaryColor}
+                          onChange={(e) =>
+                            updateField(
+                              "primaryDarkColor",
+                              e?.target?.value ?? formData.primaryColor,
+                            )
+                          }
                           className="border-border/80 size-8 cursor-pointer rounded border p-0.5"
                         />
                         <Input
-                          value={primaryDarkColor || primaryColor}
-                          onChange={(e) => setPrimaryDarkColor(e?.target?.value ?? "")}
+                          value={formData.primaryDarkColor || formData.primaryColor}
+                          onChange={(e) => updateField("primaryDarkColor", e?.target?.value ?? "")}
                           className="h-8 font-mono text-xs"
                           placeholder="#6366F1"
                         />
@@ -908,15 +968,22 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                         <input
                           id="dark-secondary-color"
                           type="color"
-                          value={secondaryDarkColor || secondaryColor || "#27272a"}
+                          value={
+                            formData.secondaryDarkColor || formData.secondaryColor || "#27272a"
+                          }
                           onChange={(e) =>
-                            setSecondaryDarkColor(e?.target?.value ?? secondaryColor ?? "#27272a")
+                            updateField(
+                              "secondaryDarkColor",
+                              e?.target?.value ?? formData.secondaryColor ?? "#27272a",
+                            )
                           }
                           className="border-border/80 size-8 cursor-pointer rounded border p-0.5"
                         />
                         <Input
-                          value={secondaryDarkColor}
-                          onChange={(e) => setSecondaryDarkColor(e?.target?.value ?? "")}
+                          value={formData.secondaryDarkColor}
+                          onChange={(e) =>
+                            updateField("secondaryDarkColor", e?.target?.value ?? "")
+                          }
                           className="h-8 font-mono text-xs"
                           placeholder="#27272A"
                         />
@@ -931,13 +998,15 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                         <input
                           id="dark-accent-color"
                           type="color"
-                          value={accentDarkColor || accentColor}
-                          onChange={(e) => setAccentDarkColor(e?.target?.value ?? accentColor)}
+                          value={formData.accentDarkColor || formData.accentColor}
+                          onChange={(e) =>
+                            updateField("accentDarkColor", e?.target?.value ?? formData.accentColor)
+                          }
                           className="border-border/80 size-8 cursor-pointer rounded border p-0.5"
                         />
                         <Input
-                          value={accentDarkColor || accentColor}
-                          onChange={(e) => setAccentDarkColor(e?.target?.value ?? "")}
+                          value={formData.accentDarkColor || formData.accentColor}
+                          onChange={(e) => updateField("accentDarkColor", e?.target?.value ?? "")}
                           className="h-8 font-mono text-xs"
                           placeholder="#22D3EE"
                         />
@@ -952,7 +1021,10 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                 <Label htmlFor="radius-select" className="text-xs">
                   Component Corner Curvature (Border Radius)
                 </Label>
-                <Select value={borderRadius} onValueChange={(val) => setBorderRadius(val)}>
+                <Select
+                  value={formData.borderRadius}
+                  onValueChange={(val) => updateField("borderRadius", val)}
+                >
                   <SelectTrigger id="radius-select" className="h-9">
                     <SelectValue />
                   </SelectTrigger>
@@ -986,10 +1058,10 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
-                    onClick={() => setAuthLayout("SPLIT")}
+                    onClick={() => updateField("authLayout", "SPLIT")}
                     className={cn(
                       "flex flex-col gap-2 rounded-lg border p-3 text-left transition-all",
-                      authLayout === "SPLIT"
+                      formData.authLayout === "SPLIT"
                         ? "border-primary ring-primary/40 bg-primary/5 ring-2"
                         : "border-border/60 hover:border-border bg-card",
                     )}
@@ -1014,10 +1086,10 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
 
                   <button
                     type="button"
-                    onClick={() => setAuthLayout("CARD")}
+                    onClick={() => updateField("authLayout", "CARD")}
                     className={cn(
                       "flex flex-col gap-2 rounded-lg border p-3 text-left transition-all",
-                      authLayout === "CARD"
+                      formData.authLayout === "CARD"
                         ? "border-primary ring-primary/40 bg-primary/5 ring-2"
                         : "border-border/60 hover:border-border bg-card",
                     )}
@@ -1047,9 +1119,9 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                   </Label>
                   <Input
                     id="auth-headline"
-                    value={authHeadline}
-                    onChange={(e) => setAuthHeadline(e?.target?.value ?? "")}
-                    placeholder={`e.g. Welcome to ${companyName || "Acme"}`}
+                    value={formData.authHeadline}
+                    onChange={(e) => updateField("authHeadline", e?.target?.value ?? "")}
+                    placeholder={`e.g. Welcome to ${formData.companyName || "Acme"}`}
                     className="text-xs"
                   />
                   <p className="text-muted-foreground text-[10px]">
@@ -1063,8 +1135,8 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                   </Label>
                   <Input
                     id="auth-subtitle"
-                    value={authSubtitle}
-                    onChange={(e) => setAuthSubtitle(e?.target?.value ?? "")}
+                    value={formData.authSubtitle}
+                    onChange={(e) => updateField("authSubtitle", e?.target?.value ?? "")}
                     placeholder="e.g. Sign in to access your secure workspace"
                     className="text-xs"
                   />
@@ -1083,11 +1155,11 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                   </span>
                 </div>
                 <div className="bg-muted/30 border-border/60 relative flex h-32 flex-col items-center justify-center overflow-hidden rounded-lg border border-dashed text-center">
-                  {authCoverUrl ? (
+                  {formData.authCoverUrl ? (
                     <div className="relative size-full">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={authCoverUrl}
+                        src={formData.authCoverUrl}
                         alt="Auth Hero Cover"
                         className="size-full object-cover"
                       />
@@ -1140,18 +1212,59 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
               </div>
             </div>
 
-            {/* 8. Support Contact & Domain Link */}
+            {/* 8. White-Labeling & Platform Watermark */}
+            <div className="border-border/50 space-y-4 rounded-lg border p-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <Shield className="text-primary size-4" />
+                    <span className="text-foreground text-xs font-semibold">
+                      White-Labeling & Watermark
+                    </span>
+                    {activeTenant?.plan === "FREE" && (
+                      <Badge variant="outline" className="text-[10px] text-amber-500">
+                        Pro & Enterprise
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-muted-foreground text-[11px]">
+                    Hide platform branding and &ldquo;Powered by&rdquo; attribution badges on
+                    customer-facing auth screens and workspace portals.
+                  </p>
+                </div>
+                <Switch
+                  checked={formData.hideWatermark}
+                  onCheckedChange={(checked) => updateField("hideWatermark", checked)}
+                  disabled={activeTenant?.plan === "FREE"}
+                  aria-label="Remove Platform Watermark"
+                />
+              </div>
+
+              {activeTenant?.plan === "FREE" && (
+                <div className="flex items-center justify-between rounded-md border border-amber-500/20 bg-amber-500/10 p-2.5 text-xs text-amber-600 dark:text-amber-400">
+                  <span>
+                    Upgrade to Pro or Enterprise to remove the platform watermark and white-label
+                    your workspace.
+                  </span>
+                  <Link href="/settings/billing" className="font-medium underline hover:opacity-80">
+                    View Plans →
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            {/* 9. Support Contact & Domain Link */}
             <div className="border-border/50 space-y-4 rounded-lg border p-4">
               <div className="flex items-center justify-between">
                 <span className="text-foreground flex items-center gap-2 text-xs font-semibold">
                   <Globe className="text-primary size-3.5" /> Domain & URL Settings
                 </span>
-                <a
+                <Link
                   href="/settings/url"
                   className="text-primary hover:text-primary/80 text-xs font-medium underline-offset-2 hover:underline"
                 >
                   Manage domains →
-                </a>
+                </Link>
               </div>
 
               <div className="grid gap-2">
@@ -1161,8 +1274,8 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                 <Input
                   id="support-email"
                   type="email"
-                  value={supportEmail}
-                  onChange={(e) => setSupportEmail(e?.target?.value ?? "")}
+                  value={formData.supportEmail}
+                  onChange={(e) => updateField("supportEmail", e?.target?.value ?? "")}
                   placeholder="e.g. support@acmecorp.com"
                 />
               </div>
@@ -1318,7 +1431,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                             tenant={activeTenant}
                           />
                           <span className="truncate text-[11px] font-semibold">
-                            {companyName || "Acme"}
+                            {formData.companyName || "Acme"}
                           </span>
                         </div>
 
@@ -1328,8 +1441,11 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                             className="flex items-center gap-1.5 rounded px-2 py-1 font-semibold transition-opacity"
                             style={{
                               backgroundColor:
-                                sidebarTheme === "BRAND" ? "rgba(255,255,255,0.2)" : activePrimary,
-                              color: sidebarTheme === "BRAND" ? "#ffffff" : activePrimaryFg,
+                                formData.sidebarTheme === "BRAND"
+                                  ? "rgba(255,255,255,0.2)"
+                                  : activePrimary,
+                              color:
+                                formData.sidebarTheme === "BRAND" ? "#ffffff" : activePrimaryFg,
                               borderRadius: previewTokens.radius,
                             }}
                           >
@@ -1348,7 +1464,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                       </div>
 
                       <div className="border-t border-current/15 pt-2 text-[9px] opacity-70">
-                        {sidebarTheme} Mode
+                        {formData.sidebarTheme} Mode
                       </div>
                     </div>
 
@@ -1447,7 +1563,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                     </div>
                   </div>
                 ) : previewTab === "auth" ? (
-                  authLayout === "SPLIT" ? (
+                  formData.authLayout === "SPLIT" ? (
                     /* Simulation: Auth Split Layout */
                     <div className="grid min-h-[360px] grid-cols-12">
                       {/* Left Hero Branding Panel */}
@@ -1457,16 +1573,16 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                           backgroundColor: activePrimary,
                         }}
                       >
-                        {authCoverUrl && (
+                        {formData.authCoverUrl && (
                           <div
                             className="absolute inset-0 bg-cover bg-center"
-                            style={{ backgroundImage: `url(${authCoverUrl})` }}
+                            style={{ backgroundImage: `url(${formData.authCoverUrl})` }}
                           />
                         )}
                         <div
                           className="absolute inset-0"
                           style={{
-                            background: authCoverUrl
+                            background: formData.authCoverUrl
                               ? "linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.85) 100%)"
                               : `linear-gradient(135deg, ${activePrimary} 0%, rgba(0,0,0,0.85) 100%)`,
                           }}
@@ -1479,15 +1595,16 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                             className="size-6 rounded bg-white/10 p-1 backdrop-blur"
                           />
                           <div className="truncate text-[11px] font-bold drop-shadow-sm">
-                            {companyName || "Acme"}
+                            {formData.companyName || "Acme"}
                           </div>
                         </div>
                         <div className="relative z-10 space-y-1">
                           <p className="text-xs leading-tight font-semibold text-white/95">
-                            {authHeadline || `Welcome to ${companyName || "Workspace"}`}
+                            {formData.authHeadline ||
+                              `Welcome to ${formData.companyName || "Workspace"}`}
                           </p>
                           <p className="line-clamp-2 text-[10px] text-white/75">
-                            {authSubtitle || "Secure enterprise workspace authentication."}
+                            {formData.authSubtitle || "Secure enterprise workspace authentication."}
                           </p>
                           <div className="flex items-center gap-1 pt-1 text-[8px] text-white/60">
                             <Shield className="size-2.5" /> SOC-2 & SSO Protected
@@ -1551,6 +1668,12 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                         <div className="text-muted-foreground pt-0.5 text-center text-[8px]">
                           Forgot password?
                         </div>
+                        {!formData.hideWatermark && (
+                          <div className="text-muted-foreground/60 flex items-center justify-center gap-1 pt-1 text-[8px]">
+                            <span>Powered by</span>
+                            <span className="text-foreground/80 font-semibold">SaaS Platform</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ) : (
@@ -1580,10 +1703,11 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                             className="size-7 rounded shadow-2xs"
                           />
                           <div className="truncate text-xs font-bold">
-                            {authHeadline || `Sign in to ${companyName || "Workspace"}`}
+                            {formData.authHeadline ||
+                              `Sign in to ${formData.companyName || "Workspace"}`}
                           </div>
                           <div className="text-muted-foreground line-clamp-2 text-[9px]">
-                            {authSubtitle || "Enter your workspace credentials"}
+                            {formData.authSubtitle || "Enter your workspace credentials"}
                           </div>
                         </div>
                         <div className="space-y-1.5">
@@ -1624,6 +1748,12 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                         <div className="text-muted-foreground flex items-center justify-center gap-1 pt-0.5 text-[8px]">
                           <Shield className="size-2.5" /> Protected Workspace
                         </div>
+                        {!formData.hideWatermark && (
+                          <div className="text-muted-foreground/60 flex items-center justify-center gap-1 text-[8px]">
+                            <span>Powered by</span>
+                            <span className="text-foreground/80 font-semibold">SaaS Platform</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )
@@ -1654,11 +1784,15 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                           previewDark ? "border-zinc-800" : "border-zinc-100",
                         )}
                       >
-                        {logoUrl ? (
+                        {formData.logoUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
-                            src={previewDark && logoDarkUrl ? logoDarkUrl : logoUrl}
-                            alt={companyName || "Organization"}
+                            src={
+                              previewDark && formData.logoDarkUrl
+                                ? formData.logoDarkUrl
+                                : formData.logoUrl
+                            }
+                            alt={formData.companyName || "Organization"}
                             className="mx-auto max-h-6 max-w-[120px] object-contain"
                           />
                         ) : (
@@ -1666,7 +1800,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                             className="text-xs font-bold tracking-tight"
                             style={{ color: activePrimary }}
                           >
-                            {companyName || "Acme Organization"}
+                            {formData.companyName || "Acme Organization"}
                           </div>
                         )}
                       </div>
@@ -1674,11 +1808,11 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                       {/* Email Body Content */}
                       <div className="space-y-2.5 p-3 text-[10px]">
                         <div className="text-xs font-bold">
-                          You&apos;re invited to join {companyName || "Acme"}
+                          You&apos;re invited to join {formData.companyName || "Acme"}
                         </div>
                         <p className="text-muted-foreground text-[9px] leading-relaxed">
                           Hi Elena, you have been invited to collaborate on{" "}
-                          <strong>{companyName || "Acme"}</strong> with the{" "}
+                          <strong>{formData.companyName || "Acme"}</strong> with the{" "}
                           <strong>Workspace Admin</strong> role.
                         </p>
 
@@ -1735,12 +1869,12 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                         )}
                       >
                         <div>
-                          © {new Date().getFullYear()} {companyName || "Organization"}. All rights
-                          reserved.
+                          © {new Date().getFullYear()} {formData.companyName || "Organization"}. All
+                          rights reserved.
                         </div>
-                        {supportEmail ? (
+                        {formData.supportEmail ? (
                           <div className="pt-0.5 font-medium" style={{ color: activePrimary }}>
-                            Questions? {supportEmail}
+                            Questions? {formData.supportEmail}
                           </div>
                         ) : null}
                       </div>

@@ -8,15 +8,33 @@ export const staffMemberSchema = z.object({
   id: z.string().uuid(),
   email: z.string().email(),
   displayName: z.string(),
-  status: z.enum(["ACTIVE", "SUSPENDED", "DEACTIVATED"]),
+  employeeCode: z.string().nullable().optional(),
+  department: z.string().nullable().optional(),
+  jobTitle: z.string().nullable().optional(),
+  status: z.enum(["INVITED", "ACTIVE", "SUSPENDED", "DEACTIVATED"]),
   roleId: z.string().uuid(),
   roleKey: z.string().nullable().optional(),
   roleName: z.string().nullable().optional(),
   lastLoginAt: z.string().nullable().optional(),
+  invitedAt: z.string().nullable().optional(),
+  inviteExpiresAt: z.string().nullable().optional(),
   createdAt: z.string().optional(),
 });
 
 export type StaffMember = z.infer<typeof staffMemberSchema>;
+
+export const inviteStaffSchema = z.object({
+  email: z.string().trim().email("Enter a valid staff email"),
+  displayName: z.string().trim().min(2, "Name must be at least 2 characters"),
+  roleId: z.string().uuid("Please select a platform role"),
+  employeeCode: z.string().trim().max(50).optional(),
+  department: z.string().trim().max(100).optional(),
+  jobTitle: z.string().trim().max(100).optional(),
+  invitationMessage: z.string().trim().max(1000).optional(),
+  expiresInHours: z.coerce.number().int().min(1).max(168).default(168).optional(),
+});
+
+export type InviteStaffInput = z.infer<typeof inviteStaffSchema>;
 
 export const createStaffSchema = z.object({
   email: z.string().trim().email("Enter a valid staff email"),
@@ -207,7 +225,20 @@ export const platformTenantSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
   slug: z.string(),
+  legalName: z.string().nullable().optional(),
+  tenantCode: z.string().nullable().optional(),
+  country: z.string().nullable().optional(),
+  region: z.string().nullable().optional(),
+  timezone: z.string().optional(),
+  locale: z.string().optional(),
+  currency: z.string().optional(),
+  supportEmail: z.string().nullable().optional(),
+  supportPhone: z.string().nullable().optional(),
+  billingEmail: z.string().nullable().optional(),
   status: z.enum(["ACTIVE", "SUSPENDED", "TRIALING", "DEACTIVATED"]),
+  provisioningStatus: z.string().optional(),
+  provisioningStep: z.string().nullable().optional(),
+  provisioningError: z.string().nullable().optional(),
   plan: z.string(),
   databaseMode: z.string().default("shared"),
   memberCount: z.number().default(0),
@@ -268,12 +299,33 @@ export const provisionTenantSchema = z.object({
     .min(2, "Slug must be at least 2 characters")
     .max(50)
     .regex(/^[a-z0-9-]+$/, "Slug must only contain lowercase alphanumeric characters and hyphens"),
-  ownerEmail: z.string().trim().email("Enter a valid owner email address"),
-  plan: z.string().trim().min(1, "Subscription tier is required"),
+  legalName: z.string().trim().max(200).optional(),
+  tenantCode: z.string().trim().max(50).optional(),
   country: z.string().trim().optional(),
+  region: z.string().trim().max(100).optional(),
   timezone: z.string().trim().min(1, "Timezone is required"),
+  locale: z.string().trim().default("en-US").optional(),
+  currency: z.string().trim().default("USD").optional(),
+  supportEmail: z.string().trim().email("Enter a valid support email").optional().or(z.literal("")),
+  supportPhone: z.string().trim().max(30).optional(),
+  billingEmail: z.string().trim().email("Enter a valid billing email").optional().or(z.literal("")),
+  internalNote: z.string().trim().max(1000).optional(),
+  ownerEmail: z.string().trim().email("Enter a valid owner email address"),
+  ownerFirstName: z.string().trim().max(50).optional(),
+  ownerLastName: z.string().trim().max(50).optional(),
+  plan: z.string().trim().min(1, "Subscription tier is required"),
+  trialDays: z.coerce.number().int().min(0).max(365).optional(),
   databaseMode: z.enum(["shared", "dedicated"]),
   notes: z.string().trim().max(500).optional(),
+  branding: z
+    .object({
+      displayName: z.string().trim().max(100).optional(),
+      logoUrl: z.string().trim().url().optional().or(z.literal("")),
+      faviconUrl: z.string().trim().url().optional().or(z.literal("")),
+      primaryColor: z.string().trim().optional(),
+      secondaryColor: z.string().trim().optional(),
+    })
+    .optional(),
   databaseConfig: z
     .object({
       databaseName: z.string().trim().max(63).optional(),

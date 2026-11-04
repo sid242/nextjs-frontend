@@ -71,7 +71,7 @@ export function PlatformShell({ children }: PlatformShellProps) {
 
   return (
     <TooltipProvider delayDuration={150}>
-      <div className="bg-background text-foreground flex min-h-screen flex-col md:flex-row">
+      <div className="bg-background text-foreground flex min-h-dvh flex-col md:flex-row">
         {/* Mobile Top Bar */}
         <header className="bg-card/80 sticky top-0 z-40 flex items-center justify-between border-b px-4 py-3 backdrop-blur-md md:hidden">
           <div className="flex items-center gap-2.5">
@@ -112,10 +112,10 @@ export function PlatformShell({ children }: PlatformShellProps) {
           className={cn(
             "bg-card/95 z-50 flex flex-col border-r backdrop-blur-md transition-[width,transform] duration-200 ease-in-out",
             // Mobile drawer: fixed full-height slide-over
-            "fixed inset-y-0 left-0 h-screen",
+            "fixed inset-y-0 left-0 h-dvh",
             mobileOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full",
             // Desktop: sticky pinned to viewport top, never scrolls away with document
-            "md:sticky md:top-0 md:h-screen md:max-h-screen md:translate-x-0",
+            "md:sticky md:top-0 md:h-dvh md:max-h-dvh md:translate-x-0",
             collapsed ? "md:w-18" : "md:w-68",
           )}
         >

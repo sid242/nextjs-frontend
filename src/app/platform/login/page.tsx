@@ -16,7 +16,7 @@ export default async function PlatformLoginPage({
   const { next } = await searchParams;
 
   return (
-    <div className="bg-background flex min-h-screen flex-col justify-between p-4 sm:p-8">
+    <div className="bg-background flex min-h-dvh flex-col justify-between p-4 sm:p-8">
       <div className="mx-auto flex w-full max-w-5xl items-center justify-between">
         <Link
           href="/login"

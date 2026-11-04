@@ -1,14 +1,32 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { CreditCard, Globe, HardDrive, Layers, Pencil, Plus, Users } from "lucide-react";
+import {
+  CreditCard,
+  Globe,
+  HardDrive,
+  Layers,
+  Pencil,
+  Plus,
+  Search,
+  ShieldCheck,
+  Users,
+} from "lucide-react";
 
 import { ColumnConfigDropdown } from "@/components/molecules/column-config-dropdown";
 import { TablePagination } from "@/components/molecules/table-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -24,6 +42,7 @@ import { useSearchQueryParams, useTableColumns, type TableColumnDef } from "@/li
 
 import { usePlatformPlans } from "../queries";
 import type { Plan } from "../schemas";
+import { AssignSubscriptionDialog } from "./assign-subscription-dialog";
 
 type PlanColumnId = "tier" | "pricing" | "capacity" | "quota" | "features" | "status" | "actions";
 
@@ -63,12 +82,36 @@ export function PlatformPlansTable() {
 
   const { data: plans = [], isLoading, error } = usePlatformPlans({ includeInactive: true });
 
-  const totalPages = Math.max(1, Math.ceil((plans?.length ?? 0) / pageSize));
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [intervalFilter, setIntervalFilter] = useState("ALL");
+  const [entitlementFilter, setEntitlementFilter] = useState("ALL");
+  const [isAssignOpen, setIsAssignOpen] = useState(false);
+
+  const filteredPlans = useMemo(() => {
+    return (plans ?? []).filter((p) => {
+      if (search) {
+        const query = search.toLowerCase();
+        const matchesName = p?.name?.toLowerCase().includes(query);
+        const matchesKey = p?.key?.toLowerCase().includes(query);
+        if (!matchesName && !matchesKey) return false;
+      }
+      if (statusFilter === "active" && !p?.isActive) return false;
+      if (statusFilter === "inactive" && p?.isActive) return false;
+      if (intervalFilter !== "ALL" && p?.billingInterval !== intervalFilter) return false;
+      if (entitlementFilter === "groups" && !p?.entitlements?.hasCustomRoles) return false;
+      if (entitlementFilter === "analytics" && !p?.entitlements?.hasAdvancedAnalytics) return false;
+      if (entitlementFilter === "priority" && !p?.entitlements?.hasPrioritySupport) return false;
+      return true;
+    });
+  }, [plans, search, statusFilter, intervalFilter, entitlementFilter]);
+
+  const totalPages = Math.max(1, Math.ceil((filteredPlans?.length ?? 0) / pageSize));
   const safePage = Math.min(page, totalPages);
   const paginatedPlans = useMemo(() => {
     const start = (safePage - 1) * pageSize;
-    return (plans ?? []).slice(start, start + pageSize);
-  }, [plans, safePage, pageSize]);
+    return (filteredPlans ?? []).slice(start, start + pageSize);
+  }, [filteredPlans, safePage, pageSize]);
 
   const maxSeatOffering = useMemo(() => {
     if (!plans || plans.length === 0) return 0;
@@ -295,6 +338,15 @@ export function PlatformPlansTable() {
                 permission={PLATFORM_PERMISSION_KEYS.BILLING_MANAGE}
                 hideInsteadOfBanner
               >
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setIsAssignOpen(true)}
+                  className="h-9 gap-1.5 rounded-xl text-xs shadow-xs"
+                >
+                  <ShieldCheck className="size-3.5" />
+                  Assign Workspace Tier
+                </Button>
                 <Button asChild size="sm" className="h-9 gap-1.5 rounded-xl text-xs shadow-xs">
                   <Link href="/platform/plans/new">
                     <Plus className="size-3.5" />
@@ -303,6 +355,54 @@ export function PlatformPlansTable() {
                 </Button>
               </PlatformPermissionGate>
             </div>
+          </div>
+
+          {/* Plan Filters Bar */}
+          <div className="grid grid-cols-1 gap-3 pt-3 sm:grid-cols-4">
+            <div className="relative">
+              <Search className="text-muted-foreground absolute top-2.5 left-2.5 size-4" />
+              <Input
+                placeholder="Search plan name or code..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-9 pl-8 text-xs"
+              />
+            </div>
+
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="h-9 text-xs">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="active">Active Tiers</SelectItem>
+                <SelectItem value="inactive">Inactive / Draft</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={intervalFilter} onValueChange={setIntervalFilter}>
+              <SelectTrigger className="h-9 text-xs">
+                <SelectValue placeholder="Billing cadence" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Cadences</SelectItem>
+                <SelectItem value="MONTHLY">Monthly</SelectItem>
+                <SelectItem value="ANNUAL">Annual</SelectItem>
+                <SelectItem value="LIFETIME">Lifetime</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={entitlementFilter} onValueChange={setEntitlementFilter}>
+              <SelectTrigger className="h-9 text-xs">
+                <SelectValue placeholder="Feature entitlement" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Feature Entitlements</SelectItem>
+                <SelectItem value="groups">Custom RBAC Enabled</SelectItem>
+                <SelectItem value="analytics">Analytics Enabled</SelectItem>
+                <SelectItem value="priority">Priority SLA Included</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardHeader>
 
@@ -362,6 +462,8 @@ export function PlatformPlansTable() {
           )}
         </CardContent>
       </Card>
+
+      <AssignSubscriptionDialog open={isAssignOpen} onOpenChange={setIsAssignOpen} />
     </div>
   );
 }

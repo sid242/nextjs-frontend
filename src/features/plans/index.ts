@@ -10,6 +10,9 @@ export {
   useCreatePlan,
   useUpdatePlan,
   useChangeSubscription,
+  useAssignSubscription,
+  usePlatformSubscriptions,
+  useEntitlementDefinitions,
 } from "./queries";
 
 export { PlanCard } from "./components/plan-card";
@@ -19,3 +22,4 @@ export { EditPlanDialog } from "./components/edit-plan-dialog";
 export { TenantBillingCard } from "./components/tenant-billing-card";
 export { PlatformPlansTable } from "./components/platform-plans-table";
 export { PlanFormPage } from "./components/plan-form-page";
+export { AssignSubscriptionDialog } from "./components/assign-subscription-dialog";

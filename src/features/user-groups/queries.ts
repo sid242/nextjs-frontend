@@ -108,6 +108,59 @@ export function useRemoveTenantGroupMember(tenantId?: string) {
   });
 }
 
+export const tenantGroupRolesQueryOptions = (tenantId?: string, groupId?: string) =>
+  queryOptions({
+    queryKey: groupKeys.tenantRoles(tenantId, groupId),
+    queryFn: ({ signal }) => api.getTenantGroupRoles(groupId!, signal),
+    enabled: Boolean(tenantId && groupId),
+  });
+
+export function useTenantGroupRoles(tenantId?: string, groupId?: string) {
+  return useQuery(tenantGroupRolesQueryOptions(tenantId, groupId));
+}
+
+export const tenantGroupPermissionsQueryOptions = (tenantId?: string, groupId?: string) =>
+  queryOptions({
+    queryKey: groupKeys.tenantPermissions(tenantId, groupId),
+    queryFn: ({ signal }) => api.getTenantGroupPermissions(groupId!, signal),
+    enabled: Boolean(tenantId && groupId),
+  });
+
+export function useTenantGroupPermissions(tenantId?: string, groupId?: string) {
+  return useQuery(tenantGroupPermissionsQueryOptions(tenantId, groupId));
+}
+
+export function useBindTenantGroupRole(tenantId?: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      groupId,
+      input,
+    }: {
+      groupId: string;
+      input: { roleId: string; reason?: string };
+    }) => api.bindTenantGroupRole(groupId, input),
+    onSuccess: (_, { groupId }) => {
+      queryClient.invalidateQueries({ queryKey: groupKeys.tenantRoles(tenantId, groupId) });
+      queryClient.invalidateQueries({ queryKey: groupKeys.tenantPermissions(tenantId, groupId) });
+      queryClient.invalidateQueries({ queryKey: groupKeys.tenantAll(tenantId) });
+    },
+  });
+}
+
+export function useUnbindTenantGroupRole(tenantId?: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ groupId, roleId }: { groupId: string; roleId: string }) =>
+      api.unbindTenantGroupRole(groupId, roleId),
+    onSuccess: (_, { groupId }) => {
+      queryClient.invalidateQueries({ queryKey: groupKeys.tenantRoles(tenantId, groupId) });
+      queryClient.invalidateQueries({ queryKey: groupKeys.tenantPermissions(tenantId, groupId) });
+      queryClient.invalidateQueries({ queryKey: groupKeys.tenantAll(tenantId) });
+    },
+  });
+}
+
 // ============================================================================
 // PLATFORM QUERIES & MUTATIONS
 // ============================================================================

@@ -39,7 +39,7 @@ import { initials } from "@/lib/format";
 import { MEMBER_ROLE_OPTIONS } from "../constants";
 import type { TenantMember } from "../schemas";
 
-type MemberStatusFilter = "ALL" | "ACTIVE" | "INVITED" | "SUSPENDED";
+type MemberStatusFilter = "ALL" | "ACTIVE" | "INVITED" | "SUSPENDED" | "REMOVED";
 
 interface TeamMembersListProps {
   members: TenantMember[];
@@ -95,6 +95,7 @@ export function TeamMembersList({
       active: (members ?? []).filter((m) => m?.status === "ACTIVE").length,
       invited: (members ?? []).filter((m) => m?.status === "INVITED").length,
       suspended: (members ?? []).filter((m) => m?.status === "SUSPENDED").length,
+      removed: (members ?? []).filter((m) => m?.status === "REMOVED").length,
     };
   }, [members]);
 
@@ -191,6 +192,21 @@ export function TeamMembersList({
               </Badge>
             </Button>
           ) : null}
+
+          {counts.removed > 0 ? (
+            <Button
+              type="button"
+              variant={statusFilter === "REMOVED" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-7 gap-1.5 px-2.5 text-xs font-medium"
+              onClick={() => setStatusFilter("REMOVED")}
+            >
+              Removed
+              <Badge variant="outline" className="ml-0.5 px-1 py-0 text-[10px]">
+                {counts.removed}
+              </Badge>
+            </Button>
+          ) : null}
         </div>
       </CardHeader>
 
@@ -230,6 +246,11 @@ export function TeamMembersList({
                   <div className="grid leading-tight">
                     <div className="flex items-center gap-2">
                       <span className="text-foreground text-sm font-semibold">{member?.name}</span>
+                      {member?.memberCode ? (
+                        <Badge variant="outline" className="font-mono text-[10px]">
+                          {member.memberCode}
+                        </Badge>
+                      ) : null}
                       {member?.status === "INVITED" ? (
                         <Badge
                           variant="outline"
@@ -239,10 +260,20 @@ export function TeamMembersList({
                         </Badge>
                       ) : null}
                     </div>
-                    <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
-                      <MailIcon className="size-3" />
-                      {member?.email}
-                    </span>
+                    <div className="text-muted-foreground flex flex-wrap items-center gap-2 text-xs">
+                      <span className="flex items-center gap-1">
+                        <MailIcon className="size-3" />
+                        {member?.email}
+                      </span>
+                      {member?.department || member?.jobTitle ? (
+                        <>
+                          <span>•</span>
+                          <span>
+                            {[member?.jobTitle, member?.department].filter(Boolean).join(" • ")}
+                          </span>
+                        </>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
 

@@ -1,6 +1,14 @@
 import { api } from "@/lib/api/http";
+import { buildQueryString } from "@/lib/utils";
 
-import type { AppModule, CreateRoleInput, Permission, Role } from "./schemas";
+import type {
+  AppModule,
+  CreateRoleInput,
+  ListRolesFilter,
+  Permission,
+  Role,
+  UpdateRoleInput,
+} from "./schemas";
 
 const DEFAULT_PERMISSIONS: Permission[] = [
   { key: "tenants:read", name: "View Workspace", description: "View organization details" },
@@ -93,9 +101,14 @@ const DEFAULT_PLATFORM_ROLES: Role[] = [
   },
 ];
 
-export async function getTenantRoles(tenantId: string, signal?: AbortSignal): Promise<Role[]> {
+export async function getTenantRoles(
+  tenantId: string,
+  params?: ListRolesFilter,
+  signal?: AbortSignal,
+): Promise<Role[]> {
   try {
-    const data = await api.get<Role[]>(`/rbac/tenants/${tenantId}/roles`, { signal });
+    const qs = buildQueryString(params);
+    const data = await api.get<Role[]>(`/rbac/tenants/${tenantId}/roles${qs}`, { signal });
     return data?.length ? data : DEFAULT_ROLES;
   } catch {
     return DEFAULT_ROLES;
@@ -109,13 +122,26 @@ export async function createTenantRole(tenantId: string, input: CreateRoleInput)
     const newRole: Role = {
       id: `role-${Date.now()}`,
       name: input.name,
+      code: input.code,
       description: input.description ?? "",
       permissions: input.permissions,
+      scope: input.scope ?? "TENANT",
+      isActive: input.isActive ?? true,
       isSystem: false,
       usersCount: 0,
+      assignedUsersCount: 0,
+      assignedGroupsCount: 0,
     };
     return newRole;
   }
+}
+
+export async function updateTenantRole(
+  tenantId: string,
+  roleId: string,
+  input: UpdateRoleInput,
+): Promise<Role> {
+  return await api.patch<Role>(`/rbac/tenants/${tenantId}/roles/${roleId}`, input);
 }
 
 export async function deleteTenantRole(tenantId: string, roleId: string): Promise<void> {

@@ -88,6 +88,18 @@ export function RoleCard({ role, onDelete }: RoleCardProps) {
                 {role?.name}
               </CardTitle>
 
+              {role?.code && (
+                <Badge variant="outline" className="font-mono text-[9px] uppercase">
+                  {role.code}
+                </Badge>
+              )}
+
+              {role?.isActive === false && (
+                <Badge variant="destructive" className="h-5 px-1.5 font-mono text-[9px]">
+                  ARCHIVED
+                </Badge>
+              )}
+
               {role?.isSystem ? (
                 <Badge
                   variant="outline"
@@ -105,8 +117,18 @@ export function RoleCard({ role, onDelete }: RoleCardProps) {
                 variant="outline"
                 className="text-muted-foreground h-5 gap-1 font-mono text-[10px]"
               >
-                <Users className="size-2.5" /> {role?.usersCount ?? 0} assigned
+                <Users className="size-2.5" /> {role?.assignedUsersCount ?? role?.usersCount ?? 0}{" "}
+                members
               </Badge>
+
+              {role?.assignedGroupsCount !== undefined && role.assignedGroupsCount > 0 ? (
+                <Badge
+                  variant="outline"
+                  className="text-muted-foreground h-5 gap-1 font-mono text-[10px]"
+                >
+                  {role.assignedGroupsCount} groups
+                </Badge>
+              ) : null}
             </div>
 
             {role?.description && (

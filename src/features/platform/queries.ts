@@ -5,6 +5,7 @@ import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/r
 import {
   activateStaffMember,
   activateTenant,
+  closeTenant,
   createPlatformRole,
   createStaffMember,
   disablePlatformTwoFactor,
@@ -23,11 +24,15 @@ import {
   getSupportSessions,
   getTenantDatabaseHealth,
   getTenantMembers,
+  inviteStaffMember,
   loginPlatformStaff,
   logoutPlatformStaff,
   migrateTenantDatabase,
   provisionTenant,
+  resendStaffInvite,
   resetStaffMemberPassword,
+  retryTenantProvisioning,
+  revokeStaffInvite,
   rollbackTenantDatabase,
   setupPlatformTwoFactor,
   startSupportSession,
@@ -45,6 +50,7 @@ import { platformKeys } from "./keys";
 import type {
   CreatePlatformRoleInput,
   CreateStaffInput,
+  InviteStaffInput,
   PlatformLoginInput,
   ProvisionTenantInput,
   StartSupportSessionInput,
@@ -124,6 +130,36 @@ export function useResetStaffPassword() {
   return useMutation({
     mutationFn: ({ id, newPassword }: { id: string; newPassword?: string }) =>
       resetStaffMemberPassword(id, newPassword),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: platformKeys.staff() });
+    },
+  });
+}
+
+export function useInviteStaff() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: InviteStaffInput) => inviteStaffMember(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: platformKeys.staff() });
+    },
+  });
+}
+
+export function useResendStaffInvite() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => resendStaffInvite(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: platformKeys.staff() });
+    },
+  });
+}
+
+export function useRevokeStaffInvite() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => revokeStaffInvite(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: platformKeys.staff() });
     },
@@ -483,6 +519,29 @@ export function useActivateTenant() {
     mutationFn: ({ id, reason }: { id: string; reason?: string }) => activateTenant(id, reason),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: platformKeys.tenantDetail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: platformKeys.tenants() });
+    },
+  });
+}
+
+export function useCloseTenant() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
+      closeTenant(id, reason ?? "Closed by platform staff"),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: platformKeys.tenantDetail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: platformKeys.tenants() });
+    },
+  });
+}
+
+export function useRetryTenantProvisioning() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => retryTenantProvisioning(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: platformKeys.tenantDetail(id) });
       queryClient.invalidateQueries({ queryKey: platformKeys.tenants() });
     },
   });

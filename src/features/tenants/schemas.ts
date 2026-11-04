@@ -87,6 +87,7 @@ export const tenantBrandingSchema = z.object({
   authSubtitle: z.string().max(300).nullable().optional(),
   authCoverUrl: z.string().nullable().optional(),
   authLayout: z.enum(["SPLIT", "CARD"]).default("SPLIT").nullable().optional(),
+  hideWatermark: z.boolean().default(false).optional(),
   customDomain: z.string().nullable().optional(),
   customDomainStatus: customDomainStatusSchema.nullable().optional(),
   customDomainVerifiedAt: z.string().nullable().optional(),
@@ -128,15 +129,31 @@ export const tenantMemberSchema = z.object({
   userId: z.string(),
   name: z.string(),
   email: z.string(),
-  status: z.enum(["ACTIVE", "INVITED", "SUSPENDED"]).default("ACTIVE"),
+  status: z.enum(["ACTIVE", "INVITED", "SUSPENDED", "REMOVED"]).default("ACTIVE"),
   role: z.string().default("MEMBER"),
+  memberCode: z.string().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  jobTitle: z.string().nullable().optional(),
+  department: z.string().nullable().optional(),
+  invitedAt: z.string().nullable().optional(),
+  lastLoginAt: z.string().nullable().optional(),
   joinedAt: z.string().optional(),
+  deletedAt: z.string().nullable().optional(),
 });
 export type TenantMember = z.infer<typeof tenantMemberSchema>;
 
 export const addMemberSchema = z.object({
   email: z.string().email("Please enter a valid email"),
   role: z.string().min(1, "Role is required").default("MEMBER"),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  phone: z.string().optional(),
+  memberCode: z.string().optional(),
+  jobTitle: z.string().optional(),
+  department: z.string().optional(),
+  message: z.string().optional(),
+  groupIds: z.array(z.string()).optional(),
+  expiresInHours: z.coerce.number().int().min(1).max(720).default(48).optional(),
 });
 export type AddMemberInput = z.infer<typeof addMemberSchema>;
 

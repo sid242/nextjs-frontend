@@ -49,3 +49,23 @@ export interface PaginatedResult<T> {
   page: number;
   limit: number;
 }
+
+export interface GroupRole {
+  id: string;
+  tenantId: string | null;
+  code: string | null;
+  name: string;
+  description: string | null;
+  scope: string;
+  isActive: boolean;
+  isSystem: boolean;
+  createdAt: string;
+  updatedAt: string;
+  permissions: string[];
+}
+
+export interface GroupContributedPermissions {
+  groupId: string;
+  groupName: string;
+  permissions: string[];
+}

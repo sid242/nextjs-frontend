@@ -1,8 +1,11 @@
 import { api } from "@/lib/api/http";
+import { buildQueryString } from "@/lib/utils";
 
 import type { CreateGroupValues, UpdateGroupValues } from "./schemas";
 import type {
+  GroupContributedPermissions,
   GroupFilters,
+  GroupRole,
   PaginatedResult,
   PlatformGroupMember,
   TenantGroupMember,
@@ -10,16 +13,7 @@ import type {
 } from "./types";
 
 function buildQuery(filters?: GroupFilters): string {
-  if (!filters) return "";
-  const params = new URLSearchParams();
-  if (filters.page) params.set("page", String(filters.page));
-  if (filters.limit) params.set("limit", String(filters.limit));
-  if (filters.search) params.set("search", filters.search);
-  if (filters.status && filters.status !== "ALL") params.set("status", filters.status);
-  if (filters.sortBy) params.set("sortBy", filters.sortBy);
-  if (filters.sortOrder) params.set("sortOrder", filters.sortOrder);
-  const qs = params.toString();
-  return qs ? `?${qs}` : "";
+  return buildQueryString(filters);
 }
 
 function normalizePaginatedResult<T>(raw: unknown, defaultLimit = 20): PaginatedResult<T> {
@@ -88,14 +82,8 @@ export async function getTenantGroupMembers(
   params?: { page?: number; limit?: number },
   signal?: AbortSignal,
 ): Promise<PaginatedResult<TenantGroupMember>> {
-  const qs = new URLSearchParams();
-  if (params?.page) qs.set("page", String(params.page));
-  if (params?.limit) qs.set("limit", String(params.limit));
-  const queryStr = qs.toString();
-  const data = await api.get<unknown>(
-    `/groups/${groupId}/members${queryStr ? `?${queryStr}` : ""}`,
-    { signal },
-  );
+  const queryStr = buildQueryString(params);
+  const data = await api.get<unknown>(`/groups/${groupId}/members${queryStr}`, { signal });
   return normalizePaginatedResult<TenantGroupMember>(data, params?.limit);
 }
 
@@ -113,6 +101,34 @@ export async function removeTenantGroupMember(
   userId: string,
 ): Promise<{ success: boolean }> {
   return api.delete<{ success: boolean }>(`/groups/${groupId}/members/${userId}`);
+}
+
+export async function getTenantGroupRoles(
+  groupId: string,
+  signal?: AbortSignal,
+): Promise<GroupRole[]> {
+  return api.get<GroupRole[]>(`/groups/${groupId}/roles`, { signal });
+}
+
+export async function bindTenantGroupRole(
+  groupId: string,
+  input: { roleId: string; reason?: string },
+): Promise<{ success: boolean; groupId: string; roleId: string; roleName: string }> {
+  return api.post(`/groups/${groupId}/roles`, input);
+}
+
+export async function unbindTenantGroupRole(
+  groupId: string,
+  roleId: string,
+): Promise<{ success: boolean }> {
+  return api.delete(`/groups/${groupId}/roles/${roleId}`);
+}
+
+export async function getTenantGroupPermissions(
+  groupId: string,
+  signal?: AbortSignal,
+): Promise<GroupContributedPermissions> {
+  return api.get<GroupContributedPermissions>(`/groups/${groupId}/permissions`, { signal });
 }
 
 // ============================================================================
@@ -162,14 +178,8 @@ export async function getPlatformGroupMembers(
   params?: { page?: number; limit?: number },
   signal?: AbortSignal,
 ): Promise<PaginatedResult<PlatformGroupMember>> {
-  const qs = new URLSearchParams();
-  if (params?.page) qs.set("page", String(params.page));
-  if (params?.limit) qs.set("limit", String(params.limit));
-  const queryStr = qs.toString();
-  const data = await api.get<unknown>(
-    `/platform/groups/${groupId}/members${queryStr ? `?${queryStr}` : ""}`,
-    { signal },
-  );
+  const queryStr = buildQueryString(params);
+  const data = await api.get<unknown>(`/platform/groups/${groupId}/members${queryStr}`, { signal });
   return normalizePaginatedResult<PlatformGroupMember>(data, params?.limit);
 }
 

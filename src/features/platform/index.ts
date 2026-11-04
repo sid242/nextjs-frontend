@@ -31,6 +31,8 @@ export {
   useUpdatePlatformTenant,
   useSuspendTenant,
   useActivateTenant,
+  useCloseTenant,
+  useRetryTenantProvisioning,
   useUpdatePlatformTenantSubscription,
   tenantDbHealthQueryOptions,
   useTenantDbHealth,

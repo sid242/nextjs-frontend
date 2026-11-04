@@ -26,6 +26,11 @@ import { ROLE_OPTIONS } from "../constants";
 const inviteMemberFormSchema = z.object({
   email: z.string().trim().email("Please enter a valid email address"),
   role: z.string().min(1, "Please select a role"),
+  firstName: z.string().trim().optional(),
+  lastName: z.string().trim().optional(),
+  department: z.string().trim().optional(),
+  jobTitle: z.string().trim().optional(),
+  memberCode: z.string().trim().optional(),
 });
 
 type InviteMemberFormValues = z.infer<typeof inviteMemberFormSchema>;
@@ -34,7 +39,17 @@ interface InviteMemberDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   activeTenantName?: string;
-  onInvite: (email: string, role: string) => Promise<void>;
+  onInvite: (
+    email: string,
+    role: string,
+    extra?: {
+      firstName?: string;
+      lastName?: string;
+      department?: string;
+      jobTitle?: string;
+      memberCode?: string;
+    },
+  ) => Promise<void>;
   isInviting?: boolean;
   remainingSeats?: number;
   maxMembers?: number;
@@ -82,7 +97,13 @@ export function InviteMemberDialog({
 
   const onSubmit = async (values: InviteMemberFormValues) => {
     if (isSeatLimitReached) return;
-    await onInvite(values.email.trim(), values.role);
+    await onInvite(values.email.trim(), values.role, {
+      firstName: values.firstName?.trim() || undefined,
+      lastName: values.lastName?.trim() || undefined,
+      department: values.department?.trim() || undefined,
+      jobTitle: values.jobTitle?.trim() || undefined,
+      memberCode: values.memberCode?.trim() || undefined,
+    });
     methods.reset();
   };
 
@@ -169,6 +190,22 @@ export function InviteMemberDialog({
               options={roleOptions}
               returnPrimitiveValue
               required
+            />
+
+            <div className="grid grid-cols-2 gap-3">
+              <ControlledInput name="firstName" label="First Name" placeholder="Jane" />
+              <ControlledInput name="lastName" label="Last Name" placeholder="Doe" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <ControlledInput name="department" label="Department" placeholder="Engineering" />
+              <ControlledInput name="jobTitle" label="Job Title" placeholder="Senior Architect" />
+            </div>
+
+            <ControlledInput
+              name="memberCode"
+              label="Member Code (Optional)"
+              placeholder="MEM-001"
             />
 
             <DialogFooter className="pt-2">

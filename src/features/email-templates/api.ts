@@ -1,4 +1,5 @@
 import { api } from "@/lib/api/http";
+import { buildQueryString } from "@/lib/utils";
 
 import type {
   CreateEmailTemplateInput,
@@ -10,15 +11,8 @@ import type {
 } from "./types";
 
 export const listEmailTemplates = (params?: ListEmailTemplatesParams, signal?: AbortSignal) => {
-  const query = new URLSearchParams();
-  if (params?.page) query.set("page", String(params.page));
-  if (params?.limit) query.set("limit", String(params.limit));
-  if (params?.search) query.set("search", params.search);
-  if (params?.category) query.set("category", params.category);
-  if (params?.status) query.set("status", params.status);
-
-  const qs = query.toString();
-  return api.get<EmailTemplateListResponse>(`/email-templates${qs ? `?${qs}` : ""}`, { signal });
+  const qs = buildQueryString(params);
+  return api.get<EmailTemplateListResponse>(`/email-templates${qs}`, { signal });
 };
 
 export const getEmailTemplate = (id: string, signal?: AbortSignal) =>

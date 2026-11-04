@@ -1,8 +1,10 @@
 import { api } from "@/lib/api/http";
+import { buildQueryString } from "@/lib/utils";
 
 import type {
   CreatePlatformRoleInput,
   CreateStaffInput,
+  InviteStaffInput,
   PlatformAuditLog,
   PlatformLoginInput,
   PlatformPermission,
@@ -38,14 +40,8 @@ export async function getStaffMembers(
   params?: { page?: number; limit?: number; status?: string; roleId?: string },
   signal?: AbortSignal,
 ): Promise<PaginatedResult<StaffMember>> {
-  const query = new URLSearchParams();
-  if (params?.page) query.set("page", String(params.page));
-  if (params?.limit) query.set("limit", String(params.limit));
-  if (params?.status) query.set("status", params.status);
-  if (params?.roleId) query.set("roleId", params.roleId);
-
-  const qs = query.toString();
-  return api.get<PaginatedResult<StaffMember>>(`/platform/staff${qs ? `?${qs}` : ""}`, { signal });
+  const qs = buildQueryString(params);
+  return api.get<PaginatedResult<StaffMember>>(`/platform/staff${qs}`, { signal });
 }
 
 export async function getStaffMember(id: string, signal?: AbortSignal): Promise<StaffMember> {
@@ -54,6 +50,41 @@ export async function getStaffMember(id: string, signal?: AbortSignal): Promise<
 
 export async function createStaffMember(input: CreateStaffInput): Promise<StaffMember> {
   return api.post<StaffMember>("/platform/staff", input);
+}
+
+export async function inviteStaffMember(input: InviteStaffInput): Promise<{
+  staff: StaffMember;
+  inviteToken?: string;
+  inviteUrl?: string;
+}> {
+  return api.post<{
+    staff: StaffMember;
+    inviteToken?: string;
+    inviteUrl?: string;
+  }>("/platform/staff/invite", input);
+}
+
+export async function resendStaffInvite(
+  id: string,
+): Promise<{ success: boolean; inviteToken?: string; inviteUrl?: string }> {
+  return api.post<{ success: boolean; inviteToken?: string; inviteUrl?: string }>(
+    `/platform/staff/${id}/resend-invite`,
+  );
+}
+
+export async function revokeStaffInvite(id: string): Promise<{ success: boolean }> {
+  return api.post<{ success: boolean }>(`/platform/staff/${id}/revoke-invite`);
+}
+
+export async function acceptStaffInvite(input: {
+  token: string;
+  password: string;
+  displayName?: string;
+}): Promise<{ success: boolean; staff: StaffMember; token?: string }> {
+  return api.post<{ success: boolean; staff: StaffMember; token?: string }>(
+    "/platform/staff/invite/accept",
+    input,
+  );
 }
 
 export async function updateStaffMember(id: string, input: UpdateStaffInput): Promise<StaffMember> {
@@ -77,14 +108,8 @@ export async function getPlatformUsers(
   params?: { page?: number; limit?: number; status?: string; search?: string },
   signal?: AbortSignal,
 ): Promise<PaginatedResult<PlatformUser>> {
-  const query = new URLSearchParams();
-  if (params?.page) query.set("page", String(params.page));
-  if (params?.limit) query.set("limit", String(params.limit));
-  if (params?.status) query.set("status", params.status);
-  if (params?.search) query.set("search", params.search);
-
-  const qs = query.toString();
-  return api.get<PaginatedResult<PlatformUser>>(`/platform/users${qs ? `?${qs}` : ""}`, { signal });
+  const qs = buildQueryString(params);
+  return api.get<PaginatedResult<PlatformUser>>(`/platform/users${qs}`, { signal });
 }
 
 export async function getPlatformUser(id: string, signal?: AbortSignal): Promise<PlatformUser> {
@@ -149,15 +174,10 @@ export async function getSupportSessions(
   params?: { page?: number; limit?: number },
   signal?: AbortSignal,
 ): Promise<PaginatedResult<PlatformSupportSession>> {
-  const query = new URLSearchParams();
-  if (params?.page) query.set("page", String(params.page));
-  if (params?.limit) query.set("limit", String(params.limit));
-
-  const qs = query.toString();
-  return api.get<PaginatedResult<PlatformSupportSession>>(
-    `/platform/support-sessions${qs ? `?${qs}` : ""}`,
-    { signal },
-  );
+  const qs = buildQueryString(params);
+  return api.get<PaginatedResult<PlatformSupportSession>>(`/platform/support-sessions${qs}`, {
+    signal,
+  });
 }
 
 export async function startSupportSession(
@@ -207,19 +227,8 @@ export async function getPlatformAuditLogs(
   },
   signal?: AbortSignal,
 ): Promise<PaginatedResult<PlatformAuditLog>> {
-  const query = new URLSearchParams();
-  if (params?.page) query.set("page", String(params.page));
-  if (params?.limit) query.set("limit", String(params.limit));
-  if (params?.actorStaffId) query.set("actorStaffId", params.actorStaffId);
-  if (params?.action) query.set("action", params.action);
-  if (params?.targetType) query.set("targetType", params.targetType);
-  if (params?.targetId) query.set("targetId", params.targetId);
-  if (params?.tenantId) query.set("tenantId", params.tenantId);
-  if (params?.startDate) query.set("startDate", params.startDate);
-  if (params?.endDate) query.set("endDate", params.endDate);
-
-  const qs = query.toString();
-  return api.get<PaginatedResult<PlatformAuditLog>>(`/platform/audit-logs${qs ? `?${qs}` : ""}`, {
+  const qs = buildQueryString(params);
+  return api.get<PaginatedResult<PlatformAuditLog>>(`/platform/audit-logs${qs}`, {
     signal,
   });
 }
@@ -302,16 +311,8 @@ export async function getPlatformTenants(
   },
   signal?: AbortSignal,
 ): Promise<PaginatedResult<PlatformTenant>> {
-  const query = new URLSearchParams();
-  if (params?.page) query.set("page", String(params.page));
-  if (params?.limit) query.set("limit", String(params.limit));
-  if (params?.search) query.set("search", params.search);
-  if (params?.status) query.set("status", params.status);
-  if (params?.plan) query.set("plan", params.plan);
-  if (params?.databaseMode) query.set("databaseMode", params.databaseMode);
-
-  const qs = query.toString();
-  return api.get<PaginatedResult<PlatformTenant>>(`/platform/tenants${qs ? `?${qs}` : ""}`, {
+  const qs = buildQueryString(params);
+  return api.get<PaginatedResult<PlatformTenant>>(`/platform/tenants${qs}`, {
     signal,
   });
 }
@@ -350,6 +351,20 @@ export async function suspendTenant(id: string, reason: string): Promise<Platfor
 
 export async function activateTenant(id: string, reason?: string): Promise<PlatformTenant> {
   return api.post<PlatformTenant>(`/platform/tenants/${id}/activate`, { reason });
+}
+
+export async function retryTenantProvisioning(
+  id: string,
+  reason?: string,
+): Promise<{ tenant: PlatformTenant; inviteUrl?: string }> {
+  return api.post<{ tenant: PlatformTenant; inviteUrl?: string }>(
+    `/platform/tenants/${id}/retry-provisioning`,
+    { reason },
+  );
+}
+
+export async function closeTenant(id: string, reason: string): Promise<PlatformTenant> {
+  return api.post<PlatformTenant>(`/platform/tenants/${id}/close`, { reason });
 }
 
 export async function getPlatformTenantSubscription(

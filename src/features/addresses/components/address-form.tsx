@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, type Resolver } from "react-hook-form";
+import { useForm, useWatch, type Resolver } from "react-hook-form";
 
 import {
   ControlledCheckbox,
@@ -66,7 +66,7 @@ export function AddressForm({ initialData, onSubmit, isLoading, onCancel }: Addr
     mode: "onChange",
   });
 
-  const selectedType = methods.watch("type");
+  const selectedType = useWatch({ control: methods.control, name: "type" });
 
   return (
     <FormWrapper methods={methods} onSubmit={onSubmit} className="grid gap-5">

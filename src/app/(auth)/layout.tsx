@@ -48,8 +48,8 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
   if (resolved?.tenant && layout === "SPLIT") {
     return (
       <TenantThemeProvider overrideBranding={resolved?.branding}>
-        <div className="bg-background min-h-screen">
-          <div className="grid min-h-screen lg:grid-cols-12">
+        <div className="bg-background min-h-dvh">
+          <div className="grid min-h-dvh lg:grid-cols-12">
             {/* Side Hero Banner (Desktop: 5 cols) */}
             <div
               className="relative hidden flex-col justify-between overflow-hidden p-10 text-white lg:col-span-5 lg:flex"
@@ -162,6 +162,13 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
                       </a>
                     </p>
                   )}
+
+                  {!branding?.hideWatermark && (
+                    <p className="text-muted-foreground/60 text-center text-[11px]">
+                      Powered by{" "}
+                      <span className="text-foreground/80 font-semibold">{siteConfig.name}</span>
+                    </p>
+                  )}
                 </div>
               </main>
             </div>
@@ -174,7 +181,7 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
   // Centered Card Layout (Default & Platform)
   return (
     <TenantThemeProvider overrideBranding={resolved?.branding}>
-      <div className="bg-background selection:bg-primary/20 relative flex min-h-screen flex-col">
+      <div className="bg-background selection:bg-primary/20 relative flex min-h-dvh flex-col">
         {/* Ambient background brand glow */}
         <div
           className="pointer-events-none absolute top-0 left-1/2 h-96 w-full max-w-7xl -translate-x-1/2 rounded-full opacity-15 blur-3xl"
@@ -211,6 +218,12 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
                 >
                   Contact {tenantName} support
                 </a>
+              </p>
+            )}
+            {!branding?.hideWatermark && (
+              <p className="text-muted-foreground/60 text-center text-[11px]">
+                Powered by{" "}
+                <span className="text-foreground/80 font-semibold">{siteConfig.name}</span>
               </p>
             )}
           </div>

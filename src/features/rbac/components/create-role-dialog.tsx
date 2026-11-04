@@ -1,6 +1,12 @@
-import { useMemo, useState } from "react";
-import { CheckCheckIcon, SearchIcon, XIcon } from "lucide-react";
+"use client";
 
+import { useMemo, useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { CheckCheckIcon, SearchIcon, ShieldAlertIcon, XIcon } from "lucide-react";
+import { useForm, useWatch, type SubmitHandler } from "react-hook-form";
+
+import { ControlledInput, FormWrapper } from "@/components/molecules/forms";
+import { SubmitButton } from "@/components/molecules/submit-button";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,7 +19,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-import type { AppModule, Permission } from "../schemas";
+import {
+  createRoleSchema,
+  type AppModule,
+  type CreateRoleInput,
+  type Permission,
+} from "../schemas";
 import { ModulePermissionCard } from "./module-permission-card";
 
 interface CreateRoleDialogProps {
@@ -22,7 +33,12 @@ interface CreateRoleDialogProps {
   activeTenantName?: string;
   rawModules?: AppModule[];
   rawPermissions?: Permission[];
-  onSubmit: (data: { name: string; description?: string; permissions: string[] }) => Promise<void>;
+  onSubmit: (data: {
+    name: string;
+    code?: string;
+    description?: string;
+    permissions: string[];
+  }) => Promise<void>;
   isSubmitting?: boolean;
 }
 
@@ -35,10 +51,34 @@ export function CreateRoleDialog({
   onSubmit,
   isSubmitting = false,
 }: CreateRoleDialogProps) {
-  const [roleName, setRoleName] = useState("");
-  const [roleDesc, setRoleDesc] = useState("");
-  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+
+  const methods = useForm<CreateRoleInput>({
+    resolver: zodResolver(createRoleSchema),
+    defaultValues: {
+      name: "",
+      code: "",
+      description: "",
+      permissions: [],
+      scope: "TENANT",
+      isActive: true,
+    },
+  });
+
+  const handleOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
+      methods.reset();
+      setSearchQuery("");
+    }
+    onOpenChange(isOpen);
+  };
+
+  // Selected permissions synchronized via React Hook Form
+  const selectedPermissions =
+    useWatch({
+      control: methods.control,
+      name: "permissions",
+    }) ?? [];
 
   // Harmonize modules and permissions
   const modulesWithPermissions = useMemo<AppModule[]>(() => {
@@ -115,44 +155,44 @@ export function CreateRoleDialog({
   }, [modulesWithPermissions, searchQuery]);
 
   const togglePermission = (key: string) => {
-    setSelectedPermissions((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
-    );
+    const next = selectedPermissions.includes(key)
+      ? selectedPermissions.filter((k) => k !== key)
+      : [...selectedPermissions, key];
+    methods.setValue("permissions", next, { shouldValidate: true, shouldDirty: true });
   };
 
   const toggleModulePermissions = (modulePermKeys: string[]) => {
     const allSelected = modulePermKeys.every((k) => selectedPermissions.includes(k));
-    if (allSelected) {
-      setSelectedPermissions((prev) => prev.filter((k) => !modulePermKeys.includes(k)));
-    } else {
-      setSelectedPermissions((prev) => Array.from(new Set([...prev, ...modulePermKeys])));
-    }
+    const next = allSelected
+      ? selectedPermissions.filter((k) => !modulePermKeys.includes(k))
+      : Array.from(new Set([...selectedPermissions, ...modulePermKeys]));
+    methods.setValue("permissions", next, { shouldValidate: true, shouldDirty: true });
   };
 
   const handleSelectAllGlobal = () => {
     const allKeys = allPermissions.map((p) => p.key);
-    setSelectedPermissions(allKeys);
+    methods.setValue("permissions", allKeys, { shouldValidate: true, shouldDirty: true });
   };
 
   const handleClearAllGlobal = () => {
-    setSelectedPermissions([]);
+    methods.setValue("permissions", [], { shouldValidate: true, shouldDirty: true });
   };
 
-  const handleFormSubmit = async () => {
-    if (!roleName.trim() || selectedPermissions.length === 0) return;
+  const handleFormSubmit: SubmitHandler<CreateRoleInput> = async (data) => {
     await onSubmit({
-      name: roleName.trim(),
-      description: roleDesc.trim() || undefined,
-      permissions: selectedPermissions,
+      name: data.name.trim(),
+      code: data.code?.trim() || undefined,
+      description: data.description?.trim() || undefined,
+      permissions: data.permissions,
     });
-    setRoleName("");
-    setRoleDesc("");
-    setSelectedPermissions([]);
+    methods.reset();
     setSearchQuery("");
   };
 
+  const permissionsError = methods.formState.errors.permissions?.message;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Create Custom Workspace Role</DialogTitle>
@@ -162,32 +202,19 @@ export function CreateRoleDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-5 py-2">
+        <FormWrapper methods={methods} onSubmit={handleFormSubmit} className="grid gap-5 py-2">
           {/* Role Metadata Inputs */}
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="grid gap-1.5">
-              <Label htmlFor="role-name" className="text-xs font-semibold">
-                Role Name *
-              </Label>
-              <Input
-                id="role-name"
-                placeholder="e.g. Storage Manager, Compliance Officer"
-                value={roleName}
-                onChange={(e) => setRoleName(e?.target?.value ?? "")}
-              />
-            </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <ControlledInput
+              name="name"
+              label="Role Name"
+              placeholder="e.g. Storage Manager"
+              required
+            />
 
-            <div className="grid gap-1.5">
-              <Label htmlFor="role-desc" className="text-xs font-semibold">
-                Description
-              </Label>
-              <Input
-                id="role-desc"
-                placeholder="Summary of responsibilities and scope"
-                value={roleDesc}
-                onChange={(e) => setRoleDesc(e?.target?.value ?? "")}
-              />
-            </div>
+            <ControlledInput name="code" label="Stable Code" placeholder="e.g. STORAGE_MGR" />
+
+            <ControlledInput name="description" label="Description" placeholder="Brief purpose" />
           </div>
 
           {/* Permission Scopes Section */}
@@ -226,6 +253,13 @@ export function CreateRoleDialog({
               </div>
             </div>
 
+            {permissionsError && (
+              <div className="border-destructive/30 bg-destructive/10 text-destructive flex items-center gap-2 rounded-lg border p-2.5 text-xs">
+                <ShieldAlertIcon className="size-4 shrink-0" />
+                <span>{permissionsError}</span>
+              </div>
+            )}
+
             {/* Search input for permissions */}
             <div className="relative">
               <SearchIcon className="text-muted-foreground absolute top-2.5 left-2.5 size-4" />
@@ -256,19 +290,21 @@ export function CreateRoleDialog({
               )}
             </div>
           </div>
-        </div>
 
-        <DialogFooter className="border-border/50 border-t pt-3">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleFormSubmit}
-            disabled={!roleName.trim() || selectedPermissions.length === 0 || isSubmitting}
-          >
-            {isSubmitting ? "Creating…" : `Create Role (${selectedPermissions.length} scopes)`}
-          </Button>
-        </DialogFooter>
+          <DialogFooter className="border-border/50 border-t pt-3">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <SubmitButton
+              pending={methods.formState.isSubmitting || isSubmitting}
+              pendingText="Creating Role…"
+              disabled={selectedPermissions.length === 0}
+            >
+              Create Role ({selectedPermissions.length}{" "}
+              {selectedPermissions.length === 1 ? "scope" : "scopes"})
+            </SubmitButton>
+          </DialogFooter>
+        </FormWrapper>
       </DialogContent>
     </Dialog>
   );

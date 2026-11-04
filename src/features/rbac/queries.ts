@@ -8,14 +8,15 @@ import {
   getPlatformModules,
   getPlatformPermissions,
   getTenantRoles,
+  updateTenantRole,
 } from "./api";
 import { rbacKeys } from "./keys";
-import type { CreateRoleInput, Role } from "./schemas";
+import type { CreateRoleInput, ListRolesFilter, UpdateRoleInput } from "./schemas";
 
-export const tenantRolesQueryOptions = (tenantId: string) =>
+export const tenantRolesQueryOptions = (tenantId: string, params?: ListRolesFilter) =>
   queryOptions({
-    queryKey: rbacKeys.roles(tenantId),
-    queryFn: ({ signal }) => getTenantRoles(tenantId, signal),
+    queryKey: [...rbacKeys.roles(tenantId), params],
+    queryFn: ({ signal }) => getTenantRoles(tenantId, params, signal),
     enabled: Boolean(tenantId),
     staleTime: 60 * 1000,
   });
@@ -34,8 +35,8 @@ export const modulesQueryOptions = () =>
     staleTime: 10 * 60 * 1000,
   });
 
-export function useTenantRoles(tenantId?: string | null) {
-  return useQuery(tenantRolesQueryOptions(tenantId ?? ""));
+export function useTenantRoles(tenantId?: string | null, params?: ListRolesFilter) {
+  return useQuery(tenantRolesQueryOptions(tenantId ?? "", params));
 }
 
 export function usePermissions() {
@@ -51,8 +52,20 @@ export function useCreateTenantRole(tenantId: string) {
 
   return useMutation({
     mutationFn: (input: CreateRoleInput) => createTenantRole(tenantId, input),
-    onSuccess: (newRole) => {
-      queryClient.setQueryData<Role[]>(rbacKeys.roles(tenantId), (old = []) => [...old, newRole]);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: rbacKeys.roles(tenantId) });
+    },
+  });
+}
+
+export function useUpdateTenantRole(tenantId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ roleId, input }: { roleId: string; input: UpdateRoleInput }) =>
+      updateTenantRole(tenantId, roleId, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: rbacKeys.roles(tenantId) });
     },
   });
 }
@@ -62,10 +75,8 @@ export function useDeleteTenantRole(tenantId: string) {
 
   return useMutation({
     mutationFn: (roleId: string) => deleteTenantRole(tenantId, roleId),
-    onSuccess: (_, roleId) => {
-      queryClient.setQueryData<Role[]>(rbacKeys.roles(tenantId), (old = []) =>
-        old.filter((r) => r.id !== roleId),
-      );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: rbacKeys.roles(tenantId) });
     },
   });
 }

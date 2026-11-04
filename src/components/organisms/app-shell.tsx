@@ -49,7 +49,7 @@ export function AppShell({
   mobileNavigationSlot,
 }: AppShellProps) {
   return (
-    <div className="bg-background flex min-h-screen">
+    <div className="bg-background flex min-h-dvh">
       {/* Desktop Collapsible Sidebar */}
       <AppSidebar
         tenantSwitcher={tenantSwitcher}

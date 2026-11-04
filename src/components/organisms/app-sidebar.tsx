@@ -27,7 +27,7 @@ export function AppSidebar({ tenantSwitcher, userProfile, navigationSlot }: AppS
     <SidebarProvider value={{ collapsed, toggle, isMobile: false }}>
       <aside
         className={cn(
-          "bg-sidebar text-sidebar-foreground border-sidebar-border sticky top-0 hidden h-screen shrink-0 flex-col justify-between border-r p-3 transition-[width] duration-200 md:flex",
+          "bg-sidebar text-sidebar-foreground border-sidebar-border sticky top-0 hidden h-dvh shrink-0 flex-col justify-between border-r p-3 transition-[width] duration-200 md:flex",
           collapsed ? "w-16" : "w-64",
         )}
       >

@@ -1,5 +1,7 @@
 export type {
+  GroupContributedPermissions,
   GroupFilters,
+  GroupRole,
   GroupScope,
   GroupStatus,
   PaginatedResult,
@@ -10,10 +12,12 @@ export type {
 
 export {
   addMembersSchema,
+  bindRoleSchema,
   createGroupSchema,
   groupSlugRegex,
   updateGroupSchema,
   type AddMembersValues,
+  type BindRoleValues,
   type CreateGroupValues,
   type UpdateGroupValues,
 } from "./schemas";
@@ -26,11 +30,14 @@ export {
   platformGroupsQueryOptions,
   tenantGroupDetailQueryOptions,
   tenantGroupMembersQueryOptions,
+  tenantGroupPermissionsQueryOptions,
+  tenantGroupRolesQueryOptions,
   tenantGroupsQueryOptions,
   useAddPlatformGroupMembers,
   useAddTenantGroupMembers,
   useArchivePlatformGroup,
   useArchiveTenantGroup,
+  useBindTenantGroupRole,
   useCreatePlatformGroup,
   useCreateTenantGroup,
   usePlatformGroup,
@@ -40,7 +47,10 @@ export {
   useRemoveTenantGroupMember,
   useTenantGroup,
   useTenantGroupMembers,
+  useTenantGroupPermissions,
+  useTenantGroupRoles,
   useTenantGroups,
+  useUnbindTenantGroupRole,
   useUpdatePlatformGroup,
   useUpdateTenantGroup,
 } from "./queries";

@@ -6,7 +6,7 @@ export const metadata = { title: "Workspace Suspended" };
 
 export default function TenantSuspendedPage() {
   return (
-    <main id="main" className="grid min-h-screen place-items-center p-6 text-center">
+    <main id="main" className="grid min-h-dvh place-items-center p-6 text-center">
       <div className="grid gap-4">
         <h1 className="text-2xl font-semibold tracking-tight">Workspace suspended</h1>
         <p className="text-muted-foreground">This workspace has been temporarily suspended.</p>
