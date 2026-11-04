@@ -51,6 +51,7 @@ import type {
   TenantUrlSettings,
   TestEmailInput,
   UpdateTenantBrandingInput,
+  UpdateTenantInput,
   UpdateTenantUrlSettingsInput,
 } from "./schemas";
 import { useTenantStore } from "./store";
@@ -394,14 +395,13 @@ export function useTestTenantEmailConfig(
 
 export function useUpdateTenant(
   tenantId: string,
-  options?: MutationOverrides<Tenant, { name?: string; plan?: "FREE" | "PRO" | "ENTERPRISE" }>,
+  options?: MutationOverrides<Tenant, UpdateTenantInput>,
 ) {
   const queryClient = useQueryClient();
 
   return useAppMutation(
     {
-      mutationFn: (input: { name?: string; plan?: "FREE" | "PRO" | "ENTERPRISE" }) =>
-        updateTenant(tenantId, input),
+      mutationFn: (input: UpdateTenantInput) => updateTenant(tenantId, input),
       onSuccess: (updated: Tenant) => {
         queryClient.setQueryData<Tenant[]>(
           tenantKeys.list(),

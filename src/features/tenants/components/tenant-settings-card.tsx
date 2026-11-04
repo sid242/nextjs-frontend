@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Building2Icon, LayersIcon, SparklesIcon } from "lucide-react";
+import { Building2Icon, LayersIcon, ShieldCheckIcon, SparklesIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +29,7 @@ import {
 interface TenantSettingsFormState {
   orgName: string;
   selectedPlan: TenantPlan;
+  allowSupportAccess: boolean;
 }
 
 const TENANT_PLAN_SELECT_OPTIONS: Array<{ value: TenantPlan; label: string }> = [
@@ -46,6 +47,8 @@ export function TenantSettingsCard() {
   const [formState, setFormState] = useState<TenantSettingsFormState>({
     orgName: activeTenant?.name ?? "",
     selectedPlan: (activeTenant?.plan ?? "PRO") as TenantPlan,
+    allowSupportAccess:
+      (activeTenant as unknown as { allowSupportAccess?: boolean })?.allowSupportAccess ?? true,
   });
 
   const handleUpdate = async () => {
@@ -54,6 +57,7 @@ export function TenantSettingsCard() {
       await updateTenantMutation.mutateAsync({
         name: formState.orgName.trim(),
         plan: formState.selectedPlan,
+        allowSupportAccess: formState.allowSupportAccess,
       });
       toast.success("Workspace profile updated successfully!");
     } catch {
@@ -181,6 +185,46 @@ export function TenantSettingsCard() {
               ))}
             </div>
           )}
+        </CardContent>
+      </Card>
+      <Card className="border-border/80 rounded-2xl shadow-xs">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base font-semibold">
+            <ShieldCheckIcon className="size-4 text-emerald-500" /> Platform Support Delegation
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Authorize platform engineering and support staff to temporarily access your workspace
+            for troubleshooting.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div className="grid gap-0.5 leading-tight">
+              <span className="text-foreground text-xs font-semibold">
+                Allow Support Impersonation
+              </span>
+              <span className="text-muted-foreground text-[11px]">
+                When disabled, internal SaaS support staff are strictly prohibited from entering
+                this workspace.
+              </span>
+            </div>
+            <Switch
+              checked={formState.allowSupportAccess}
+              onCheckedChange={async (checked) => {
+                setFormState((prev) => ({ ...prev, allowSupportAccess: checked }));
+                if (activeTenantId) {
+                  try {
+                    await updateTenantMutation.mutateAsync({ allowSupportAccess: checked });
+                    toast.success(checked ? "Support access enabled." : "Support access revoked.");
+                  } catch {
+                    toast.error("Failed to update support access setting.");
+                  }
+                }
+              }}
+              disabled={updateTenantMutation.isPending}
+              aria-label="Allow Support Impersonation"
+            />
+          </div>
         </CardContent>
       </Card>
     </div>

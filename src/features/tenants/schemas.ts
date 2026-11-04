@@ -112,6 +112,7 @@ export type CreateTenantInput = z.infer<typeof createTenantSchema>;
 export const updateTenantSchema = z.object({
   name: z.string().trim().min(2).max(100).optional(),
   plan: tenantPlanSchema.optional(),
+  allowSupportAccess: z.boolean().optional(),
 });
 export type UpdateTenantInput = z.infer<typeof updateTenantSchema>;
 
@@ -219,6 +220,7 @@ export interface TenantContext {
     slug: string;
     status: string;
     plan: string;
+    allowSupportAccess?: boolean;
     databaseMode?: string;
     urlStyle?: string;
     urlAccess?: TenantUrlAccess;

@@ -149,7 +149,9 @@ export const startSupportSessionSchema = z.object({
   tenantId: z.string().uuid("Valid customer tenant ID required"),
   targetUserId: z.string().optional(),
   reason: z.string().trim().min(5, "Support reason must be at least 5 characters"),
+  ticketRef: z.string().trim().optional(),
   durationMinutes: z.coerce.number().int().min(5).max(120),
+  acknowledgement: z.boolean().default(true).optional(),
 });
 
 export type StartSupportSessionInput = z.infer<typeof startSupportSessionSchema>;
@@ -158,6 +160,7 @@ export interface StartSupportSessionResponse {
   sessionId: string;
   tenantId: string;
   targetUserId?: string | null;
+  ticketRef?: string | null;
   accessToken?: string;
   reason: string;
   expiresAt: string;

@@ -13,6 +13,7 @@ import type {
   TenantUrlSettings,
   TestEmailInput,
   UpdateTenantBrandingInput,
+  UpdateTenantInput,
   UpdateTenantUrlSettingsInput,
 } from "./schemas";
 
@@ -211,10 +212,7 @@ export async function searchTenantAuditLogs(
   return [];
 }
 
-export async function updateTenant(
-  tenantId: string,
-  input: { name?: string; plan?: "FREE" | "PRO" | "ENTERPRISE" },
-): Promise<Tenant> {
+export async function updateTenant(tenantId: string, input: UpdateTenantInput): Promise<Tenant> {
   return await api.patch<Tenant>(`/tenants/${tenantId}`, input);
 }
 

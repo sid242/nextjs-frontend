@@ -466,6 +466,7 @@ function InitiateSupportSessionDialog({
     defaultValues: {
       tenantId: "",
       targetUserId: "",
+      ticketRef: "",
       reason: "",
       durationMinutes: 30,
     },
@@ -484,6 +485,7 @@ function InitiateSupportSessionDialog({
       await startSession({
         tenantId: values.tenantId.trim(),
         targetUserId: values.targetUserId?.trim() || undefined,
+        ticketRef: values.ticketRef?.trim() || undefined,
         reason: values.reason.trim(),
         durationMinutes: Number(values.durationMinutes),
       });
@@ -526,6 +528,13 @@ function InitiateSupportSessionDialog({
             name="targetUserId"
             label="Target User ID (Optional Impersonation)"
             placeholder="Leave empty for workspace-level support, or enter target user UUID"
+            className="h-10 rounded-xl font-mono text-xs"
+          />
+
+          <ControlledInput
+            name="ticketRef"
+            label="Support Ticket Reference (Optional)"
+            placeholder="e.g. TICKET-9421 or INC-1042"
             className="h-10 rounded-xl font-mono text-xs"
           />
 
