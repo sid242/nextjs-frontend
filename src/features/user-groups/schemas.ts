@@ -56,7 +56,7 @@ export const addMembersSchema = z.object({
 export type AddMembersValues = z.infer<typeof addMembersSchema>;
 
 export const bindRoleSchema = z.object({
-  roleId: z.string().uuid("Please select a valid role"),
+  roleIds: z.array(z.string().uuid("Invalid role ID")).min(1, "Please select at least one role"),
   reason: z.string().trim().max(255).optional(),
 });
 

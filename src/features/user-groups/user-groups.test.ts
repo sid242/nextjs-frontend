@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { groupKeys } from "./keys";
-import { addMembersSchema, createGroupSchema, updateGroupSchema } from "./schemas";
+import { addMembersSchema, bindRoleSchema, createGroupSchema, updateGroupSchema } from "./schemas";
+import { formatPermissionsSummary } from "./utils";
 
 describe("User Groups Feature - Schemas & Key Factory", () => {
   it("createGroupSchema validates correct group creation payload", () => {
@@ -54,6 +55,46 @@ describe("User Groups Feature - Schemas & Key Factory", () => {
       memberIds: ["11111111-1111-1111-1111-111111111111", "22222222-2222-2222-2222-222222222222"],
     });
     expect(valid.success).toBe(true);
+  });
+
+  it("bindRoleSchema validates single or multiple role IDs in roleIds array", () => {
+    const single = bindRoleSchema.safeParse({
+      roleIds: ["11111111-1111-1111-1111-111111111111"],
+      reason: "Sales Manager assignment",
+    });
+    expect(single.success).toBe(true);
+
+    const multiple = bindRoleSchema.safeParse({
+      roleIds: ["11111111-1111-1111-1111-111111111111", "22222222-2222-2222-2222-222222222222"],
+      reason: "Multi-role assignment",
+    });
+    expect(multiple.success).toBe(true);
+
+    const empty = bindRoleSchema.safeParse({
+      reason: "Missing role IDs",
+    });
+    expect(empty.success).toBe(false);
+
+    const emptyArray = bindRoleSchema.safeParse({
+      roleIds: [],
+    });
+    expect(emptyArray.success).toBe(false);
+  });
+
+  it("formatPermissionsSummary formats permissions into structured readable summary", () => {
+    const summary = formatPermissionsSummary([
+      "leads:read",
+      "leads:create",
+      "leads:update",
+      "reports:read",
+    ]);
+    expect(summary).toBe("Leads: Read, Create, Update · Reports: Read");
+
+    const single = formatPermissionsSummary(["properties:read"]);
+    expect(single).toBe("Properties: Read");
+
+    const empty = formatPermissionsSummary([]);
+    expect(empty).toBe("No permissions assigned");
   });
 
   it("groupKeys factory correctly isolates tenant and platform query keys", () => {

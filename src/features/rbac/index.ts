@@ -10,6 +10,7 @@ export {
   useCreateTenantRole,
   useDeleteTenantRole,
 } from "./queries";
+export { DEFAULT_ROLES } from "./api";
 export {
   RoleStatsCards,
   RoleCard,

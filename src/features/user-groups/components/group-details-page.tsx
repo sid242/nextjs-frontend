@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Archive,
   ArrowLeft,
@@ -23,12 +22,9 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { useForm, type SubmitHandler } from "react-hook-form";
 import { toast } from "sonner";
 
 import { ConfirmDialog } from "@/components/molecules/confirm-dialog";
-import { ControlledInput, ControlledSelect, FormWrapper } from "@/components/molecules/forms";
-import { SubmitButton } from "@/components/molecules/submit-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,7 +46,6 @@ import {
   usePlatformMe,
   useStaffList,
 } from "@/features/platform";
-import { useTenantRoles } from "@/features/rbac";
 import {
   hasTenantPermission,
   TENANT_PERMISSIONS,
@@ -64,7 +59,6 @@ import {
   useAddTenantGroupMembers,
   useArchivePlatformGroup,
   useArchiveTenantGroup,
-  useBindTenantGroupRole,
   usePlatformGroup,
   usePlatformGroupMembers,
   useRemovePlatformGroupMember,
@@ -75,8 +69,9 @@ import {
   useTenantGroupRoles,
   useUnbindTenantGroupRole,
 } from "../queries";
-import { bindRoleSchema, type BindRoleValues } from "../schemas";
 import type { PlatformGroupMember, TenantGroupMember } from "../types";
+import { formatPermissionsSummary } from "../utils";
+import { AssignGroupRolesDialog } from "./assign-group-roles-dialog";
 import { GroupStatusBadge } from "./group-status-badge";
 
 interface GroupDetailsPageProps {
@@ -282,68 +277,23 @@ export function GroupDetailsPage({ scope, groupId, backHref }: GroupDetailsPageP
     }
   };
 
-  // Group Role Bindings & Contributed Permissions (Tenant scope)
-  const canAssignRoles =
-    scope === "TENANT" &&
-    hasTenantPermission(tenantContext?.permissions ?? [], TENANT_PERMISSIONS.GROUPS_ASSIGN_ROLES);
+  // Group Role Bindings & Contributed Permissions
+  const canAssignRoles = isTenant
+    ? hasTenantPermission(tenantContext?.permissions ?? [], TENANT_PERMISSIONS.GROUPS_ASSIGN_ROLES)
+    : hasPlatformPermission(platformStaff, PLATFORM_PERMISSION_KEYS.GROUPS_UPDATE);
 
   const { data: groupRoles = [], isLoading: loadingGroupRoles } = useTenantGroupRoles(
     activeTenantId,
-    scope === "TENANT" ? groupId : undefined,
+    groupId,
   );
 
   const { data: groupPermissionsData, isLoading: loadingGroupPermissions } =
-    useTenantGroupPermissions(activeTenantId, scope === "TENANT" ? groupId : undefined);
+    useTenantGroupPermissions(activeTenantId, groupId);
 
-  const { data: allTenantRolesData } = useTenantRoles(
-    scope === "TENANT" ? activeTenantId : undefined,
-  );
-
-  const bindTenantGroupRoleMutation = useBindTenantGroupRole(activeTenantId);
   const unbindTenantGroupRoleMutation = useUnbindTenantGroupRole(activeTenantId);
 
-  const [isAssigningRoleOpen, setIsAssigningRoleOpen] = useState(false);
+  const [isAssignRoleModalOpen, setIsAssignRoleModalOpen] = useState(false);
   const [roleToUnbind, setRoleToUnbind] = useState<{ id: string; name: string } | null>(null);
-
-  const boundRoleIds = useMemo(() => new Set(groupRoles.map((r) => r.id)), [groupRoles]);
-  const candidateRoles = useMemo(
-    () => (allTenantRolesData ?? []).filter((r) => (r.isActive ?? true) && !boundRoleIds.has(r.id)),
-    [allTenantRolesData, boundRoleIds],
-  );
-
-  const roleSelectOptions = useMemo(
-    () =>
-      candidateRoles.map((r) => ({
-        value: r.id,
-        label: `${r.name} (${r.code ?? "CUSTOM"}${r.isSystem ? " - System" : ""})`,
-      })),
-    [candidateRoles],
-  );
-
-  const bindRoleMethods = useForm<BindRoleValues>({
-    resolver: zodResolver(bindRoleSchema),
-    defaultValues: {
-      roleId: "",
-      reason: "",
-    },
-  });
-
-  const handleBindRoleSubmit: SubmitHandler<BindRoleValues> = async (data) => {
-    try {
-      await bindTenantGroupRoleMutation.mutateAsync({
-        groupId,
-        input: {
-          roleId: data.roleId,
-          reason: data.reason?.trim() ? data.reason.trim() : undefined,
-        },
-      });
-      toast.success("Role bound to user group successfully.");
-      bindRoleMethods.reset();
-      setIsAssigningRoleOpen(false);
-    } catch {
-      toast.error("Failed to bind role to user group.");
-    }
-  };
 
   const handleUnbindRole = async () => {
     if (!roleToUnbind) return;
@@ -474,29 +424,92 @@ export function GroupDetailsPage({ scope, groupId, backHref }: GroupDetailsPageP
       </Card>
 
       {/* Details Tabs */}
-      <Tabs defaultValue="members" className="space-y-4">
+      <Tabs defaultValue="overview" className="space-y-4">
         <TabsList className="bg-muted/70 rounded-xl p-1">
+          <TabsTrigger value="overview" className="gap-2 rounded-lg">
+            <Clock className="h-4 w-4" />
+            Overview
+          </TabsTrigger>
           <TabsTrigger value="members" className="gap-2 rounded-lg">
             <Users className="h-4 w-4" />
             Members ({members.length})
           </TabsTrigger>
-          {scope === "TENANT" && (
-            <>
-              <TabsTrigger value="roles" className="gap-2 rounded-lg">
-                <Shield className="h-4 w-4" />
-                Assigned Roles ({groupRoles.length})
-              </TabsTrigger>
-              <TabsTrigger value="permissions" className="gap-2 rounded-lg">
-                <Key className="h-4 w-4" />
-                Permissions ({groupPermissionsData?.permissions?.length ?? 0})
-              </TabsTrigger>
-            </>
-          )}
-          <TabsTrigger value="details" className="gap-2 rounded-lg">
-            <Clock className="h-4 w-4" />
-            Governance & Metadata
+          <TabsTrigger value="roles" className="gap-2 rounded-lg">
+            <Shield className="h-4 w-4" />
+            Assigned Roles ({groupRoles.length})
+          </TabsTrigger>
+          <TabsTrigger value="permissions" className="gap-2 rounded-lg">
+            <Key className="h-4 w-4" />
+            Effective Permissions ({groupPermissionsData?.permissions?.length ?? 0})
           </TabsTrigger>
         </TabsList>
+
+        {/* Tab 1: Overview */}
+        <TabsContent value="overview" className="space-y-4">
+          <Card className="rounded-2xl border shadow-xs">
+            <CardHeader>
+              <CardTitle className="text-lg">Group Overview & Governance</CardTitle>
+              <CardDescription>
+                Auditable metadata, ownership, and isolation configuration for this group.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <dl className="grid gap-4 sm:grid-cols-2">
+                <div className="bg-muted/40 rounded-xl border p-3">
+                  <dt className="text-muted-foreground font-mono text-xs uppercase">Group Name</dt>
+                  <dd className="mt-1 font-semibold">{group.name}</dd>
+                </div>
+                <div className="bg-muted/40 rounded-xl border p-3">
+                  <dt className="text-muted-foreground font-mono text-xs uppercase">
+                    Slug Identifier
+                  </dt>
+                  <dd className="mt-1 font-mono text-sm font-semibold">{group.slug}</dd>
+                </div>
+                <div className="bg-muted/40 rounded-xl border p-3">
+                  <dt className="text-muted-foreground font-mono text-xs uppercase">
+                    Scope Policy
+                  </dt>
+                  <dd className="mt-1 flex items-center gap-2">
+                    <Badge variant="outline">{group.scope}</Badge>
+                    <span className="text-muted-foreground text-xs">
+                      {group.scope === "TENANT"
+                        ? "Restricted strictly to active members of owning tenant"
+                        : "Platform operator isolation"}
+                    </span>
+                  </dd>
+                </div>
+                <div className="bg-muted/40 rounded-xl border p-3">
+                  <dt className="text-muted-foreground font-mono text-xs uppercase">
+                    Lifecycle Status
+                  </dt>
+                  <dd className="mt-1 flex items-center gap-2">
+                    <GroupStatusBadge status={group.status} />
+                  </dd>
+                </div>
+                <div className="bg-muted/40 rounded-xl border p-3">
+                  <dt className="text-muted-foreground font-mono text-xs uppercase">Group ID</dt>
+                  <dd className="text-muted-foreground mt-1 font-mono text-xs">{group.id}</dd>
+                </div>
+                <div className="bg-muted/40 rounded-xl border p-3">
+                  <dt className="text-muted-foreground font-mono text-xs uppercase">Tenant ID</dt>
+                  <dd className="text-muted-foreground mt-1 font-mono text-xs">
+                    {group.tenantId || "N/A (Platform Scope)"}
+                  </dd>
+                </div>
+                <div className="bg-muted/40 rounded-xl border p-3">
+                  <dt className="text-muted-foreground font-mono text-xs uppercase">Created At</dt>
+                  <dd className="mt-1 text-sm">{new Date(group.createdAt).toLocaleString()}</dd>
+                </div>
+                <div className="bg-muted/40 rounded-xl border p-3">
+                  <dt className="text-muted-foreground font-mono text-xs uppercase">
+                    Last Updated
+                  </dt>
+                  <dd className="mt-1 text-sm">{new Date(group.updatedAt).toLocaleString()}</dd>
+                </div>
+              </dl>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* Tab 1: Members */}
         <TabsContent value="members" className="space-y-4">
@@ -709,129 +722,59 @@ export function GroupDetailsPage({ scope, groupId, backHref }: GroupDetailsPageP
           </div>
         </TabsContent>
 
-        {/* Tab: Assigned Roles (Tenant Scope) */}
-        {scope === "TENANT" && (
-          <TabsContent value="roles" className="space-y-4">
-            <Card className="rounded-2xl border shadow-xs">
-              <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <CardTitle className="text-lg">Assigned Workspace Roles</CardTitle>
-                  <CardDescription>
-                    Roles bound to this group grant permissions to all active group members.
-                  </CardDescription>
-                </div>
-                {canAssignRoles && group.status === "ACTIVE" && (
-                  <Button
-                    onClick={() => setIsAssigningRoleOpen((prev) => !prev)}
-                    size="sm"
-                    className="gap-2"
-                  >
-                    <Plus className="h-4 w-4" /> Bind Role
-                  </Button>
-                )}
-              </CardHeader>
-
-              {/* Inline Role Assignment Form */}
-              {isAssigningRoleOpen && (
-                <div className="border-border/80 bg-muted/20 mx-6 mb-6 space-y-3 rounded-2xl border p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="text-sm font-semibold">Bind Workspace Role</h4>
-                      <p className="text-muted-foreground text-xs">
-                        Select an active tenant role to grant to all members of this group.
-                      </p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setIsAssigningRoleOpen(false)}
-                      className="h-8 w-8"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  <FormWrapper
-                    methods={bindRoleMethods}
-                    onSubmit={handleBindRoleSubmit}
-                    className="space-y-3"
-                  >
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <ControlledSelect
-                        name="roleId"
-                        label="Select Role"
-                        options={roleSelectOptions}
-                        returnPrimitiveValue
-                        required
-                        placeholder="-- Choose a role --"
-                      />
-
-                      <ControlledInput
-                        name="reason"
-                        label="Reason"
-                        placeholder="e.g. Standard billing team access"
-                      />
-                    </div>
-
-                    <div className="flex justify-end gap-2 pt-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setIsAssigningRoleOpen(false)}
-                      >
-                        Cancel
-                      </Button>
-                      <SubmitButton
-                        pending={bindTenantGroupRoleMutation.isPending}
-                        pendingText="Binding Role…"
-                        size="sm"
-                      >
-                        Confirm Role Binding
-                      </SubmitButton>
-                    </div>
-                  </FormWrapper>
-                </div>
+        {/* Tab: Assigned Roles */}
+        <TabsContent value="roles" className="space-y-4">
+          <Card className="rounded-2xl border shadow-xs">
+            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <CardTitle className="text-lg">Assigned Roles</CardTitle>
+                <CardDescription>
+                  {groupRoles.length} {groupRoles.length === 1 ? "role" : "roles"}
+                </CardDescription>
+              </div>
+              {canAssignRoles && group.status === "ACTIVE" && (
+                <Button onClick={() => setIsAssignRoleModalOpen(true)} size="sm" className="gap-2">
+                  <Plus className="h-4 w-4" /> Assign Role to Group
+                </Button>
               )}
-
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Role Name</TableHead>
-                      <TableHead>Code</TableHead>
-                      <TableHead>Scope</TableHead>
-                      <TableHead>Permissions</TableHead>
-                      <TableHead>Status</TableHead>
-                      {canAssignRoles && (
-                        <TableHead className="w-[80px] text-right">Actions</TableHead>
-                      )}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {loadingGroupRoles ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="h-24 text-center">
-                          <Loader2 className="text-muted-foreground mx-auto h-6 w-6 animate-spin" />
-                        </TableCell>
-                      </TableRow>
-                    ) : groupRoles.length === 0 ? (
-                      <TableRow>
-                        <TableCell
-                          colSpan={6}
-                          className="text-muted-foreground h-32 text-center text-sm"
-                        >
-                          No roles bound to this group yet. This group currently grants zero
-                          permissions.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      groupRoles.map((role) => (
-                        <TableRow key={role.id}>
-                          <TableCell className="font-medium">
-                            <div className="flex items-center gap-2">
-                              <Shield className="text-primary h-4 w-4 shrink-0" />
-                              <span>{role.name}</span>
+            </CardHeader>
+            <CardContent className="space-y-3 pt-0">
+              {loadingGroupRoles ? (
+                <div className="flex h-32 items-center justify-center">
+                  <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
+                </div>
+              ) : groupRoles.length === 0 ? (
+                <div className="text-muted-foreground rounded-xl border border-dashed p-8 text-center text-sm">
+                  No roles assigned to this group yet. Active members inherit zero permissions from
+                  this group until a role is assigned.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {groupRoles.map((role) => (
+                    <Card
+                      key={role.id}
+                      className="rounded-xl border p-4 shadow-xs transition-shadow hover:shadow-sm"
+                    >
+                      <div className="flex flex-col gap-3">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <div className="flex items-center gap-2.5">
+                              <h4 className="text-foreground text-sm font-semibold">{role.name}</h4>
+                              {role.isActive ? (
+                                <Badge
+                                  variant="outline"
+                                  className="border-emerald-500/30 bg-emerald-50 text-xs text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400"
+                                >
+                                  Active
+                                </Badge>
+                              ) : (
+                                <Badge
+                                  variant="outline"
+                                  className="border-amber-500/30 bg-amber-50 text-xs text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
+                                >
+                                  Disabled
+                                </Badge>
+                              )}
                               {role.isSystem && (
                                 <Badge variant="secondary" className="text-[10px]">
                                   System
@@ -839,192 +782,132 @@ export function GroupDetailsPage({ scope, groupId, backHref }: GroupDetailsPageP
                               )}
                             </div>
                             {role.description && (
-                              <p className="text-muted-foreground line-clamp-1 text-xs">
+                              <p className="text-muted-foreground mt-0.5 line-clamp-1 text-xs">
                                 {role.description}
                               </p>
                             )}
-                          </TableCell>
-                          <TableCell className="font-mono text-xs">{role.code ?? "—"}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="text-xs">
-                              {role.scope}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary" className="text-xs">
-                              {role.permissions?.length ?? 0} permissions
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {role.isActive ? (
-                              <Badge
-                                variant="outline"
-                                className="border-emerald-500/30 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400"
-                              >
-                                Active
-                              </Badge>
-                            ) : (
-                              <Badge
-                                variant="outline"
-                                className="border-amber-500/30 bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
-                              >
-                                Disabled
-                              </Badge>
-                            )}
-                          </TableCell>
+                          </div>
+
                           {canAssignRoles && (
-                            <TableCell className="text-right">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setRoleToUnbind({ id: role.id, name: role.name })}
-                                className="text-muted-foreground hover:text-destructive h-8 w-8 p-0"
-                                title="Unbind role from group"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setRoleToUnbind({ id: role.id, name: role.name })}
+                              className="text-muted-foreground hover:text-destructive h-8 w-8 p-0"
+                              title="Unbind role from group"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           )}
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        )}
+                        </div>
 
-        {/* Tab: Contributed Permissions (Tenant Scope) */}
-        {scope === "TENANT" && (
-          <TabsContent value="permissions" className="space-y-4">
-            <Card className="rounded-2xl border shadow-xs">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="text-lg">Contributed Permissions</CardTitle>
-                    <CardDescription>
-                      Aggregated permissions granted to members via this group&apos;s active roles.
-                    </CardDescription>
-                  </div>
-                  <Badge variant="outline" className="gap-1.5 font-mono text-xs">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                    {groupPermissionsData?.permissions?.length ?? 0} granted
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {group.status === "ARCHIVED" ? (
-                  <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-800 dark:border-amber-800/40 dark:bg-amber-950/40 dark:text-amber-300">
-                    <ShieldAlert className="h-5 w-5 shrink-0" />
-                    <p className="text-sm">
-                      This group is <strong>ARCHIVED</strong>. Inactive groups contribute 0 active
-                      permissions to members regardless of assigned roles.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="bg-muted/40 text-muted-foreground rounded-xl border p-4 text-xs">
-                    Active groups dynamically contribute their bound roles to workspace members with
-                    an active status. Effective permissions equal the union of direct role
-                    assignments and active group roles (
-                    <code>P_effective = P_direct ∪ P_active_group_roles</code>).
-                  </div>
-                )}
+                        {/* Permissions summary, formatted as: Leads: Read, Create, Update · Reports: Read */}
+                        <div className="text-muted-foreground text-xs font-medium">
+                          {formatPermissionsSummary(role.permissions)}
+                        </div>
 
-                {loadingGroupPermissions ? (
-                  <div className="flex h-32 items-center justify-center">
-                    <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
-                  </div>
-                ) : (groupPermissionsData?.permissions?.length ?? 0) === 0 ? (
-                  <div className="text-muted-foreground rounded-xl border border-dashed p-8 text-center text-sm">
-                    No permissions contributed by this group. Bind one or more active roles to grant
-                    permissions.
-                  </div>
-                ) : (
-                  <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
-                    {groupPermissionsData?.permissions?.map((permissionKey) => (
-                      <div
-                        key={permissionKey}
-                        className="bg-background flex items-center gap-2 rounded-lg border p-2.5 font-mono text-xs shadow-2xs"
-                      >
-                        <Key className="text-primary h-3.5 w-3.5 shrink-0" />
-                        <span className="truncate">{permissionKey}</span>
+                        {/* Inheritance Banner: Assigned: 12 members inherit this role */}
+                        <div className="bg-muted/40 text-muted-foreground flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs">
+                          <Users className="text-primary/70 h-3.5 w-3.5 shrink-0" />
+                          <span>
+                            Assigned: <strong>{members.length}</strong>{" "}
+                            {members.length === 1 ? "member inherits" : "members inherit"} this role
+                          </span>
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        )}
+                    </Card>
+                  ))}
 
-        {/* Tab 2: Governance & Metadata */}
-        <TabsContent value="details" className="space-y-4">
+                  {canAssignRoles && group.status === "ACTIVE" && (
+                    <div className="pt-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsAssignRoleModalOpen(true)}
+                        size="sm"
+                        className="gap-2"
+                      >
+                        <Plus className="h-4 w-4" /> Assign Role to Group
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tab: Contributed Permissions */}
+        <TabsContent value="permissions" className="space-y-4">
           <Card className="rounded-2xl border shadow-xs">
             <CardHeader>
-              <CardTitle className="text-lg">Group Properties</CardTitle>
-              <CardDescription>
-                Auditable metadata and isolation configuration for this group.
-              </CardDescription>
+              <div className="flex items-start justify-between">
+                <div>
+                  <CardTitle className="text-lg">Contributed Permissions</CardTitle>
+                  <CardDescription>
+                    Aggregated permissions granted to members via this group&apos;s active roles.
+                  </CardDescription>
+                </div>
+                <Badge variant="outline" className="gap-1.5 font-mono text-xs">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                  {groupPermissionsData?.permissions?.length ?? 0} granted
+                </Badge>
+              </div>
             </CardHeader>
-            <CardContent>
-              <dl className="grid gap-4 sm:grid-cols-2">
-                <div className="bg-muted/40 rounded-xl border p-3">
-                  <dt className="text-muted-foreground font-mono text-xs uppercase">Group Name</dt>
-                  <dd className="mt-1 font-semibold">{group.name}</dd>
+            <CardContent className="space-y-4">
+              {group.status === "ARCHIVED" ? (
+                <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-800 dark:border-amber-800/40 dark:bg-amber-950/40 dark:text-amber-300">
+                  <ShieldAlert className="h-5 w-5 shrink-0" />
+                  <p className="text-sm">
+                    This group is <strong>ARCHIVED</strong>. Inactive groups contribute 0 active
+                    permissions to members regardless of assigned roles.
+                  </p>
                 </div>
-                <div className="bg-muted/40 rounded-xl border p-3">
-                  <dt className="text-muted-foreground font-mono text-xs uppercase">
-                    Slug Identifier
-                  </dt>
-                  <dd className="mt-1 font-mono text-sm font-semibold">{group.slug}</dd>
+              ) : (
+                <div className="bg-muted/40 text-muted-foreground rounded-xl border p-4 text-xs">
+                  Active groups dynamically contribute their bound roles to workspace members with
+                  an active status. Effective permissions equal the union of direct role assignments
+                  and active group roles (<code>P_effective = P_direct ∪ P_active_group_roles</code>
+                  ).
                 </div>
-                <div className="bg-muted/40 rounded-xl border p-3">
-                  <dt className="text-muted-foreground font-mono text-xs uppercase">
-                    Scope Policy
-                  </dt>
-                  <dd className="mt-1 flex items-center gap-2">
-                    <Badge variant="outline">{group.scope}</Badge>
-                    <span className="text-muted-foreground text-xs">
-                      {group.scope === "TENANT"
-                        ? "Restricted strictly to active members of owning tenant"
-                        : "Platform operator isolation"}
-                    </span>
-                  </dd>
+              )}
+
+              {loadingGroupPermissions ? (
+                <div className="flex h-32 items-center justify-center">
+                  <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
                 </div>
-                <div className="bg-muted/40 rounded-xl border p-3">
-                  <dt className="text-muted-foreground font-mono text-xs uppercase">
-                    Lifecycle Status
-                  </dt>
-                  <dd className="mt-1 flex items-center gap-2">
-                    <GroupStatusBadge status={group.status} />
-                  </dd>
+              ) : (groupPermissionsData?.permissions?.length ?? 0) === 0 ? (
+                <div className="text-muted-foreground rounded-xl border border-dashed p-8 text-center text-sm">
+                  No permissions contributed by this group. Bind one or more active roles to grant
+                  permissions.
                 </div>
-                <div className="bg-muted/40 rounded-xl border p-3">
-                  <dt className="text-muted-foreground font-mono text-xs uppercase">Group ID</dt>
-                  <dd className="text-muted-foreground mt-1 font-mono text-xs">{group.id}</dd>
+              ) : (
+                <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
+                  {groupPermissionsData?.permissions?.map((permissionKey) => (
+                    <div
+                      key={permissionKey}
+                      className="bg-background flex items-center gap-2 rounded-lg border p-2.5 font-mono text-xs shadow-2xs"
+                    >
+                      <Key className="text-primary h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">{permissionKey}</span>
+                    </div>
+                  ))}
                 </div>
-                <div className="bg-muted/40 rounded-xl border p-3">
-                  <dt className="text-muted-foreground font-mono text-xs uppercase">Tenant ID</dt>
-                  <dd className="text-muted-foreground mt-1 font-mono text-xs">
-                    {group.tenantId || "N/A (Platform Scope)"}
-                  </dd>
-                </div>
-                <div className="bg-muted/40 rounded-xl border p-3">
-                  <dt className="text-muted-foreground font-mono text-xs uppercase">Created At</dt>
-                  <dd className="mt-1 text-sm">{new Date(group.createdAt).toLocaleString()}</dd>
-                </div>
-                <div className="bg-muted/40 rounded-xl border p-3">
-                  <dt className="text-muted-foreground font-mono text-xs uppercase">
-                    Last Updated
-                  </dt>
-                  <dd className="mt-1 text-sm">{new Date(group.updatedAt).toLocaleString()}</dd>
-                </div>
-              </dl>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Assign Role to Group Dialog */}
+      <AssignGroupRolesDialog
+        open={isAssignRoleModalOpen}
+        onOpenChange={setIsAssignRoleModalOpen}
+        groupId={groupId}
+        groupName={group.name}
+        scope={scope}
+        tenantId={activeTenantId}
+        alreadyBoundRoleIds={groupRoles.map((r) => r.id)}
+      />
 
       {/* Confirm Archive Dialog (Destructive confirmation only) */}
       <ConfirmDialog

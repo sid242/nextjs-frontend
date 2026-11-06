@@ -112,8 +112,14 @@ export async function getTenantGroupRoles(
 
 export async function bindTenantGroupRole(
   groupId: string,
-  input: { roleId: string; reason?: string },
-): Promise<{ success: boolean; groupId: string; roleId: string; roleName: string }> {
+  input: { roleId?: string; roleIds?: string[]; reason?: string },
+): Promise<{
+  success: boolean;
+  groupId: string;
+  roleId?: string;
+  roleName?: string;
+  roles?: Array<{ id: string; name: string }>;
+}> {
   return api.post(`/groups/${groupId}/roles`, input);
 }
 

@@ -138,12 +138,14 @@ export function useBindTenantGroupRole(tenantId?: string) {
       input,
     }: {
       groupId: string;
-      input: { roleId: string; reason?: string };
+      input: { roleId?: string; roleIds?: string[]; reason?: string };
     }) => api.bindTenantGroupRole(groupId, input),
     onSuccess: (_, { groupId }) => {
       queryClient.invalidateQueries({ queryKey: groupKeys.tenantRoles(tenantId, groupId) });
       queryClient.invalidateQueries({ queryKey: groupKeys.tenantPermissions(tenantId, groupId) });
       queryClient.invalidateQueries({ queryKey: groupKeys.tenantAll(tenantId) });
+      queryClient.invalidateQueries({ queryKey: ["tenant", tenantId, "context"] });
+      queryClient.invalidateQueries({ queryKey: ["rbac", "tenants", tenantId, "roles"] });
     },
   });
 }
@@ -157,6 +159,8 @@ export function useUnbindTenantGroupRole(tenantId?: string) {
       queryClient.invalidateQueries({ queryKey: groupKeys.tenantRoles(tenantId, groupId) });
       queryClient.invalidateQueries({ queryKey: groupKeys.tenantPermissions(tenantId, groupId) });
       queryClient.invalidateQueries({ queryKey: groupKeys.tenantAll(tenantId) });
+      queryClient.invalidateQueries({ queryKey: ["tenant", tenantId, "context"] });
+      queryClient.invalidateQueries({ queryKey: ["rbac", "tenants", tenantId, "roles"] });
     },
   });
 }

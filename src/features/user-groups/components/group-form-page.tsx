@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, Search, Users } from "lucide-react";
+import { ArrowLeft, Search, Shield, Users } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -16,12 +16,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useStaffList } from "@/features/platform";
-import { useActiveTenant, useTenantMembers } from "@/features/tenants";
+import { usePlatformRoles, useStaffList } from "@/features/platform";
+import { DEFAULT_ROLES, useTenantRoles } from "@/features/rbac";
+import { useActiveTenant, useTenantMembers, useTenants } from "@/features/tenants";
 
 import {
   useAddPlatformGroupMembers,
   useAddTenantGroupMembers,
+  useBindTenantGroupRole,
   useCreatePlatformGroup,
   useCreateTenantGroup,
   usePlatformGroup,
@@ -30,6 +32,7 @@ import {
   useUpdateTenantGroup,
 } from "../queries";
 import { createGroupSchema, type CreateGroupValues } from "../schemas";
+import { formatPermissionsSummary } from "../utils";
 
 interface GroupFormPageProps {
   scope: "TENANT" | "PLATFORM";
@@ -60,6 +63,7 @@ export function GroupFormPage({ scope, groupId, backHref }: GroupFormPageProps) 
   const createTenantGroupMutation = useCreateTenantGroup(activeTenantId);
   const updateTenantGroupMutation = useUpdateTenantGroup(activeTenantId);
   const addTenantMembersMutation = useAddTenantGroupMembers(activeTenantId);
+  const bindTenantGroupRoleMutation = useBindTenantGroupRole(activeTenantId);
 
   const createPlatformGroupMutation = useCreatePlatformGroup();
   const updatePlatformGroupMutation = useUpdatePlatformGroup();
@@ -71,11 +75,20 @@ export function GroupFormPage({ scope, groupId, backHref }: GroupFormPageProps) 
     createPlatformGroupMutation.isPending ||
     updatePlatformGroupMutation.isPending ||
     addTenantMembersMutation.isPending ||
-    addPlatformMembersMutation.isPending;
+    addPlatformMembersMutation.isPending ||
+    bindTenantGroupRoleMutation.isPending;
 
   // Candidate members for initial assignment
   const { data: tenantMembers = [] } = useTenantMembers(isTenant ? activeTenantId : undefined);
   const { data: staffData } = useStaffList({ limit: 100 }, { enabled: !isTenant });
+
+  // Resolve active tenant ID with fallback to available tenants list
+  const { data: tenantsList = [] } = useTenants({ enabled: isTenant && !activeTenantId });
+  const effectiveTenantId = activeTenantId ?? (tenantsList?.[0]?.id || "");
+
+  // Available roles for initial assignment
+  const { data: allTenantRoles = [] } = useTenantRoles(isTenant ? effectiveTenantId : undefined);
+  const { data: allPlatformRoles = [] } = usePlatformRoles();
 
   const candidates = useMemo(() => {
     if (scope === "TENANT") {
@@ -96,9 +109,22 @@ export function GroupFormPage({ scope, groupId, backHref }: GroupFormPageProps) 
       }));
   }, [scope, tenantMembers, staffData]);
 
+  // Candidate roles (always populated with safe defaults)
+  const candidateRoles = useMemo(() => {
+    if (scope === "TENANT") {
+      const active = (allTenantRoles ?? []).filter((r) => r.isActive ?? true);
+      return active.length > 0 ? active : DEFAULT_ROLES;
+    }
+    return (allPlatformRoles ?? []).filter((r) => r.isActive ?? true);
+  }, [scope, allTenantRoles, allPlatformRoles]);
+
   // Selected members for initial assignment
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
   const [memberSearch, setMemberSearch] = useState("");
+
+  // Selected roles for initial assignment
+  const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>([]);
+  const [roleSearch, setRoleSearch] = useState("");
 
   const filteredCandidates = useMemo(() => {
     if (!memberSearch.trim()) return candidates;
@@ -107,6 +133,20 @@ export function GroupFormPage({ scope, groupId, backHref }: GroupFormPageProps) 
       (c) => c?.name?.toLowerCase().includes(term) || c?.email?.toLowerCase().includes(term),
     );
   }, [candidates, memberSearch]);
+
+  const filteredRoles = useMemo(() => {
+    if (!roleSearch.trim()) return candidateRoles;
+    const term = roleSearch.toLowerCase();
+    return candidateRoles.filter((r) => {
+      const codeOrKey = "code" in r ? r.code : "key" in r ? (r as { key?: string }).key : null;
+      return (
+        r?.name?.toLowerCase().includes(term) ||
+        (codeOrKey && codeOrKey.toLowerCase().includes(term)) ||
+        (r?.description && r.description.toLowerCase().includes(term)) ||
+        (r?.permissions && r.permissions.some((p) => p.toLowerCase().includes(term)))
+      );
+    });
+  }, [candidateRoles, roleSearch]);
 
   const formValues = useMemo<CreateGroupValues>(() => {
     if (existingGroup) {
@@ -150,6 +190,12 @@ export function GroupFormPage({ scope, groupId, backHref }: GroupFormPageProps) 
     );
   };
 
+  const toggleRole = (id: string) => {
+    setSelectedRoleIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+    );
+  };
+
   const defaultBackHref =
     backHref ??
     (scope === "TENANT"
@@ -183,6 +229,12 @@ export function GroupFormPage({ scope, groupId, backHref }: GroupFormPageProps) 
               userIds: selectedMemberIds,
             });
           }
+          if (selectedRoleIds.length > 0 && createdGroup?.id) {
+            await bindTenantGroupRoleMutation.mutateAsync({
+              groupId: createdGroup.id,
+              input: { roleIds: selectedRoleIds },
+            });
+          }
         } else {
           createdGroup = await createPlatformGroupMutation.mutateAsync(values);
           if (selectedMemberIds.length > 0 && createdGroup?.id) {
@@ -213,7 +265,7 @@ export function GroupFormPage({ scope, groupId, backHref }: GroupFormPageProps) 
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="mx-auto max-w-5xl space-y-6">
       {/* Top Navigation & Breadcrumb */}
       <div className="flex items-center gap-3">
         <Button variant="outline" size="sm" asChild className="gap-2">
@@ -286,76 +338,181 @@ export function GroupFormPage({ scope, groupId, backHref }: GroupFormPageProps) 
           </CardContent>
         </Card>
 
-        {/* Member Assignment Card (for create mode) */}
+        {/* Optional Assignments: Roles & Members in compact 2-column grid */}
         {!isEdit && (
-          <Card className="rounded-2xl border shadow-xs">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-lg">Assign Initial Members (Optional)</CardTitle>
-                  <CardDescription>
-                    Select accounts to add to this group upon creation.
-                  </CardDescription>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            {/* Role Assignment Card */}
+            <Card className="rounded-2xl border shadow-xs">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base">Assign Roles (Optional)</CardTitle>
+                  <Badge variant="secondary" className="gap-1 text-xs">
+                    <Shield className="h-3 w-3" />
+                    {selectedRoleIds.length} selected
+                  </Badge>
                 </div>
-                <Badge variant="secondary" className="gap-1">
-                  <Users className="h-3 w-3" />
-                  {selectedMemberIds.length} selected
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="relative">
-                <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
-                <Input
-                  placeholder={`Search ${scope === "TENANT" ? "workspace members" : "platform staff"} by name or email...`}
-                  value={memberSearch}
-                  onChange={(e) => setMemberSearch(e.target.value)}
-                  className="h-10 pl-9"
-                />
-              </div>
+                <CardDescription className="text-xs">
+                  Select {scope === "TENANT" ? "workspace" : "platform staff"} roles. Active members
+                  inherit permissions.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="relative">
+                  <Search className="text-muted-foreground absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2" />
+                  <Input
+                    placeholder="Search roles or permissions..."
+                    value={roleSearch}
+                    onChange={(e) => setRoleSearch(e.target.value)}
+                    className="h-9 pl-8 text-xs"
+                  />
+                </div>
 
-              <div className="divide-border max-h-60 divide-y overflow-y-auto rounded-xl border">
-                {filteredCandidates.length === 0 ? (
-                  <div className="text-muted-foreground p-6 text-center text-sm">
-                    {candidates.length === 0
-                      ? "No active members available for assignment."
-                      : "No members matched your search."}
-                  </div>
-                ) : (
-                  filteredCandidates.map((candidate) => {
-                    const isSelected = selectedMemberIds.includes(candidate.id);
-                    return (
-                      <div
-                        key={candidate.id}
-                        onClick={() => toggleMember(candidate.id)}
-                        className="hover:bg-muted/40 flex cursor-pointer items-center justify-between p-3 transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={() => toggleMember(candidate.id)}
-                          />
-                          <div>
-                            <div className="text-sm font-medium">{candidate.name}</div>
-                            <div className="text-muted-foreground text-xs">{candidate.email}</div>
+                <div className="divide-border max-h-52 divide-y overflow-y-auto rounded-xl border">
+                  {filteredRoles.length === 0 ? (
+                    <div className="text-muted-foreground p-4 text-center text-xs">
+                      {candidateRoles.length === 0
+                        ? "No active roles available."
+                        : "No roles match your search."}
+                    </div>
+                  ) : (
+                    filteredRoles.map((role) => {
+                      const isSelected = selectedRoleIds.includes(role.id);
+                      const roleCode =
+                        "code" in role
+                          ? role.code
+                          : "key" in role
+                            ? (role as { key?: string }).key
+                            : null;
+                      return (
+                        <div
+                          key={role.id}
+                          onClick={() => toggleRole(role.id)}
+                          className="hover:bg-muted/40 flex cursor-pointer items-start justify-between p-2.5 transition-colors"
+                        >
+                          <div className="flex min-w-0 flex-1 items-start gap-2.5">
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => toggleRole(role.id)}
+                              className="mt-0.5"
+                            />
+                            <div className="min-w-0 flex-1 space-y-0.5">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span className="text-foreground text-xs font-semibold">
+                                  {role.name}
+                                </span>
+                                {roleCode && (
+                                  <Badge
+                                    variant="outline"
+                                    className="px-1 py-0 font-mono text-[9px]"
+                                  >
+                                    {roleCode}
+                                  </Badge>
+                                )}
+                                {role.isSystem && (
+                                  <Badge variant="secondary" className="px-1 py-0 text-[9px]">
+                                    System
+                                  </Badge>
+                                )}
+                              </div>
+                              {role.description && (
+                                <p className="text-muted-foreground line-clamp-1 text-[11px]">
+                                  {role.description}
+                                </p>
+                              )}
+                              <div className="text-muted-foreground truncate text-[11px] font-medium">
+                                {formatPermissionsSummary(role.permissions)}
+                              </div>
+                            </div>
                           </div>
+                          {isSelected && (
+                            <Badge
+                              variant="outline"
+                              className="text-primary ml-1.5 shrink-0 text-[9px]"
+                            >
+                              Selected
+                            </Badge>
+                          )}
                         </div>
-                        {isSelected && (
-                          <Badge variant="outline" className="text-primary text-[10px]">
-                            Selected
-                          </Badge>
-                        )}
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                      );
+                    })
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Member Assignment Card */}
+            <Card className="rounded-2xl border shadow-xs">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base">Assign Members (Optional)</CardTitle>
+                  <Badge variant="secondary" className="gap-1 text-xs">
+                    <Users className="h-3 w-3" />
+                    {selectedMemberIds.length} selected
+                  </Badge>
+                </div>
+                <CardDescription className="text-xs">
+                  Select {scope === "TENANT" ? "members" : "staff accounts"} to add upon creation.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="relative">
+                  <Search className="text-muted-foreground absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2" />
+                  <Input
+                    placeholder={`Search by name or email...`}
+                    value={memberSearch}
+                    onChange={(e) => setMemberSearch(e.target.value)}
+                    className="h-9 pl-8 text-xs"
+                  />
+                </div>
+
+                <div className="divide-border max-h-52 divide-y overflow-y-auto rounded-xl border">
+                  {filteredCandidates.length === 0 ? (
+                    <div className="text-muted-foreground p-4 text-center text-xs">
+                      {candidates.length === 0
+                        ? "No active accounts available."
+                        : "No accounts match your search."}
+                    </div>
+                  ) : (
+                    filteredCandidates.map((candidate) => {
+                      const isSelected = selectedMemberIds.includes(candidate.id);
+                      return (
+                        <div
+                          key={candidate.id}
+                          onClick={() => toggleMember(candidate.id)}
+                          className="hover:bg-muted/40 flex cursor-pointer items-center justify-between p-2.5 transition-colors"
+                        >
+                          <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => toggleMember(candidate.id)}
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="truncate text-xs font-medium">{candidate.name}</div>
+                              <div className="text-muted-foreground truncate text-[11px]">
+                                {candidate.email}
+                              </div>
+                            </div>
+                          </div>
+                          {isSelected && (
+                            <Badge
+                              variant="outline"
+                              className="text-primary ml-1.5 shrink-0 text-[9px]"
+                            >
+                              Selected
+                            </Badge>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         )}
 
         {/* Submit Actions */}
-        <div className="flex items-center justify-end gap-3">
+        <div className="flex items-center justify-end gap-3 pt-2">
           <Button variant="outline" type="button" asChild disabled={isSaving}>
             <Link href={defaultBackHref}>Cancel</Link>
           </Button>

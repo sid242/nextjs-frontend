@@ -28,7 +28,7 @@ const DEFAULT_PERMISSIONS: Permission[] = [
   },
 ];
 
-const DEFAULT_ROLES: Role[] = [
+export const DEFAULT_ROLES: Role[] = [
   {
     id: "role-owner",
     name: "Owner",
