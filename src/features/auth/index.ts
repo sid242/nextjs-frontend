@@ -1,3 +1,5 @@
+"use client";
+
 // Public API of the auth feature. Everything else in this folder is private.
 export * from "./schemas";
 export { authKeys } from "./keys";
