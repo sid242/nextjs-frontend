@@ -1,5 +1,6 @@
 import {
   Building2,
+  Database,
   FileText,
   Layers,
   LayoutDashboard,
@@ -42,6 +43,13 @@ export const PLATFORM_NAV_GROUPS: NavGroup[] = [
         description: "Customer organizations, databases & status",
         icon: Building2,
         permission: PLATFORM_PERMISSION_KEYS.TENANTS_READ,
+      },
+      {
+        href: "/platform/database-operations",
+        label: "Database Operations",
+        description: "Provisioning, dedicated migration & schema health",
+        icon: Database,
+        permission: PLATFORM_PERMISSION_KEYS.HEALTH_READ,
       },
       {
         href: "/platform/plans",

@@ -367,3 +367,83 @@ export const updatePlatformTenantSubscriptionSchema = z.object({
 export type UpdatePlatformTenantSubscriptionInput = z.infer<
   typeof updatePlatformTenantSubscriptionSchema
 >;
+
+// ==========================================
+// 8. Tenant Database Operations
+// ==========================================
+
+export const tenantDatabaseHealthSchema = z.object({
+  status: z.enum(["HEALTHY", "UNHEALTHY", "UNKNOWN"]),
+  latencyMs: z.number().nullable().optional(),
+  lastCheckedAt: z.string().nullable().optional(),
+});
+
+export const tenantDatabaseItemSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  slug: z.string(),
+  tenantCode: z.string().nullable().optional(),
+  region: z.string(),
+  strategy: z.enum(["shared", "dedicated"]),
+  databaseKey: z.string(),
+  databaseName: z.string(),
+  schemaVersion: z.string(),
+  provisioningStatus: z.enum([
+    "ACTIVE",
+    "PENDING",
+    "PROVISIONING",
+    "FAILED",
+    "SUSPENDED",
+    "DEACTIVATED",
+  ]),
+  provisioningStep: z.string().nullable().optional(),
+  provisioningError: z.string().nullable().optional(),
+  migrationStatus: z.enum(["UP_TO_DATE", "PENDING", "MIGRATING", "FAILED"]),
+  lastMigrationAt: z.string().nullable().optional(),
+  health: tenantDatabaseHealthSchema,
+  maintenanceWindow: z.string().nullable().optional(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export type TenantDatabaseItem = z.infer<typeof tenantDatabaseItemSchema>;
+
+export const listTenantDatabasesQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1).optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(20).optional(),
+  search: z.string().trim().optional(),
+  tenantId: z.string().uuid().optional(),
+  strategy: z.enum(["shared", "dedicated", "ALL"]).optional(),
+  provisioningStatus: z
+    .enum(["ACTIVE", "PENDING", "PROVISIONING", "FAILED", "SUSPENDED", "DEACTIVATED", "ALL"])
+    .optional(),
+  region: z.string().trim().optional(),
+  schemaVersion: z.string().trim().optional(),
+  migrationStatus: z.enum(["UP_TO_DATE", "PENDING", "MIGRATING", "FAILED", "ALL"]).optional(),
+  healthStatus: z.enum(["HEALTHY", "UNHEALTHY", "UNKNOWN", "ALL"]).optional(),
+});
+
+export type ListTenantDatabasesQuery = z.infer<typeof listTenantDatabasesQuerySchema>;
+
+export const executeTenantDatabaseOperationSchema = z.object({
+  action: z.enum([
+    "PROVISION",
+    "RETRY_PROVISIONING",
+    "MIGRATE",
+    "HEALTH_CHECK",
+    "BACKUP",
+    "RESTORE",
+    "ROLLBACK",
+  ]),
+  targetVersion: z.string().trim().max(50).optional(),
+  maintenanceWindow: z.string().trim().max(100).optional(),
+  reason: z.string().trim().min(5, "Reason must be at least 5 characters").max(500),
+  backupConfirmed: z.boolean().default(false).optional(),
+  poolLimit: z.coerce.number().int().min(1).max(50).optional(),
+  customDatabaseName: z.string().trim().max(63).optional(),
+  connectionUrl: z.string().trim().url().or(z.literal("")).optional(),
+});
+
+export type ExecuteTenantDatabaseOperationInput = z.infer<
+  typeof executeTenantDatabaseOperationSchema
+>;

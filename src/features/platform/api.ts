@@ -4,7 +4,9 @@ import { buildQueryString } from "@/lib/utils";
 import type {
   CreatePlatformRoleInput,
   CreateStaffInput,
+  ExecuteTenantDatabaseOperationInput,
   InviteStaffInput,
+  ListTenantDatabasesQuery,
   PlatformAuditLog,
   PlatformLoginInput,
   PlatformPermission,
@@ -19,6 +21,7 @@ import type {
   StaffMember,
   StartSupportSessionInput,
   StartSupportSessionResponse,
+  TenantDatabaseItem,
   UpdatePlatformRoleInput,
   UpdatePlatformTenantInput,
   UpdatePlatformTenantSubscriptionInput,
@@ -436,5 +439,25 @@ export async function rollbackTenantDatabase(
   return api.post<RollbackTenantDatabaseResult>(
     `/platform/tenants/${tenantId}/database/rollback-to-shared`,
     {},
+  );
+}
+
+export async function getTenantDatabases(
+  params?: ListTenantDatabasesQuery,
+  signal?: AbortSignal,
+): Promise<PaginatedResult<TenantDatabaseItem>> {
+  const qs = buildQueryString(params);
+  return api.get<PaginatedResult<TenantDatabaseItem>>(`/platform/database-operations${qs}`, {
+    signal,
+  });
+}
+
+export async function executeTenantDatabaseOperation(
+  tenantId: string,
+  input: ExecuteTenantDatabaseOperationInput,
+): Promise<Record<string, unknown>> {
+  return api.post<Record<string, unknown>>(
+    `/platform/database-operations/${tenantId}/execute`,
+    input,
   );
 }

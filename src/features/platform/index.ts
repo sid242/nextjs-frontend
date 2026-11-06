@@ -38,6 +38,9 @@ export {
   useTenantDbHealth,
   useMigrateTenantDatabase,
   useRollbackTenantDatabase,
+  tenantDatabasesQueryOptions,
+  useTenantDatabases,
+  useExecuteTenantDatabaseOperation,
   platformMeQueryOptions,
   usePlatformMe,
   usePlatformLogin,
@@ -52,6 +55,7 @@ export {
 
 export { PlatformShell } from "./components/platform-shell";
 export { PlatformDashboard } from "./components/platform-dashboard";
+export { DatabaseOperationsTable } from "./components/database-operations-table";
 export { StaffTable } from "./components/staff-table";
 export { PlatformUsersTable } from "./components/users-table";
 export { RolesMatrix } from "./components/roles-matrix";

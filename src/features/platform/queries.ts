@@ -11,6 +11,7 @@ import {
   disablePlatformTwoFactor,
   enablePlatformTwoFactor,
   endSupportSession,
+  executeTenantDatabaseOperation,
   getPlatformAuditLogs,
   getPlatformMe,
   getPlatformPermissions,
@@ -23,6 +24,7 @@ import {
   getStaffMembers,
   getSupportSessions,
   getTenantDatabaseHealth,
+  getTenantDatabases,
   getTenantMembers,
   inviteStaffMember,
   loginPlatformStaff,
@@ -50,7 +52,9 @@ import { platformKeys } from "./keys";
 import type {
   CreatePlatformRoleInput,
   CreateStaffInput,
+  ExecuteTenantDatabaseOperationInput,
   InviteStaffInput,
+  ListTenantDatabasesQuery,
   PlatformLoginInput,
   ProvisionTenantInput,
   StartSupportSessionInput,
@@ -596,6 +600,39 @@ export function useRollbackTenantDatabase(tenantId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: platformKeys.tenantDetail(tenantId) });
       queryClient.invalidateQueries({ queryKey: platformKeys.tenantDbHealth(tenantId) });
+      queryClient.invalidateQueries({ queryKey: platformKeys.tenants() });
+    },
+  });
+}
+
+// ==========================================
+// 9. Database Operations Hooks
+// ==========================================
+
+export const tenantDatabasesQueryOptions = (params?: ListTenantDatabasesQuery) =>
+  queryOptions({
+    queryKey: platformKeys.databaseOperationsList(params),
+    queryFn: ({ signal }) => getTenantDatabases(params, signal),
+  });
+
+export function useTenantDatabases(params?: ListTenantDatabasesQuery) {
+  return useQuery(tenantDatabasesQueryOptions(params));
+}
+
+export function useExecuteTenantDatabaseOperation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      tenantId,
+      input,
+    }: {
+      tenantId: string;
+      input: ExecuteTenantDatabaseOperationInput;
+    }) => executeTenantDatabaseOperation(tenantId, input),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: platformKeys.databaseOperations() });
+      queryClient.invalidateQueries({ queryKey: platformKeys.tenantDetail(variables.tenantId) });
+      queryClient.invalidateQueries({ queryKey: platformKeys.tenantDbHealth(variables.tenantId) });
       queryClient.invalidateQueries({ queryKey: platformKeys.tenants() });
     },
   });
