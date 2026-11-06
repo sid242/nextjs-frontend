@@ -16,16 +16,36 @@ import { resolveTenantByHost, resolveTenantBySlug } from "@/lib/tenancy/resolve"
 const isDev = process.env.NODE_ENV !== "production";
 
 /** CSP connect-src needs the Socket.IO origin in both http(s) and ws(s) flavours. */
-function socketOrigins(): string[] {
+function socketOrigins(rawHost?: string | null): string[] {
+  const origins = new Set<string>();
   const raw = process.env.SOCKET_URL || process.env.NEXT_PUBLIC_SOCKET_URL;
-  if (!raw) return [];
-  try {
-    const url = new URL(raw);
-    const ws = url.protocol === "https:" ? "wss:" : "ws:";
-    return [url.origin, `${ws}//${url.host}`];
-  } catch {
-    return [];
+  if (raw) {
+    try {
+      const url = new URL(raw);
+      const ws = url.protocol === "https:" ? "wss:" : "ws:";
+      origins.add(url.origin);
+      origins.add(`${ws}//${url.host}`);
+    } catch {
+      /* ignore invalid URL */
+    }
   }
+
+  // In development, allow socket connections directly to the client's host interface if accessing via LAN
+  if (isDev && rawHost) {
+    try {
+      const hostOnly = rawHost.split(":")[0];
+      if (hostOnly && hostOnly !== "localhost" && hostOnly !== "127.0.0.1") {
+        const socketPort = raw ? new URL(raw).port : "3009";
+        const portStr = socketPort ? `:${socketPort}` : "";
+        origins.add(`http://${hostOnly}${portStr}`);
+        origins.add(`ws://${hostOnly}${portStr}`);
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  return Array.from(origins);
 }
 
 function parseOrigins(raw?: string): string[] {
@@ -36,7 +56,7 @@ function parseOrigins(raw?: string): string[] {
     .filter(Boolean);
 }
 
-function buildCsp(nonce: string): string {
+function buildCsp(nonce: string, rawHost?: string | null): string {
   const extraOrigins = Array.from(
     new Set([
       ...parseOrigins(process.env.CSP_CONNECT_EXTRA),
@@ -53,7 +73,7 @@ function buildCsp(nonce: string): string {
     "https://cdn.tools.unlayer.com",
   ];
 
-  const connect = ["'self'", ...socketOrigins(), ...unlayerDomains, ...extraOrigins];
+  const connect = ["'self'", ...socketOrigins(rawHost), ...unlayerDomains, ...extraOrigins];
 
   const storageMedia = [
     "'self'",
@@ -191,7 +211,7 @@ export async function proxy(req: NextRequest) {
 
     // 2g. Rewrite to internal /w/{slug}{path}
     const nonce = btoa(crypto.randomUUID());
-    const csp = buildCsp(nonce);
+    const csp = buildCsp(nonce, rawHost);
 
     const headers = new Headers(req?.headers);
     stripTenantHeaders(headers);
@@ -312,7 +332,7 @@ export async function proxy(req: NextRequest) {
 
   // 3g. Pass through with nonce & CSP
   const nonce = btoa(crypto.randomUUID());
-  const csp = buildCsp(nonce);
+  const csp = buildCsp(nonce, rawHost);
 
   const headers = new Headers(req?.headers);
   headers.set("x-nonce", nonce);

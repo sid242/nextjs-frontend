@@ -18,6 +18,22 @@ export function normalizeHost(rawHost?: string | null): string {
 }
 
 /**
+ * Returns true if the hostname is an IPv4 or IPv6 address.
+ * IP addresses (such as 127.0.0.1 or LAN IP 192.168.x.x) access the platform directly
+ * and must not be classified as customer custom domains.
+ */
+export function isIpAddress(hostname: string): boolean {
+  if (!hostname) return false;
+  // IPv4 check
+  if (/^(\d{1,3}\.){3}\d{1,3}$/.test(hostname)) {
+    const octets = hostname.split(".").map(Number);
+    return octets.every((o) => o >= 0 && o <= 255);
+  }
+  // IPv6 check
+  return hostname === "::1" || (hostname.includes(":") && !hostname.includes("."));
+}
+
+/**
  * Classifies a normalized host into platform, subdomain, or custom domain.
  */
 export function classifyHost(
@@ -47,8 +63,8 @@ export function classifyHost(
     ? rawReserved.map((s) => s.trim().toLowerCase())
     : rawReserved.split(",").map((s) => s.trim().toLowerCase());
 
-  // 1. Matches base domain or platform host directly
-  if (!hostname || hostname === baseDomain || hostname === platformHost) {
+  // 1. Matches base domain, platform host, or is an IP address directly (e.g. 127.0.0.1, LAN IP 192.168.x.x)
+  if (!hostname || hostname === baseDomain || hostname === platformHost || isIpAddress(hostname)) {
     return { classification: "platform", hostname };
   }
 

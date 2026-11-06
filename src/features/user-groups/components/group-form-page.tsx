@@ -41,20 +41,20 @@ export function GroupFormPage({ scope, groupId, backHref }: GroupFormPageProps) 
   const router = useRouter();
   const isEdit = Boolean(groupId);
 
-  const { activeTenant, activeTenantId: rawTenantId } = useActiveTenant();
+  const isTenant = scope === "TENANT";
+  const { activeTenant, activeTenantId: rawTenantId } = useActiveTenant({ enabled: isTenant });
   const activeTenantId = rawTenantId ?? undefined;
 
   // Queries for edit mode
   const { data: tenantGroup, isLoading: loadingTenantGroup } = useTenantGroup(
-    activeTenantId,
-    scope === "TENANT" ? groupId : undefined,
+    isTenant ? activeTenantId : undefined,
+    isTenant ? groupId : undefined,
   );
   const { data: platformGroup, isLoading: loadingPlatformGroup } = usePlatformGroup(
-    scope === "PLATFORM" ? groupId : undefined,
+    !isTenant ? groupId : undefined,
   );
-  const existingGroup = scope === "TENANT" ? tenantGroup : platformGroup;
-  const isLoadingExisting =
-    isEdit && (scope === "TENANT" ? loadingTenantGroup : loadingPlatformGroup);
+  const existingGroup = isTenant ? tenantGroup : platformGroup;
+  const isLoadingExisting = isEdit && (isTenant ? loadingTenantGroup : loadingPlatformGroup);
 
   // Mutations
   const createTenantGroupMutation = useCreateTenantGroup(activeTenantId);
@@ -74,10 +74,8 @@ export function GroupFormPage({ scope, groupId, backHref }: GroupFormPageProps) 
     addPlatformMembersMutation.isPending;
 
   // Candidate members for initial assignment
-  const { data: tenantMembers = [] } = useTenantMembers(
-    scope === "TENANT" ? activeTenantId : undefined,
-  );
-  const { data: staffData } = useStaffList(scope === "PLATFORM" ? { limit: 100 } : undefined);
+  const { data: tenantMembers = [] } = useTenantMembers(isTenant ? activeTenantId : undefined);
+  const { data: staffData } = useStaffList({ limit: 100 }, { enabled: !isTenant });
 
   const candidates = useMemo(() => {
     if (scope === "TENANT") {

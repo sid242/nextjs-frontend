@@ -39,13 +39,14 @@ function createInstance(baseURL: string): AxiosInstance {
 let redirecting = false;
 function redirectToLogin() {
   if (typeof window === "undefined" || redirecting) return;
-  const isPlatform = window.location.pathname.startsWith("/platform");
-  const slug = tenantSlugFromPath(window.location.pathname);
+  const cleanPath = window.location.pathname.replace(/\/+$/, "") || "/";
+  const isPlatform = cleanPath === "/platform" || cleanPath.startsWith("/platform/");
+  const slug = tenantSlugFromPath(cleanPath);
   const loginPath = isPlatform ? "/platform/login" : slug ? `/w/${slug}/login` : "/login";
-  if (window.location.pathname === loginPath) return;
+  if (cleanPath === loginPath) return;
 
   // Never bounce visitors browsing public marketing / unauthenticated pages to login
-  if (!isPlatform && !isProtectedPath(window.location.pathname)) return;
+  if (!isPlatform && !isProtectedPath(cleanPath)) return;
 
   redirecting = true;
   const next = encodeURIComponent(window.location.pathname + window.location.search);
@@ -88,6 +89,14 @@ http.interceptors.response.use(
 
 export const authHttp = createInstance("/api/auth");
 authHttp.interceptors.response.use(
+  (response) => response,
+  (error: unknown) => {
+    throw toApiError(error);
+  },
+);
+
+export const platformAuthHttp = createInstance("/api/platform/auth");
+platformAuthHttp.interceptors.response.use(
   (response) => response,
   (error: unknown) => {
     throw toApiError(error);
@@ -147,3 +156,5 @@ function createApi(instance: AxiosInstance) {
 export const api = createApi(http);
 /** Same helpers for our own auth endpoints: `authApi.post("/login", values)`. */
 export const authApi = createApi(authHttp);
+/** Dedicated helpers for platform staff auth endpoints: `platformAuthApi.post("/login", values)`. */
+export const platformAuthApi = createApi(platformAuthHttp);

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { classifyHost, normalizeHost } from "./host";
+import { classifyHost, isIpAddress, normalizeHost } from "./host";
 
 describe("host utilities", () => {
   describe("normalizeHost", () => {
@@ -91,6 +91,18 @@ describe("host utilities", () => {
 
       const reservedRes = classifyHost("www.localhost", localhostOptions);
       expect(reservedRes.classification).toBe("platform");
+    });
+
+    it("classifies LAN and local IP addresses directly as platform", () => {
+      expect(isIpAddress("127.0.0.1")).toBe(true);
+      expect(isIpAddress("192.168.1.45")).toBe(true);
+      expect(isIpAddress("10.0.0.1")).toBe(true);
+      expect(isIpAddress("::1")).toBe(true);
+      expect(isIpAddress("example.com")).toBe(false);
+
+      expect(classifyHost("192.168.1.45:3001", defaultOptions).classification).toBe("platform");
+      expect(classifyHost("127.0.0.1:3001", defaultOptions).classification).toBe("platform");
+      expect(classifyHost("10.0.2.15:3000", defaultOptions).classification).toBe("platform");
     });
   });
 });

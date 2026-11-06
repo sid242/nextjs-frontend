@@ -1,4 +1,4 @@
-import { api } from "@/lib/api/http";
+import { api, platformAuthApi } from "@/lib/api/http";
 import { buildQueryString } from "@/lib/utils";
 
 import type {
@@ -253,14 +253,14 @@ export type PlatformLoginResult =
 export async function loginPlatformStaff(
   credentials: PlatformLoginInput,
 ): Promise<PlatformLoginResult> {
-  return api.post<PlatformLoginResult>("/platform/auth/login", credentials);
+  return platformAuthApi.post<PlatformLoginResult>("/login", credentials);
 }
 
 export async function verifyPlatformTwoFactor(input: {
   challengeToken: string;
   code: string;
 }): Promise<{ token?: string; staff: StaffAuthProfile }> {
-  return api.post<{ token?: string; staff: StaffAuthProfile }>("/platform/auth/2fa/verify", input);
+  return platformAuthApi.post<{ token?: string; staff: StaffAuthProfile }>("/2fa/verify", input);
 }
 
 export async function setupPlatformTwoFactor(): Promise<{
@@ -296,7 +296,7 @@ export async function getPlatformMe(signal?: AbortSignal): Promise<StaffAuthProf
 }
 
 export async function logoutPlatformStaff(): Promise<void> {
-  return api.post<void>("/platform/auth/logout");
+  return platformAuthApi.post<void>("/logout");
 }
 
 // ==========================================

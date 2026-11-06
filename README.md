@@ -157,6 +157,35 @@ All config is **runtime** (no `NEXT_PUBLIC_*`), so one Docker image is promoted 
 | `CSP_CONNECT_EXTRA`   | Extra `connect-src` origins (your S3 bucket endpoint)             |
 | `COOKIE_SECURE=false` | Only for running a production build over plain `http://localhost` |
 
+## LAN & Mobile Device Development Support
+
+To test the frontend on physical mobile devices (Android Chrome, iOS Safari) connected to the same Wi-Fi network:
+
+1. **Find your computer's LAN IPv4 address:**
+   - **Windows:** Run `ipconfig` and find the active Wi-Fi adapter's `IPv4 Address` (e.g. `192.168.1.45`).
+   - **macOS:** Run `ipconfig getifaddr en0`.
+   - **Linux:** Run `hostname -I`.
+2. **Start the Frontend development server:**
+   ```bash
+   npm run dev
+   ```
+   The Next.js development server binds to all interfaces (`--hostname 0.0.0.0 -p 3001`).
+3. **Open on your mobile device browser:**
+   ```
+   http://<COMPUTER_LAN_IP>:3001
+   # Example:
+   http://192.168.1.45:3001
+   ```
+4. **BFF Architecture & Real-Time Flow:**
+   - **REST APIs:** All REST API calls flow through the same-origin BFF (`/api/proxy/*`), so the browser uses the same host (`http://192.168.1.45:3001`) and sends host-only HttpOnly session cookies. The Next.js server forwards requests to the backend using `API_URL` (`http://localhost:3009/api/v1`).
+   - **Real-Time Sockets:** In development mode, `/api/auth/socket-token` automatically adapts the Socket.IO connection URL from `localhost` to the client's LAN host (`http://192.168.1.45:3009`), allowing the mobile device to establish direct WebSocket connections with the backend.
+   - **File Uploads:** S3 presigned POST uploads are initiated directly from the mobile browser. Ensure the local MinIO or S3 endpoint is reachable from the mobile device if using local storage.
+5. **Firewall & Troubleshooting:**
+   - Ensure the computer's firewall allows incoming connections on port `3001` (Next.js) and port `3009` (Express backend) on the Private network.
+   - Verify that your Wi-Fi router does not enable AP/Client Isolation (which prevents devices on the same Wi-Fi network from communicating).
+
+---
+
 ## Deployment (AWS ECS Fargate)
 
 `Dockerfile` (standalone output, non-root, tini) -> ECR -> ECS behind an ALB. `deploy/task-def-web.json` and `.github/workflows/ci-cd.yml`

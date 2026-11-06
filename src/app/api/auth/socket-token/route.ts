@@ -18,7 +18,28 @@ export async function GET(req: NextRequest) {
   const blocked = assertSameOrigin(req);
   if (blocked) return blocked;
 
-  const url = getEnv().SOCKET_URL;
+  let url = getEnv().SOCKET_URL;
+  if (process.env.NODE_ENV === "development") {
+    try {
+      const socketParsed = new URL(url);
+      const reqHost = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
+      if (reqHost) {
+        const clientHostname = reqHost.split(":")[0];
+        if (
+          clientHostname &&
+          clientHostname !== "localhost" &&
+          clientHostname !== "127.0.0.1" &&
+          (socketParsed.hostname === "localhost" || socketParsed.hostname === "127.0.0.1")
+        ) {
+          socketParsed.hostname = clientHostname;
+          url = socketParsed.toString();
+        }
+      }
+    } catch {
+      /* ignore invalid URL */
+    }
+  }
+
   const headers = { "Cache-Control": "no-store" };
 
   const current = req.cookies.get(ACCESS_COOKIE)?.value;

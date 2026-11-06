@@ -75,8 +75,11 @@ export async function handlePlatformLoginRequest(req: NextRequest): Promise<Resp
   }
 
   // 2. Extract staff token from Set-Cookie header or upstream payload
-  const setCookie = upstream.headers.get("set-cookie");
-  const cookieToken = extractCookieValue(setCookie, PLATFORM_STAFF_COOKIE);
+  const rawSetCookie =
+    typeof upstream.headers.getSetCookie === "function"
+      ? upstream.headers.getSetCookie().join("; ")
+      : upstream.headers.get("set-cookie");
+  const cookieToken = extractCookieValue(rawSetCookie, PLATFORM_STAFF_COOKIE);
   const token = cookieToken || authData?.token;
 
   if (!upstream.ok || !token) {
@@ -136,8 +139,11 @@ export async function handlePlatform2FaVerifyRequest(req: NextRequest): Promise<
   } | null;
 
   const authData = data?.data ?? data;
-  const setCookie = upstream.headers.get("set-cookie");
-  const cookieToken = extractCookieValue(setCookie, PLATFORM_STAFF_COOKIE);
+  const rawSetCookie =
+    typeof upstream.headers.getSetCookie === "function"
+      ? upstream.headers.getSetCookie().join("; ")
+      : upstream.headers.get("set-cookie");
+  const cookieToken = extractCookieValue(rawSetCookie, PLATFORM_STAFF_COOKIE);
   const token = cookieToken || authData?.token;
 
   if (!upstream.ok || !token) {

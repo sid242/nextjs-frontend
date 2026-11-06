@@ -79,13 +79,19 @@ export const staffListQueryOptions = (params?: {
     queryFn: ({ signal }) => getStaffMembers(params, signal),
   });
 
-export function useStaffList(params?: {
-  page?: number;
-  limit?: number;
-  status?: string;
-  roleId?: string;
-}) {
-  return useQuery(staffListQueryOptions(params));
+export function useStaffList(
+  params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    roleId?: string;
+  },
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    ...staffListQueryOptions(params),
+    ...options,
+  });
 }
 
 export function useCreateStaff() {

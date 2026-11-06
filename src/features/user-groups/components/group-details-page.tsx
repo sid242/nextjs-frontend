@@ -87,48 +87,46 @@ interface GroupDetailsPageProps {
 
 export function GroupDetailsPage({ scope, groupId, backHref }: GroupDetailsPageProps) {
   const router = useRouter();
-  const { activeTenant, activeTenantId: rawTenantId } = useActiveTenant();
+  const isTenant = scope === "TENANT";
+  const { activeTenant, activeTenantId: rawTenantId } = useActiveTenant({ enabled: isTenant });
   const activeTenantId = rawTenantId ?? undefined;
 
   // Permissions
-  const { data: tenantContext } = useTenantContext(activeTenantId);
+  const { data: tenantContext } = useTenantContext(isTenant ? activeTenantId : undefined);
   const { data: platformStaff } = usePlatformMe();
 
-  const canEdit =
-    scope === "TENANT"
-      ? hasTenantPermission(tenantContext?.permissions ?? [], TENANT_PERMISSIONS.GROUPS_UPDATE)
-      : hasPlatformPermission(platformStaff, PLATFORM_PERMISSION_KEYS.GROUPS_UPDATE);
+  const canEdit = isTenant
+    ? hasTenantPermission(tenantContext?.permissions ?? [], TENANT_PERMISSIONS.GROUPS_UPDATE)
+    : hasPlatformPermission(platformStaff, PLATFORM_PERMISSION_KEYS.GROUPS_UPDATE);
 
-  const canArchive =
-    scope === "TENANT"
-      ? hasTenantPermission(tenantContext?.permissions ?? [], TENANT_PERMISSIONS.GROUPS_DELETE)
-      : hasPlatformPermission(platformStaff, PLATFORM_PERMISSION_KEYS.GROUPS_DELETE);
+  const canArchive = isTenant
+    ? hasTenantPermission(tenantContext?.permissions ?? [], TENANT_PERMISSIONS.GROUPS_DELETE)
+    : hasPlatformPermission(platformStaff, PLATFORM_PERMISSION_KEYS.GROUPS_DELETE);
 
-  const canManageMembers =
-    scope === "TENANT"
-      ? hasTenantPermission(
-          tenantContext?.permissions ?? [],
-          TENANT_PERMISSIONS.GROUPS_MANAGE_MEMBERS,
-        )
-      : hasPlatformPermission(platformStaff, PLATFORM_PERMISSION_KEYS.GROUPS_MANAGE_MEMBERS);
+  const canManageMembers = isTenant
+    ? hasTenantPermission(
+        tenantContext?.permissions ?? [],
+        TENANT_PERMISSIONS.GROUPS_MANAGE_MEMBERS,
+      )
+    : hasPlatformPermission(platformStaff, PLATFORM_PERMISSION_KEYS.GROUPS_MANAGE_MEMBERS);
 
   // Group Details Query
   const { data: tenantGroup, isLoading: loadingTenantGroup } = useTenantGroup(
-    activeTenantId,
-    scope === "TENANT" ? groupId : undefined,
+    isTenant ? activeTenantId : undefined,
+    isTenant ? groupId : undefined,
   );
 
   const { data: platformGroup, isLoading: loadingPlatformGroup } = usePlatformGroup(
-    scope === "PLATFORM" ? groupId : undefined,
+    !isTenant ? groupId : undefined,
   );
 
-  const group = scope === "TENANT" ? tenantGroup : platformGroup;
-  const isLoading = scope === "TENANT" ? loadingTenantGroup : loadingPlatformGroup;
+  const group = isTenant ? tenantGroup : platformGroup;
+  const isLoading = isTenant ? loadingTenantGroup : loadingPlatformGroup;
 
   // Group Members Query
   const { data: tenantMembersData, isLoading: loadingTenantMembers } = useTenantGroupMembers(
-    activeTenantId,
-    scope === "TENANT" ? groupId : undefined,
+    isTenant ? activeTenantId : undefined,
+    isTenant ? groupId : undefined,
     {
       page: 1,
       limit: 100,
@@ -136,7 +134,7 @@ export function GroupDetailsPage({ scope, groupId, backHref }: GroupDetailsPageP
   );
 
   const { data: platformMembersData, isLoading: loadingPlatformMembers } = usePlatformGroupMembers(
-    scope === "PLATFORM" ? groupId : undefined,
+    !isTenant ? groupId : undefined,
     {
       page: 1,
       limit: 100,
@@ -144,17 +142,14 @@ export function GroupDetailsPage({ scope, groupId, backHref }: GroupDetailsPageP
   );
 
   const members = useMemo(
-    () =>
-      scope === "TENANT" ? (tenantMembersData?.items ?? []) : (platformMembersData?.items ?? []),
-    [scope, tenantMembersData, platformMembersData],
+    () => (isTenant ? (tenantMembersData?.items ?? []) : (platformMembersData?.items ?? [])),
+    [isTenant, tenantMembersData, platformMembersData],
   );
-  const isLoadingMembers = scope === "TENANT" ? loadingTenantMembers : loadingPlatformMembers;
+  const isLoadingMembers = isTenant ? loadingTenantMembers : loadingPlatformMembers;
 
   // Candidate members for inline assignment
-  const { data: allTenantMembers = [] } = useTenantMembers(
-    scope === "TENANT" ? activeTenantId : undefined,
-  );
-  const { data: allStaffData } = useStaffList(scope === "PLATFORM" ? { limit: 100 } : undefined);
+  const { data: allTenantMembers = [] } = useTenantMembers(isTenant ? activeTenantId : undefined);
+  const { data: allStaffData } = useStaffList({ limit: 100 }, { enabled: !isTenant });
 
   // Existing assigned member IDs
   const assignedMemberIds = useMemo(() => {
