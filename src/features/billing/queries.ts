@@ -1,10 +1,27 @@
 "use client";
 
-import { queryOptions, useQuery } from "@tanstack/react-query";
+import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { getPlatformInvoices, getTenantInvoiceById, getTenantInvoices } from "./api";
+import {
+  cancelTenantSubscription,
+  createCheckoutOrder,
+  getPlatformInvoices,
+  getPlatformPayments,
+  getTenantInvoiceById,
+  getTenantInvoices,
+  getTenantPayments,
+  issuePlatformRefund,
+  verifyOrderPayment,
+} from "./api";
 import { billingKeys } from "./keys";
-import type { ListInvoicesQuery } from "./schemas";
+import type {
+  CancelSubscriptionInput,
+  CheckoutOrderInput,
+  IssueRefundInput,
+  ListInvoicesQuery,
+  ListPaymentsQuery,
+  VerifyOrderPaymentInput,
+} from "./schemas";
 
 export const tenantInvoicesQueryOptions = (query?: ListInvoicesQuery) =>
   queryOptions({
@@ -35,4 +52,69 @@ export const platformInvoicesQueryOptions = (query?: ListInvoicesQuery & { tenan
 
 export function usePlatformInvoices(query?: ListInvoicesQuery & { tenantId?: string }) {
   return useQuery(platformInvoicesQueryOptions(query));
+}
+
+// ==========================================
+// Razorpay Payments Hooks
+// ==========================================
+
+export const tenantPaymentsQueryOptions = (query?: ListPaymentsQuery) =>
+  queryOptions({
+    queryKey: billingKeys.tenantPayments(query),
+    queryFn: ({ signal }) => getTenantPayments(query, signal),
+  });
+
+export function useTenantPayments(query?: ListPaymentsQuery) {
+  return useQuery(tenantPaymentsQueryOptions(query));
+}
+
+export function useCreateCheckoutOrder() {
+  return useMutation({
+    mutationFn: (input: CheckoutOrderInput) => createCheckoutOrder(input),
+  });
+}
+
+export function useVerifyOrderPayment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: VerifyOrderPaymentInput) => verifyOrderPayment(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: billingKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["plans"] });
+      queryClient.invalidateQueries({ queryKey: ["tenants"] });
+    },
+  });
+}
+
+export function useCancelTenantSubscription() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CancelSubscriptionInput) => cancelTenantSubscription(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: billingKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["plans"] });
+      queryClient.invalidateQueries({ queryKey: ["tenants"] });
+    },
+  });
+}
+
+export const platformPaymentsQueryOptions = (query?: ListPaymentsQuery) =>
+  queryOptions({
+    queryKey: billingKeys.platformPayments(query),
+    queryFn: ({ signal }) => getPlatformPayments(query, signal),
+  });
+
+export function usePlatformPayments(query?: ListPaymentsQuery) {
+  return useQuery(platformPaymentsQueryOptions(query));
+}
+
+export function useIssuePlatformRefund() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ paymentId, input }: { paymentId: string; input: IssueRefundInput }) =>
+      issuePlatformRefund(paymentId, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: billingKeys.all });
+    },
+  });
 }

@@ -17,6 +17,7 @@ export {
 
 export { PlanCard } from "./components/plan-card";
 export { ChangePlanDialog } from "./components/change-plan-dialog";
+export { CancelSubscriptionDialog } from "./components/cancel-subscription-dialog";
 export { CreatePlanDialog } from "./components/create-plan-dialog";
 export { EditPlanDialog } from "./components/edit-plan-dialog";
 export { TenantBillingCard } from "./components/tenant-billing-card";

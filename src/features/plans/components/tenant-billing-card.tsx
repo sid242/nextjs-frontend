@@ -18,10 +18,12 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { useTenantSubscription } from "../queries";
+import { CancelSubscriptionDialog } from "./cancel-subscription-dialog";
 import { ChangePlanDialog } from "./change-plan-dialog";
 
 export function TenantBillingCard() {
   const [changeDialogOpen, setChangeDialogOpen] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const { data: subscription, isLoading, error } = useTenantSubscription();
 
   if (isLoading) {
@@ -61,8 +63,13 @@ export function TenantBillingCard() {
   const isNearLimit = activeMembers >= maxMembers - 1;
   const isAtLimit = activeMembers >= maxMembers;
 
+  const isPaidPlan = plan?.key && plan.key !== "FREE" && (plan?.priceCents ?? 0) > 0;
+  const isCancelling = subscription?.cancelAtPeriodEnd;
+
   const formattedPrice =
-    plan?.priceCents === 0 ? "Free" : `$${((plan?.priceCents ?? 0) / 100).toFixed(0)} / month`;
+    plan?.priceCents === 0
+      ? "Free"
+      : `₹${((plan?.priceCents ?? 0) / 100).toLocaleString()} / month`;
 
   return (
     <>
@@ -80,6 +87,11 @@ export function TenantBillingCard() {
                 >
                   {subscription?.status ?? "ACTIVE"}
                 </Badge>
+                {isCancelling ? (
+                  <Badge variant="destructive" className="font-mono text-[10px] uppercase">
+                    Cancels at period end
+                  </Badge>
+                ) : null}
               </div>
               <CardDescription className="text-xs">
                 Manage your organization&apos;s tier, team seat allocation, and feature
@@ -87,15 +99,28 @@ export function TenantBillingCard() {
               </CardDescription>
             </div>
 
-            <Button
-              size="sm"
-              onClick={() => setChangeDialogOpen(true)}
-              className="h-10 gap-1.5 rounded-xl text-xs shadow-xs"
-            >
-              <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-              Upgrade / Switch Plan
-              <ArrowUpRight className="h-3.5 w-3.5" />
-            </Button>
+            <div className="flex items-center gap-2">
+              {isPaidPlan && !isCancelling ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setCancelDialogOpen(true)}
+                  className="text-muted-foreground hover:text-destructive h-10 text-xs"
+                >
+                  Cancel Plan
+                </Button>
+              ) : null}
+
+              <Button
+                size="sm"
+                onClick={() => setChangeDialogOpen(true)}
+                className="h-10 gap-1.5 rounded-xl text-xs shadow-xs"
+              >
+                <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                Upgrade / Switch Plan
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           </div>
         </CardHeader>
 
@@ -219,6 +244,12 @@ export function TenantBillingCard() {
         open={changeDialogOpen}
         onOpenChange={setChangeDialogOpen}
         currentPlanKey={plan?.key}
+      />
+
+      <CancelSubscriptionDialog
+        open={cancelDialogOpen}
+        onOpenChange={setCancelDialogOpen}
+        currentPeriodEnd={subscription?.currentPeriodEnd}
       />
     </>
   );
