@@ -7,6 +7,7 @@ import {
   ChevronRight,
   ExternalLink,
   KeyRound,
+  Lock,
   LogOut,
   Menu,
   PanelLeftClose,
@@ -14,6 +15,7 @@ import {
   Radio,
   Shield,
   User,
+  UserCog,
   X,
 } from "lucide-react";
 
@@ -34,6 +36,8 @@ import { cn } from "@/lib/utils";
 import { PLATFORM_NAV_GROUPS } from "../constants";
 import { hasPlatformPermission, PLATFORM_PERMISSION_KEYS } from "../permissions";
 import { usePlatformLogout, usePlatformMe, useSupportSessions } from "../queries";
+import { PlatformChangePasswordDialog } from "./platform-change-password-dialog";
+import { PlatformProfileDialog } from "./platform-profile-dialog";
 import { PlatformTwoFactorDialog } from "./platform-two-factor-dialog";
 
 interface PlatformShellProps {
@@ -45,6 +49,8 @@ export function PlatformShell({ children }: PlatformShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [twoFactorOpen, setTwoFactorOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
   const { data: staff, isLoading: staffLoading } = usePlatformMe();
   const { mutate: logout, isPending: loggingOut } = usePlatformLogout();
 
@@ -126,56 +132,77 @@ export function PlatformShell({ children }: PlatformShellProps) {
               collapsed ? "justify-center" : "justify-between",
             )}
           >
-            <div className="flex items-center gap-3 overflow-hidden">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-500/20">
-                <Shield className="h-5 w-5" />
-              </div>
-              {!collapsed && (
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="truncate text-sm font-bold tracking-tight">SaaS Console</span>
-                    <Badge
-                      variant="outline"
-                      className="border-indigo-500/30 bg-indigo-500/10 px-1.5 py-0 font-mono text-[9px] text-indigo-600 uppercase dark:text-indigo-400"
-                    >
-                      Staff
-                    </Badge>
+            {collapsed ? (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-muted-foreground hover:text-foreground hidden h-8 w-8 md:flex"
+                  onClick={() => setCollapsed(false)}
+                  aria-label="Expand sidebar"
+                >
+                  <PanelLeftOpen className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 md:hidden"
+                  onClick={() => setMobileOpen(false)}
+                  aria-label="Close menu"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-3 overflow-hidden">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-500/20">
+                    <Shield className="h-5 w-5" />
                   </div>
-                  <div className="flex items-center gap-1.5 pt-0.5">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                    <span className="text-muted-foreground truncate font-mono text-[10px]">
-                      Operational
-                    </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="truncate text-sm font-bold tracking-tight">
+                        SaaS Console
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className="border-indigo-500/30 bg-indigo-500/10 px-1.5 py-0 font-mono text-[9px] text-indigo-600 uppercase dark:text-indigo-400"
+                      >
+                        Staff
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-1.5 pt-0.5">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      <span className="text-muted-foreground truncate font-mono text-[10px]">
+                        Operational
+                      </span>
+                    </div>
                   </div>
                 </div>
-              )}
-            </div>
 
-            {/* Collapse button for desktop, Close button for mobile */}
-            <div className="flex items-center">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-muted-foreground hover:text-foreground hidden h-8 w-8 md:flex"
-                onClick={() => setCollapsed((prev) => !prev)}
-                aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-              >
-                {collapsed ? (
-                  <PanelLeftOpen className="h-4 w-4" />
-                ) : (
-                  <PanelLeftClose className="h-4 w-4" />
-                )}
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 md:hidden"
-                onClick={() => setMobileOpen(false)}
-                aria-label="Close menu"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
+                {/* Collapse button for desktop, Close button for mobile */}
+                <div className="flex items-center">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-muted-foreground hover:text-foreground hidden h-8 w-8 md:flex"
+                    onClick={() => setCollapsed(true)}
+                    aria-label="Collapse sidebar"
+                  >
+                    <PanelLeftClose className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 md:hidden"
+                    onClick={() => setMobileOpen(false)}
+                    aria-label="Close menu"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Navigation Links with Groupings - min-h-0 allows internal scroll if short */}
@@ -316,8 +343,14 @@ export function PlatformShell({ children }: PlatformShellProps) {
                   )}
                 >
                   <div className="flex min-w-0 items-center gap-2.5">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-indigo-500/30 bg-indigo-500/15 text-xs font-bold text-indigo-600 dark:text-indigo-400">
-                      {staff?.displayName ? (
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-indigo-500/30 bg-indigo-500/15 text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                      {staff?.avatarUrl ? (
+                        <img
+                          src={staff.avatarUrl}
+                          alt={staff?.displayName ?? "Platform Staff"}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : staff?.displayName ? (
                         staff.displayName.charAt(0).toUpperCase()
                       ) : (
                         <User className="h-4 w-4" />
@@ -359,6 +392,14 @@ export function PlatformShell({ children }: PlatformShellProps) {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setProfileOpen(true)} className="cursor-pointer">
+                  <UserCog className="mr-2 h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                  <span>Edit Profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setPasswordOpen(true)} className="cursor-pointer">
+                  <Lock className="mr-2 h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                  <span>Change Password</span>
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setTwoFactorOpen(true)} className="cursor-pointer">
                   <KeyRound className="mr-2 h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                   <span>Security & 2FA</span>
@@ -413,6 +454,8 @@ export function PlatformShell({ children }: PlatformShellProps) {
           <main className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-8">{children}</main>
         </div>
 
+        <PlatformProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
+        <PlatformChangePasswordDialog open={passwordOpen} onOpenChange={setPasswordOpen} />
         <PlatformTwoFactorDialog open={twoFactorOpen} onOpenChange={setTwoFactorOpen} />
       </div>
     </TooltipProvider>

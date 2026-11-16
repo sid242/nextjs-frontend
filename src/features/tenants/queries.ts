@@ -14,6 +14,8 @@ import { useTenantUrl } from "@/lib/tenancy/context";
 
 import {
   addTenantMember,
+  checkMemberEmail,
+  checkTenantSlug,
   createTenant,
   deleteTenantCustomDomain,
   getTenantAuditLogs,
@@ -525,5 +527,35 @@ export function useDeleteTenantCustomDomain(
       },
     },
     options,
+  );
+}
+
+export function useCheckTenantSlug(slug?: string) {
+  const normalized = slug?.trim().toLowerCase() ?? "";
+  const isValid = normalized.length >= 3 && /^[a-z0-9-]+$/.test(normalized);
+
+  return useAppQuery<{ slug: string; available: boolean }>(
+    queryOptions({
+      queryKey: ["tenants", "check-slug", normalized],
+      queryFn: ({ signal }) => checkTenantSlug(normalized, signal),
+      enabled: isValid,
+      staleTime: 30 * 1000,
+      retry: false,
+    }),
+  );
+}
+
+export function useCheckMemberEmail(tenantId?: string | null, email?: string) {
+  const normalized = email?.trim().toLowerCase() ?? "";
+  const isValid = Boolean(tenantId && normalized && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized));
+
+  return useAppQuery<{ email: string; available: boolean; existsInWorkspace: boolean }>(
+    queryOptions({
+      queryKey: ["tenants", tenantId ?? "", "check-email", normalized],
+      queryFn: ({ signal }) => checkMemberEmail(tenantId!, normalized, signal),
+      enabled: isValid,
+      staleTime: 30 * 1000,
+      retry: false,
+    }),
   );
 }

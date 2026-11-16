@@ -26,6 +26,27 @@ export async function createTenant(input: CreateTenantInput): Promise<Tenant> {
   return await api.post<Tenant>("/tenants", input);
 }
 
+export async function checkTenantSlug(
+  slug: string,
+  signal?: AbortSignal,
+): Promise<{ slug: string; available: boolean }> {
+  return await api.get<{ slug: string; available: boolean }>(
+    `/tenants/check-slug?slug=${encodeURIComponent(slug)}`,
+    { signal },
+  );
+}
+
+export async function checkMemberEmail(
+  tenantId: string,
+  email: string,
+  signal?: AbortSignal,
+): Promise<{ email: string; available: boolean; existsInWorkspace: boolean }> {
+  return await api.get<{ email: string; available: boolean; existsInWorkspace: boolean }>(
+    `/tenants/${tenantId}/members/check-email?email=${encodeURIComponent(email)}`,
+    { signal },
+  );
+}
+
 export async function getTenantDetails(tenantId: string, signal?: AbortSignal): Promise<Tenant> {
   return await api.get<Tenant>(`/tenants/${tenantId}`, { signal });
 }
@@ -34,8 +55,17 @@ export async function getTenantMembers(
   tenantId: string,
   signal?: AbortSignal,
 ): Promise<TenantMember[]> {
-  const res = await api.get<TenantMember[]>(`/tenants/${tenantId}/members`, { signal });
-  return Array.isArray(res) ? res : [];
+  const res = await api.get<unknown>(`/tenants/${tenantId}/members`, { signal });
+  if (Array.isArray(res)) return res as TenantMember[];
+  if (res && typeof res === "object") {
+    if ("items" in res && Array.isArray((res as { items: unknown }).items)) {
+      return (res as { items: TenantMember[] }).items;
+    }
+    if ("data" in res && Array.isArray((res as { data: unknown }).data)) {
+      return (res as { data: TenantMember[] }).data;
+    }
+  }
+  return [];
 }
 
 export async function addTenantMember(

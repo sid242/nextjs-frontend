@@ -45,6 +45,8 @@ export {
   useExecuteTenantDatabaseOperation,
   platformMeQueryOptions,
   usePlatformMe,
+  useUpdatePlatformProfile,
+  useChangePlatformPassword,
   usePlatformLogin,
   usePlatformLogout,
   platformTwoFactorStatusQueryOptions,
@@ -72,11 +74,15 @@ export { RoleFormPage } from "./components/role-form-page";
 export { StaffFormPage } from "./components/staff-form-page";
 export { TenantInspector } from "./components/tenant-inspector";
 export { PlatformTwoFactorDialog } from "./components/platform-two-factor-dialog";
+export { PlatformProfileDialog } from "./components/platform-profile-dialog";
+export { PlatformChangePasswordDialog } from "./components/platform-change-password-dialog";
 export { PlatformPermissionGate } from "./components/platform-permission-gate";
 export {
   PLATFORM_PERMISSION_KEYS,
+  PLATFORM_ROLES,
   hasPlatformPermission,
   hasAllPlatformPermissions,
   type PlatformPermissionKey,
+  type PlatformRoleKey,
 } from "./permissions";
 export * from "./constants";

@@ -21,6 +21,8 @@ export {
   useTenantUrlSettings,
   tenantContextQueryOptions,
   useActiveTenant,
+  useCheckMemberEmail,
+  useCheckTenantSlug,
   useCreateTenant,
   useUpdateTenant,
   useAddTenantMember,

@@ -2,6 +2,7 @@ import {
   Building2,
   Database,
   FileText,
+  FolderTree,
   Layers,
   LayoutDashboard,
   LifeBuoy,
@@ -74,7 +75,7 @@ export const PLATFORM_NAV_GROUPS: NavGroup[] = [
         href: "/platform/groups",
         label: "Staff Groups",
         description: "Staff user groups and operator teams",
-        icon: Users,
+        icon: FolderTree,
         permission: PLATFORM_PERMISSION_KEYS.GROUPS_READ,
       },
       {
@@ -87,7 +88,7 @@ export const PLATFORM_NAV_GROUPS: NavGroup[] = [
       {
         href: "/platform/roles",
         label: "Roles & Matrix",
-        description: "System & custom resource::action catalogue",
+        description: "System & custom resource:action catalogue",
         icon: ShieldCheck,
         permission: PLATFORM_PERMISSION_KEYS.ROLES_READ,
       },

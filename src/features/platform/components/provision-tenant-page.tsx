@@ -4,13 +4,16 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
+  AlertCircle,
   ArrowLeft,
   Building2,
   Check,
+  CheckCircle2,
   Copy,
   Database,
   ExternalLink,
   Layers,
+  Loader2,
   Mail,
   RotateCcw,
   ShieldAlert,
@@ -27,7 +30,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useCheckTenantSlug } from "@/features/tenants";
 import { getErrorMessage } from "@/lib/api/errors";
+import { useDebouncedValue } from "@/lib/hooks";
 import { cn, generateSlug } from "@/lib/utils";
 
 import { useProvisionTenant } from "../queries";
@@ -70,6 +75,9 @@ export function ProvisionTenantPage() {
   const nameValue = useWatch({ control: form.control, name: "name" });
   const slugValue = useWatch({ control: form.control, name: "slug" });
   const dbModeValue = useWatch({ control: form.control, name: "databaseMode" });
+
+  const debouncedSlug = useDebouncedValue(slugValue, 350);
+  const { data: slugCheck, isFetching: isCheckingSlug } = useCheckTenantSlug(debouncedSlug);
 
   // Automatically derive URL slug from workspace name if not manually modified
   useEffect(() => {
@@ -339,12 +347,32 @@ export function ProvisionTenantPage() {
                   placeholder="e.g. acme-corp"
                   required
                 />
-                <p className="text-muted-foreground font-mono text-[11px]">
-                  Tenant URL:{" "}
-                  <span className="text-foreground">
-                    https://app.saas.io/{slugValue || "workspace-slug"}
-                  </span>
-                </p>
+                <div className="flex items-center justify-between text-[11px]">
+                  <p className="text-muted-foreground font-mono">
+                    Tenant URL:{" "}
+                    <span className="text-foreground">
+                      https://app.saas.io/{slugValue || "workspace-slug"}
+                    </span>
+                  </p>
+                  {isCheckingSlug ? (
+                    <span className="text-muted-foreground flex items-center gap-1">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Checking...
+                    </span>
+                  ) : slugCheck && debouncedSlug ? (
+                    slugCheck.available ? (
+                      <span className="flex items-center gap-1 font-medium text-emerald-600 dark:text-emerald-400">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Available
+                      </span>
+                    ) : (
+                      <span className="text-destructive flex items-center gap-1 font-medium">
+                        <AlertCircle className="h-3 w-3" />
+                        Slug already taken
+                      </span>
+                    )
+                  ) : null}
+                </div>
               </div>
             </CardContent>
           </Card>

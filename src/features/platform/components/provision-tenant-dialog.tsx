@@ -2,7 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Check, Copy, Database, ExternalLink, Sparkles } from "lucide-react";
+import {
+  AlertCircle,
+  Check,
+  CheckCircle2,
+  Copy,
+  Database,
+  ExternalLink,
+  Loader2,
+  Sparkles,
+} from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
 
 import { ControlledInput, ControlledSelect, FormWrapper } from "@/components/molecules/forms";
@@ -18,7 +27,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useCheckTenantSlug } from "@/features/tenants";
 import { getErrorMessage } from "@/lib/api/errors";
+import { useDebouncedValue } from "@/lib/hooks";
 import { generateSlug } from "@/lib/utils";
 
 import { useProvisionTenant } from "../queries";
@@ -62,6 +73,9 @@ export function ProvisionTenantDialog({ open, onOpenChange }: ProvisionTenantDia
   const nameValue = useWatch({ control: form.control, name: "name" });
   const slugValue = useWatch({ control: form.control, name: "slug" });
   const dbModeValue = useWatch({ control: form.control, name: "databaseMode" });
+
+  const debouncedSlug = useDebouncedValue(slugValue, 350);
+  const { data: slugCheck, isFetching: isCheckingSlug } = useCheckTenantSlug(debouncedSlug);
 
   useEffect(() => {
     if (nameValue && !form.formState.dirtyFields.slug) {
@@ -212,12 +226,34 @@ export function ProvisionTenantDialog({ open, onOpenChange }: ProvisionTenantDia
                 placeholder="e.g. Acme Corporation"
                 required
               />
-              <ControlledInput
-                name="slug"
-                label="URL Slug (Identifier)"
-                placeholder="e.g. acme-corp"
-                required
-              />
+              <div className="space-y-1">
+                <ControlledInput
+                  name="slug"
+                  label="URL Slug (Identifier)"
+                  placeholder="e.g. acme-corp"
+                  required
+                />
+                <div className="min-h-4 text-[11px]">
+                  {isCheckingSlug ? (
+                    <span className="text-muted-foreground flex items-center gap-1">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Checking availability...
+                    </span>
+                  ) : slugCheck && debouncedSlug ? (
+                    slugCheck.available ? (
+                      <span className="flex items-center gap-1 font-medium text-emerald-600 dark:text-emerald-400">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Available
+                      </span>
+                    ) : (
+                      <span className="text-destructive flex items-center gap-1 font-medium">
+                        <AlertCircle className="h-3 w-3" />
+                        Slug already taken
+                      </span>
+                    )
+                  ) : null}
+                </div>
+              </div>
             </div>
 
             <ControlledInput

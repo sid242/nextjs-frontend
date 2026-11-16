@@ -215,7 +215,7 @@ export function RoleFormPage({ roleId }: RoleFormPageProps) {
               )}
             </div>
             <p className="text-muted-foreground text-xs">
-              Configure canonical <code>resource::action</code> permissions governing internal SaaS
+              Configure canonical <code>resource:action</code> permissions governing internal SaaS
               operations.
             </p>
           </div>

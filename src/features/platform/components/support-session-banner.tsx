@@ -16,11 +16,15 @@ export function SupportSessionBanner({ sessionId, tenantSlug }: SupportSessionBa
   const handleEndSession = async () => {
     setIsPending(true);
     try {
-      await fetch("/api/platform/support-session/exit", {
+      const res = await fetch("/api/platform/support-session/exit", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId }),
       });
-      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- Full page navigation needed to clear application state
-      window.location.assign("/platform/tenants");
+      const data = await res.json().catch(() => null);
+      const destination = data?.redirectUrl ?? "/platform/tenants";
+
+      window.location.assign(destination);
     } catch {
       setIsPending(false);
     }

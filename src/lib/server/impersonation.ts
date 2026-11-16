@@ -78,7 +78,7 @@ export async function handleImpersonateRequest(req: NextRequest): Promise<Respon
   const secure = process.env.NODE_ENV === "production" && process.env.COOKIE_SECURE !== "false";
   const res = NextResponse.json({ ok: true });
 
-  // Backup the admin's original token in imp_at
+  // Backup the admin's original token in impersonator_token
   res.cookies.set(IMPERSONATOR_BACKUP_COOKIE, currentToken, {
     httpOnly: true,
     secure,
@@ -87,7 +87,7 @@ export async function handleImpersonateRequest(req: NextRequest): Promise<Respon
     maxAge: 3600, // 1 hour max impersonation window
   });
 
-  // Switch at to the impersonated user's token
+  // Switch access_token to the impersonated user's token
   res.cookies.set(ACCESS_COOKIE, accessToken, {
     httpOnly: true,
     secure,

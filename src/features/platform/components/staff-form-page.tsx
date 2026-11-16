@@ -4,8 +4,18 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, KeyRound, Shield, ShieldAlert, User, UserPlus } from "lucide-react";
-import { useForm } from "react-hook-form";
+import {
+  AlertCircle,
+  ArrowLeft,
+  CheckCircle2,
+  KeyRound,
+  Loader2,
+  Shield,
+  ShieldAlert,
+  User,
+  UserPlus,
+} from "lucide-react";
+import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
 import { ControlledInput, ControlledSelect, FormWrapper } from "@/components/molecules/forms";
@@ -16,8 +26,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getErrorMessage } from "@/lib/api/errors";
+import { useDebouncedValue } from "@/lib/hooks";
 
-import { useCreateStaff, usePlatformRoles } from "../queries";
+import { useCheckStaffEmail, useCreateStaff, usePlatformRoles } from "../queries";
 import { createStaffSchema, type CreateStaffInput } from "../schemas";
 
 export function StaffFormPage() {
@@ -36,6 +47,10 @@ export function StaffFormPage() {
       roleId: "",
     },
   });
+
+  const emailValue = useWatch({ control: methods.control, name: "email" });
+  const debouncedEmail = useDebouncedValue(emailValue, 350);
+  const { data: emailCheck, isFetching: isCheckingEmail } = useCheckStaffEmail(debouncedEmail);
 
   const roleOptions = useMemo(
     () => roles?.map((r) => ({ label: `${r.name} (${r.key})`, value: r.id })) ?? [],
@@ -130,13 +145,35 @@ export function StaffFormPage() {
                 required
               />
 
-              <ControlledInput
-                name="email"
-                label="Corporate Work Email"
-                type="email"
-                placeholder="e.g. jane@platform.io"
-                required
-              />
+              <div className="space-y-1">
+                <ControlledInput
+                  name="email"
+                  label="Corporate Work Email"
+                  type="email"
+                  placeholder="e.g. jane@platform.io"
+                  required
+                />
+                <div className="min-h-4 text-[11px]">
+                  {isCheckingEmail ? (
+                    <span className="text-muted-foreground flex items-center gap-1">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Checking availability...
+                    </span>
+                  ) : emailCheck && debouncedEmail ? (
+                    emailCheck.available ? (
+                      <span className="flex items-center gap-1 font-medium text-emerald-600 dark:text-emerald-400">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Email is available
+                      </span>
+                    ) : (
+                      <span className="text-destructive flex items-center gap-1 font-medium">
+                        <AlertCircle className="h-3 w-3" />
+                        Staff account with this email already exists
+                      </span>
+                    )
+                  ) : null}
+                </div>
+              </div>
             </div>
 
             <div className="space-y-1.5">

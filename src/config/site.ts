@@ -62,7 +62,18 @@ export const navSections: NavSection[] = [
             icon: "shield-check",
             permission: TENANT_PERMISSIONS.ROLES_READ,
           },
+          {
+            title: "Access Policies",
+            href: "/policies",
+            icon: "shield-check",
+            permission: TENANT_PERMISSIONS.POLICIES_READ,
+          },
         ],
+      },
+      {
+        title: "CRM Leads",
+        href: "/leads",
+        icon: "circle",
       },
       {
         title: "Files",

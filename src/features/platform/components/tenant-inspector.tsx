@@ -168,23 +168,34 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
   const handleStartSupport = async () => {
     if (!modalState.reason.trim()) return;
     try {
+      const isMember = Boolean(modalState.targetMember?.userId);
       const res = await startSupportSession({
         tenantId: tenant.id,
+        mode: isMember ? "AS_MEMBER" : "TENANT_SCOPED",
+        scope: "FULL",
         targetUserId: modalState.targetMember?.userId,
         reason: modalState.reason.trim(),
         durationMinutes: 30,
       });
 
       if (res?.sessionId) {
-        await fetch("/api/platform/support-session/enter", {
+        const token = res.accessToken ?? res.token;
+        const tenantSlug = res.tenantSlug ?? tenant.slug;
+        const enterRes = await fetch("/api/platform/support-session/enter", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             sessionId: res.sessionId,
-            tenantId: res.tenantId,
-            accessToken: res.accessToken,
+            tenantId: res.tenantId ?? tenant.id,
+            tenantSlug,
+            slug: tenantSlug,
+            accessToken: token,
           }),
         });
+
+        const enterData = await enterRes.json().catch(() => null);
+        const destination =
+          enterData?.redirectUrl ?? (tenantSlug ? `/w/${tenantSlug}/dashboard` : "/dashboard");
 
         toast.success(
           `Entering ${tenant.name} as ${modalState.targetMember?.name ?? modalState.targetMember?.email ?? "tenant user"}…`,
@@ -193,8 +204,8 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
         setModalState({ type: null, reason: "", targetMember: null, seatCount: 5 });
 
         // Full page navigation into the tenant dashboard with support banner active!
-        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-        window.location.assign("/dashboard");
+
+        window.location.assign(destination);
       }
     } catch (err: unknown) {
       toast.error(getErrorMessage(err, "Failed to start support session"));

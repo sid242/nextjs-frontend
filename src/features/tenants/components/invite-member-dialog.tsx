@@ -3,8 +3,8 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertCircle, ArrowUpRight, Users } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { AlertCircle, ArrowUpRight, CheckCircle2, Loader2, Users } from "lucide-react";
+import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 
 import { ControlledInput, ControlledSelect, FormWrapper } from "@/components/molecules/forms";
@@ -20,8 +20,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useDebouncedValue } from "@/lib/hooks";
 
 import { ROLE_OPTIONS } from "../constants";
+import { useActiveTenant, useCheckMemberEmail } from "../queries";
 
 const inviteMemberFormSchema = z.object({
   email: z.string().trim().email("Please enter a valid email address"),
@@ -70,6 +72,7 @@ export function InviteMemberDialog({
   planName,
   roles,
 }: InviteMemberDialogProps) {
+  const { activeTenant } = useActiveTenant();
   const methods = useForm<InviteMemberFormValues>({
     resolver: zodResolver(inviteMemberFormSchema),
     defaultValues: {
@@ -77,6 +80,13 @@ export function InviteMemberDialog({
       role: "MEMBER",
     },
   });
+
+  const emailValue = useWatch({ control: methods.control, name: "email" });
+  const debouncedEmail = useDebouncedValue(emailValue, 350);
+  const { data: memberCheck, isFetching: isCheckingMember } = useCheckMemberEmail(
+    activeTenant?.id,
+    debouncedEmail,
+  );
 
   const isSeatLimitReached = remainingSeats !== undefined && remainingSeats <= 0;
 
@@ -176,13 +186,35 @@ export function InviteMemberDialog({
               </div>
             ) : null}
 
-            <ControlledInput
-              name="email"
-              label="Email Address"
-              type="email"
-              required
-              placeholder="colleague@company.com"
-            />
+            <div className="space-y-1">
+              <ControlledInput
+                name="email"
+                label="Email Address"
+                type="email"
+                required
+                placeholder="colleague@company.com"
+              />
+              <div className="min-h-4 text-[11px]">
+                {isCheckingMember ? (
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Checking membership...
+                  </span>
+                ) : memberCheck && debouncedEmail ? (
+                  memberCheck.existsInWorkspace ? (
+                    <span className="text-destructive flex items-center gap-1 font-medium">
+                      <AlertCircle className="h-3 w-3" />
+                      User is already a member of this workspace
+                    </span>
+                  ) : memberCheck.available ? (
+                    <span className="flex items-center gap-1 font-medium text-emerald-600 dark:text-emerald-400">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Email is available for invitation
+                    </span>
+                  ) : null
+                ) : null}
+              </div>
+            </div>
 
             <ControlledSelect
               name="role"

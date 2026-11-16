@@ -141,8 +141,8 @@ export function RolesMatrix() {
             Platform Roles &amp; Permissions Matrix
           </h1>
           <p className="text-muted-foreground text-xs">
-            Canonical <code>resource::action</code> catalog governing administrative SaaS
-            operations, privilege boundaries, and staff assignments.
+            Canonical <code>resource:action</code> catalog governing administrative SaaS operations,
+            privilege boundaries, and staff assignments.
           </p>
         </div>
         <PlatformPermissionGate
@@ -509,7 +509,7 @@ export function RolesMatrix() {
                               </Badge>
                             </div>
                             <span className="text-muted-foreground font-mono text-[10px]">
-                              {resource.toLowerCase()}::*
+                              {resource.toLowerCase()}:*
                             </span>
                           </div>
 

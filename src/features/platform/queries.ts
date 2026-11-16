@@ -5,6 +5,8 @@ import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/r
 import {
   activateStaffMember,
   activateTenant,
+  changePlatformPassword,
+  checkStaffEmail,
   closeTenant,
   createPlatformRole,
   createStaffMember,
@@ -40,6 +42,7 @@ import {
   startSupportSession,
   suspendStaffMember,
   suspendTenant,
+  updatePlatformMe,
   updatePlatformRole,
   updatePlatformTenant,
   updatePlatformTenantSubscription,
@@ -50,6 +53,7 @@ import {
 } from "./api";
 import { platformKeys } from "./keys";
 import type {
+  ChangePlatformPasswordInput,
   CreatePlatformRoleInput,
   CreateStaffInput,
   ExecuteTenantDatabaseOperationInput,
@@ -58,6 +62,7 @@ import type {
   PlatformLoginInput,
   ProvisionTenantInput,
   StartSupportSessionInput,
+  UpdatePlatformProfileInput,
   UpdatePlatformRoleInput,
   UpdatePlatformTenantInput,
   UpdatePlatformTenantSubscriptionInput,
@@ -362,6 +367,23 @@ export function usePlatformMe() {
   return useQuery(platformMeQueryOptions());
 }
 
+export function useUpdatePlatformProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: UpdatePlatformProfileInput) => updatePlatformMe(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: platformKeys.me() });
+    },
+  });
+}
+
+export function useChangePlatformPassword() {
+  return useMutation({
+    mutationFn: (input: Omit<ChangePlatformPasswordInput, "confirmPassword">) =>
+      changePlatformPassword(input),
+  });
+}
+
 export function usePlatformLogin() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -641,5 +663,18 @@ export function useExecuteTenantDatabaseOperation() {
       queryClient.invalidateQueries({ queryKey: platformKeys.tenantDbHealth(variables.tenantId) });
       queryClient.invalidateQueries({ queryKey: platformKeys.tenants() });
     },
+  });
+}
+
+export function useCheckStaffEmail(email?: string) {
+  const normalized = email?.trim().toLowerCase() ?? "";
+  const isValid = Boolean(normalized && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized));
+
+  return useQuery({
+    queryKey: ["platform", "check-staff-email", normalized],
+    queryFn: ({ signal }) => checkStaffEmail(normalized, signal),
+    enabled: isValid,
+    staleTime: 30 * 1000,
+    retry: false,
   });
 }

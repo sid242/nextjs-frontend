@@ -113,7 +113,6 @@ const SUPPORT_SESSION_COLUMN_LABELS: Record<SupportSessionColumnId, string> = {
 };
 
 export function SupportSessionsTable() {
-  const router = useRouter();
   const [modalState, setModalState] = useState<{
     type: "initiate" | "terminate" | null;
     session: PlatformSupportSession | null;
@@ -224,16 +223,22 @@ export function SupportSessionsTable() {
                   variant="outline"
                   size="sm"
                   onClick={async () => {
-                    await fetch("/api/platform/support-session/enter", {
+                    const enterRes = await fetch("/api/platform/support-session/enter", {
                       method: "POST",
                       headers: { "content-type": "application/json" },
                       body: JSON.stringify({
                         sessionId: session.id,
                         tenantId: session.tenantId,
+                        tenantSlug: session.tenantSlug,
+                        slug: session.tenantSlug,
                       }),
                     });
-                    router?.push?.("/dashboard");
-                    router?.refresh?.();
+                    const enterData = await enterRes.json().catch(() => null);
+                    const destination =
+                      enterData?.redirectUrl ??
+                      (session.tenantSlug ? `/w/${session.tenantSlug}/dashboard` : "/dashboard");
+
+                    window.location.assign(destination);
                   }}
                   className="h-7 gap-1 border-emerald-500/30 text-xs text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400"
                 >

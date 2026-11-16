@@ -265,7 +265,7 @@ export function GroupFormPage({ scope, groupId, backHref }: GroupFormPageProps) 
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="mx-auto max-w-5xl space-y-6 pb-20">
       {/* Top Navigation & Breadcrumb */}
       <div className="flex items-center gap-3">
         <Button variant="outline" size="sm" asChild className="gap-2">
@@ -338,107 +338,115 @@ export function GroupFormPage({ scope, groupId, backHref }: GroupFormPageProps) 
           </CardContent>
         </Card>
 
-        {/* Optional Assignments: Roles & Members in compact 2-column grid */}
+        {/* Optional Assignments: Roles & Members in responsive grid */}
         {!isEdit && (
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            {/* Role Assignment Card */}
-            <Card className="rounded-2xl border shadow-xs">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">Assign Roles (Optional)</CardTitle>
-                  <Badge variant="secondary" className="gap-1 text-xs">
-                    <Shield className="h-3 w-3" />
-                    {selectedRoleIds.length} selected
-                  </Badge>
-                </div>
-                <CardDescription className="text-xs">
-                  Select {scope === "TENANT" ? "workspace" : "platform staff"} roles. Active members
-                  inherit permissions.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="relative">
-                  <Search className="text-muted-foreground absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2" />
-                  <Input
-                    placeholder="Search roles or permissions..."
-                    value={roleSearch}
-                    onChange={(e) => setRoleSearch(e.target.value)}
-                    className="h-9 pl-8 text-xs"
-                  />
-                </div>
+          <div
+            className={
+              scope === "TENANT"
+                ? "grid grid-cols-1 gap-6 md:grid-cols-2"
+                : "grid grid-cols-1 gap-6"
+            }
+          >
+            {/* Role Assignment Card (Tenant Scope only, since tenant groups bind roles) */}
+            {scope === "TENANT" && (
+              <Card className="rounded-2xl border shadow-xs">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base">Assign Roles (Optional)</CardTitle>
+                    <Badge variant="secondary" className="gap-1 text-xs">
+                      <Shield className="h-3 w-3" />
+                      {selectedRoleIds.length} selected
+                    </Badge>
+                  </div>
+                  <CardDescription className="text-xs">
+                    Select workspace roles. Active members inherit permissions.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="relative">
+                    <Search className="text-muted-foreground absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2" />
+                    <Input
+                      placeholder="Search roles or permissions..."
+                      value={roleSearch}
+                      onChange={(e) => setRoleSearch(e.target.value)}
+                      className="h-9 pl-8 text-xs"
+                    />
+                  </div>
 
-                <div className="divide-border max-h-52 divide-y overflow-y-auto rounded-xl border">
-                  {filteredRoles.length === 0 ? (
-                    <div className="text-muted-foreground p-4 text-center text-xs">
-                      {candidateRoles.length === 0
-                        ? "No active roles available."
-                        : "No roles match your search."}
-                    </div>
-                  ) : (
-                    filteredRoles.map((role) => {
-                      const isSelected = selectedRoleIds.includes(role.id);
-                      const roleCode =
-                        "code" in role
-                          ? role.code
-                          : "key" in role
-                            ? (role as { key?: string }).key
-                            : null;
-                      return (
-                        <div
-                          key={role.id}
-                          onClick={() => toggleRole(role.id)}
-                          className="hover:bg-muted/40 flex cursor-pointer items-start justify-between p-2.5 transition-colors"
-                        >
-                          <div className="flex min-w-0 flex-1 items-start gap-2.5">
-                            <Checkbox
-                              checked={isSelected}
-                              onCheckedChange={() => toggleRole(role.id)}
-                              className="mt-0.5"
-                            />
-                            <div className="min-w-0 flex-1 space-y-0.5">
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                <span className="text-foreground text-xs font-semibold">
-                                  {role.name}
-                                </span>
-                                {roleCode && (
-                                  <Badge
-                                    variant="outline"
-                                    className="px-1 py-0 font-mono text-[9px]"
-                                  >
-                                    {roleCode}
-                                  </Badge>
+                  <div className="divide-border max-h-60 divide-y overflow-y-auto overscroll-contain rounded-xl border">
+                    {filteredRoles.length === 0 ? (
+                      <div className="text-muted-foreground p-4 text-center text-xs">
+                        {candidateRoles.length === 0
+                          ? "No active roles available."
+                          : "No roles match your search."}
+                      </div>
+                    ) : (
+                      filteredRoles.map((role) => {
+                        const isSelected = selectedRoleIds.includes(role.id);
+                        const roleCode =
+                          "code" in role
+                            ? role.code
+                            : "key" in role
+                              ? (role as { key?: string }).key
+                              : null;
+                        return (
+                          <div
+                            key={role.id}
+                            onClick={() => toggleRole(role.id)}
+                            className="hover:bg-muted/40 flex cursor-pointer items-start justify-between p-2.5 transition-colors select-none"
+                          >
+                            <div className="flex min-w-0 flex-1 items-start gap-2.5">
+                              <Checkbox
+                                checked={isSelected}
+                                onCheckedChange={() => toggleRole(role.id)}
+                                onClick={(e) => e.stopPropagation()}
+                                className="mt-0.5"
+                              />
+                              <div className="min-w-0 flex-1 space-y-0.5">
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <span className="text-foreground text-xs font-semibold">
+                                    {role.name}
+                                  </span>
+                                  {roleCode && (
+                                    <Badge
+                                      variant="outline"
+                                      className="px-1 py-0 font-mono text-[9px]"
+                                    >
+                                      {roleCode}
+                                    </Badge>
+                                  )}
+                                  {role.isSystem && (
+                                    <Badge variant="secondary" className="px-1 py-0 text-[9px]">
+                                      System
+                                    </Badge>
+                                  )}
+                                </div>
+                                {role.description && (
+                                  <p className="text-muted-foreground line-clamp-1 text-[11px]">
+                                    {role.description}
+                                  </p>
                                 )}
-                                {role.isSystem && (
-                                  <Badge variant="secondary" className="px-1 py-0 text-[9px]">
-                                    System
-                                  </Badge>
-                                )}
-                              </div>
-                              {role.description && (
-                                <p className="text-muted-foreground line-clamp-1 text-[11px]">
-                                  {role.description}
-                                </p>
-                              )}
-                              <div className="text-muted-foreground truncate text-[11px] font-medium">
-                                {formatPermissionsSummary(role.permissions)}
+                                <div className="text-muted-foreground truncate text-[11px] font-medium">
+                                  {formatPermissionsSummary(role.permissions)}
+                                </div>
                               </div>
                             </div>
+                            {isSelected && (
+                              <Badge
+                                variant="outline"
+                                className="text-primary ml-1.5 shrink-0 text-[9px]"
+                              >
+                                Selected
+                              </Badge>
+                            )}
                           </div>
-                          {isSelected && (
-                            <Badge
-                              variant="outline"
-                              className="text-primary ml-1.5 shrink-0 text-[9px]"
-                            >
-                              Selected
-                            </Badge>
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                        );
+                      })
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Member Assignment Card */}
             <Card className="rounded-2xl border shadow-xs">
@@ -465,7 +473,7 @@ export function GroupFormPage({ scope, groupId, backHref }: GroupFormPageProps) 
                   />
                 </div>
 
-                <div className="divide-border max-h-52 divide-y overflow-y-auto rounded-xl border">
+                <div className="divide-border max-h-60 divide-y overflow-y-auto overscroll-contain rounded-xl border">
                   {filteredCandidates.length === 0 ? (
                     <div className="text-muted-foreground p-4 text-center text-xs">
                       {candidates.length === 0
@@ -479,12 +487,13 @@ export function GroupFormPage({ scope, groupId, backHref }: GroupFormPageProps) 
                         <div
                           key={candidate.id}
                           onClick={() => toggleMember(candidate.id)}
-                          className="hover:bg-muted/40 flex cursor-pointer items-center justify-between p-2.5 transition-colors"
+                          className="hover:bg-muted/40 flex cursor-pointer items-center justify-between p-2.5 transition-colors select-none"
                         >
                           <div className="flex min-w-0 flex-1 items-center gap-2.5">
                             <Checkbox
                               checked={isSelected}
                               onCheckedChange={() => toggleMember(candidate.id)}
+                              onClick={(e) => e.stopPropagation()}
                             />
                             <div className="min-w-0 flex-1">
                               <div className="truncate text-xs font-medium">{candidate.name}</div>
@@ -512,7 +521,7 @@ export function GroupFormPage({ scope, groupId, backHref }: GroupFormPageProps) 
         )}
 
         {/* Submit Actions */}
-        <div className="flex items-center justify-end gap-3 pt-2">
+        <div className="border-border/60 flex items-center justify-end gap-3 border-t pt-4">
           <Button variant="outline" type="button" asChild disabled={isSaving}>
             <Link href={defaultBackHref}>Cancel</Link>
           </Button>

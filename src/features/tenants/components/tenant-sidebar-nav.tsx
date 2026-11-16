@@ -1,6 +1,7 @@
 "use client";
 
 import { SidebarNav } from "@/components/organisms/sidebar-nav";
+import { useSidebar } from "@/lib/context/sidebar-context";
 
 import { useActiveTenant, useTenantContext } from "../queries";
 
@@ -11,10 +12,12 @@ interface TenantSidebarNavProps {
 }
 
 export function TenantSidebarNav({
-  collapsed = false,
+  collapsed: collapsedProp,
   orientation = "vertical",
   onNavigate,
 }: TenantSidebarNavProps) {
+  const sidebar = useSidebar();
+  const collapsed = collapsedProp ?? sidebar?.collapsed ?? false;
   const { activeTenant } = useActiveTenant();
   const { data: context } = useTenantContext(activeTenant?.id);
 
@@ -23,7 +26,7 @@ export function TenantSidebarNav({
       collapsed={collapsed}
       orientation={orientation}
       onNavigate={onNavigate}
-      permissions={context?.permissions}
+      permissions={context?.permissions ?? []}
     />
   );
 }

@@ -92,13 +92,14 @@ interface SidebarNavProps {
 
 export function SidebarNav({
   orientation = "vertical",
-  collapsed = false,
+  collapsed: collapsedProp,
   onNavigate,
   sections = defaultNavSections,
   permissions,
 }: SidebarNavProps) {
   const pathname = usePathname();
   const sidebar = useSidebar();
+  const collapsed = collapsedProp ?? sidebar?.collapsed ?? false;
   const tenantHref = useTenantHref();
   const handleNavigate = onNavigate ?? (sidebar?.isMobile ? sidebar.toggle : undefined);
   // Track user manual toggle overrides without needing an effect

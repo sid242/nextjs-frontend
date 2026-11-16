@@ -3,7 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRightIcon, Building2Icon, Loader2Icon, PlusIcon } from "lucide-react";
+import {
+  ArrowRightIcon,
+  Building2Icon,
+  Loader2Icon,
+  PlusIcon,
+  ShieldCheckIcon,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -86,8 +92,26 @@ export default function SelectWorkspacePage() {
               })}
             </div>
           ) : (
-            <div className="text-muted-foreground py-8 text-center text-sm">
-              <p>You do not have access to any workspaces yet.</p>
+            <div className="space-y-4 py-6 text-center text-sm">
+              <p className="text-muted-foreground">
+                You do not have access to any customer workspaces yet.
+              </p>
+              <div className="border-primary/20 bg-primary/5 rounded-xl border p-4 text-left">
+                <div className="text-foreground flex items-center gap-2 text-xs font-semibold">
+                  <ShieldCheckIcon className="text-primary size-4" />
+                  Are you an internal Platform Staff member?
+                </div>
+                <p className="text-muted-foreground mt-1 text-xs">
+                  Platform staff and Super Admins manage infrastructure, subscriptions, and audited
+                  tenant support sessions through the dedicated Platform Console.
+                </p>
+                <Button variant="default" size="sm" className="mt-3 w-full gap-2" asChild>
+                  <Link href="/platform">
+                    <ShieldCheckIcon className="size-3.5" />
+                    Go to Platform Console
+                  </Link>
+                </Button>
+              </div>
             </div>
           )}
 

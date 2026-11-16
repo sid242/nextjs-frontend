@@ -8,6 +8,7 @@ export const staffMemberSchema = z.object({
   id: z.string().uuid(),
   email: z.string().email(),
   displayName: z.string(),
+  avatarUrl: z.string().nullable().optional(),
   employeeCode: z.string().nullable().optional(),
   department: z.string().nullable().optional(),
   jobTitle: z.string().nullable().optional(),
@@ -135,6 +136,9 @@ export const supportSessionSchema = z.object({
   staffEmail: z.string().nullable().optional(),
   staffDisplayName: z.string().nullable().optional(),
   tenantId: z.string().uuid(),
+  tenantSlug: z.string().nullable().optional(),
+  mode: z.enum(["TENANT_SCOPED", "AS_MEMBER"]).optional(),
+  scope: z.enum(["READ_ONLY", "FULL"]).optional(),
   targetUserId: z.string().uuid().nullable().optional(),
   reason: z.string(),
   status: z.enum(["ACTIVE", "EXPIRED", "TERMINATED"]),
@@ -147,6 +151,8 @@ export type PlatformSupportSession = z.infer<typeof supportSessionSchema>;
 
 export const startSupportSessionSchema = z.object({
   tenantId: z.string().uuid("Valid customer tenant ID required"),
+  mode: z.enum(["TENANT_SCOPED", "AS_MEMBER"]).optional(),
+  scope: z.enum(["READ_ONLY", "FULL"]).optional(),
   targetUserId: z.string().optional(),
   reason: z.string().trim().min(5, "Support reason must be at least 5 characters"),
   ticketRef: z.string().trim().optional(),
@@ -159,9 +165,13 @@ export type StartSupportSessionInput = z.infer<typeof startSupportSessionSchema>
 export interface StartSupportSessionResponse {
   sessionId: string;
   tenantId: string;
+  tenantSlug?: string;
   targetUserId?: string | null;
   ticketRef?: string | null;
+  token?: string;
   accessToken?: string;
+  mode?: string;
+  scope?: string;
   reason: string;
   expiresAt: string;
   status: string;
@@ -210,10 +220,33 @@ export const platformLoginSchema = z.object({
 
 export type PlatformLoginInput = z.infer<typeof platformLoginSchema>;
 
+export const updatePlatformProfileSchema = z.object({
+  displayName: z.string().trim().min(2, "Name must be at least 2 characters").max(100).optional(),
+  avatarUrl: z.string().url("Must be a valid URL").nullable().optional().or(z.literal("")),
+  department: z.string().trim().max(100).nullable().optional(),
+  jobTitle: z.string().trim().max(100).nullable().optional(),
+});
+export type UpdatePlatformProfileInput = z.infer<typeof updatePlatformProfileSchema>;
+
+export const changePlatformPasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Current password is required"),
+    newPassword: z.string().min(8, "Password must be at least 8 characters").max(100),
+    confirmPassword: z.string().min(1, "Please confirm your new password"),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+export type ChangePlatformPasswordInput = z.infer<typeof changePlatformPasswordSchema>;
+
 export interface StaffAuthProfile {
   id: string;
   email: string;
   displayName: string;
+  avatarUrl?: string | null;
+  department?: string | null;
+  jobTitle?: string | null;
   roleId: string;
   roleKey: string;
   roleName: string;

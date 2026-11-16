@@ -2,6 +2,7 @@ import { api, platformAuthApi } from "@/lib/api/http";
 import { buildQueryString } from "@/lib/utils";
 
 import type {
+  ChangePlatformPasswordInput,
   CreatePlatformRoleInput,
   CreateStaffInput,
   ExecuteTenantDatabaseOperationInput,
@@ -22,6 +23,7 @@ import type {
   StartSupportSessionInput,
   StartSupportSessionResponse,
   TenantDatabaseItem,
+  UpdatePlatformProfileInput,
   UpdatePlatformRoleInput,
   UpdatePlatformTenantInput,
   UpdatePlatformTenantSubscriptionInput,
@@ -49,6 +51,16 @@ export async function getStaffMembers(
 
 export async function getStaffMember(id: string, signal?: AbortSignal): Promise<StaffMember> {
   return api.get<StaffMember>(`/platform/staff/${id}`, { signal });
+}
+
+export async function checkStaffEmail(
+  email: string,
+  signal?: AbortSignal,
+): Promise<{ email: string; available: boolean }> {
+  return api.get<{ email: string; available: boolean }>(
+    `/platform/staff/check-email?email=${encodeURIComponent(email)}`,
+    { signal },
+  );
 }
 
 export async function createStaffMember(input: CreateStaffInput): Promise<StaffMember> {
@@ -189,9 +201,12 @@ export async function startSupportSession(
   return api.post<StartSupportSessionResponse>(
     `/platform/tenants/${input.tenantId}/support-sessions`,
     {
+      mode: input?.mode ?? (input?.targetUserId ? "AS_MEMBER" : "TENANT_SCOPED"),
+      scope: input?.scope ?? "FULL",
       reason: input.reason,
       durationMinutes: input.durationMinutes,
       targetUserId: input?.targetUserId ? input.targetUserId.trim() : undefined,
+      ticketRef: input?.ticketRef ? input.ticketRef.trim() : undefined,
     },
   );
 }
@@ -293,6 +308,18 @@ export async function getPlatformTwoFactorStatus(
 
 export async function getPlatformMe(signal?: AbortSignal): Promise<StaffAuthProfile> {
   return api.get<StaffAuthProfile>("/platform/auth/me", { signal });
+}
+
+export async function updatePlatformMe(
+  input: UpdatePlatformProfileInput,
+): Promise<StaffAuthProfile> {
+  return api.patch<StaffAuthProfile>("/platform/auth/me", input);
+}
+
+export async function changePlatformPassword(
+  input: Omit<ChangePlatformPasswordInput, "confirmPassword">,
+): Promise<{ message: string }> {
+  return api.post<{ message: string }>("/platform/auth/change-password", input);
 }
 
 export async function logoutPlatformStaff(): Promise<void> {

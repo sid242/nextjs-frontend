@@ -257,18 +257,24 @@ export function TenantsTable() {
         durationMinutes: 30,
       });
       if (res?.sessionId) {
-        await fetch("/api/platform/support-session/enter", {
+        const tenantSlug = res.tenantSlug ?? modalState.tenant.slug;
+        const enterRes = await fetch("/api/platform/support-session/enter", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             sessionId: res.sessionId,
-            tenantId: res.tenantId,
-            accessToken: res.accessToken,
+            tenantId: res.tenantId ?? modalState.tenant.id,
+            tenantSlug,
+            slug: tenantSlug,
+            accessToken: res.accessToken ?? res.token,
           }),
         });
+        const enterData = await enterRes.json().catch(() => null);
+        const destination =
+          enterData?.redirectUrl ?? (tenantSlug ? `/w/${tenantSlug}/dashboard` : "/dashboard");
         setModalState({ type: null, tenant: null, reason: "" });
-        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-        window.location.assign("/dashboard");
+
+        window.location.assign(destination);
       }
     } catch {
       /* handled */
