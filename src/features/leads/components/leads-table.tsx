@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 import {
   DollarSignIcon,
   Edit2Icon,
@@ -32,7 +34,6 @@ import {
 
 import { useDeleteLead, useLeads } from "../queries";
 import type { Lead, LeadStatus } from "../types";
-import { LeadFormDialog } from "./lead-form-dialog";
 
 const STATUS_VARIANTS: Record<
   LeadStatus,
@@ -47,19 +48,14 @@ const STATUS_VARIANTS: Record<
 };
 
 export function LeadsTable() {
+  const params = useParams<{ tenantSlug: string }>();
+  const tenantSlug = params?.tenantSlug ?? "";
   const [search, setSearch] = useState("");
-  const [formOpen, setFormOpen] = useState(false);
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
   const { data, isLoading } = useLeads({ search: search || undefined });
   const deleteMutation = useDeleteLead();
 
   const leads = data?.items ?? [];
-
-  const handleEdit = (lead: Lead) => {
-    setSelectedLead(lead);
-    setFormOpen(true);
-  };
 
   const handleDelete = async (lead: Lead) => {
     if (confirm(`Are you sure you want to delete lead "${lead.name}"?`)) {
@@ -79,15 +75,11 @@ export function LeadsTable() {
             className="pl-8"
           />
         </div>
-        <Button
-          onClick={() => {
-            setSelectedLead(null);
-            setFormOpen(true);
-          }}
-          className="gap-2"
-        >
-          <PlusIcon className="h-4 w-4" />
-          Create Lead
+        <Button asChild className="gap-2">
+          <Link href={`/w/${tenantSlug}/leads/new`}>
+            <PlusIcon className="h-4 w-4" />
+            Create Lead
+          </Link>
         </Button>
       </div>
 
@@ -165,14 +157,19 @@ export function LeadsTable() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleEdit(lead)} className="gap-2">
-                            <Edit2Icon className="h-4 w-4" />
-                            Edit Lead
+                          <DropdownMenuItem asChild>
+                            <Link
+                              href={`/w/${tenantSlug}/leads/${lead.id}/edit`}
+                              className="flex cursor-pointer items-center gap-2"
+                            >
+                              <Edit2Icon className="h-4 w-4" />
+                              Edit Lead
+                            </Link>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             onClick={() => handleDelete(lead)}
-                            className="text-destructive focus:text-destructive gap-2"
+                            className="text-destructive focus:text-destructive cursor-pointer gap-2"
                           >
                             <Trash2Icon className="h-4 w-4" />
                             Delete Lead
@@ -187,8 +184,6 @@ export function LeadsTable() {
           </TableBody>
         </Table>
       </div>
-
-      <LeadFormDialog open={formOpen} onOpenChange={setFormOpen} lead={selectedLead} />
     </div>
   );
 }

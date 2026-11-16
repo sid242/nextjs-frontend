@@ -7,7 +7,7 @@ export const createPolicySchema = z.object({
   description: z.string().max(500).optional(),
   resource: z.string().min(1, "Resource is required"),
   action: z.string().min(1, "Action is required"),
-  effect: policyEffectSchema.default("allow"),
+  effect: policyEffectSchema,
   conditionsJson: z.string().refine((val) => {
     try {
       JSON.parse(val);
@@ -16,8 +16,8 @@ export const createPolicySchema = z.object({
       return false;
     }
   }, "Conditions must be valid JSON"),
-  priority: z.coerce.number().int().default(0),
-  isActive: z.boolean().default(true),
+  priority: z.coerce.number().int(),
+  isActive: z.boolean(),
 });
 
 export type CreatePolicyFormValues = z.infer<typeof createPolicySchema>;

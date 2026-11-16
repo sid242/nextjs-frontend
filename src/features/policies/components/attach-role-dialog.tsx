@@ -1,7 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 
+import { ControlledSelect, FormWrapper } from "@/components/molecules/forms";
+import { SubmitButton } from "@/components/molecules/submit-button";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,18 +16,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useTenantRoles } from "@/features/rbac";
 import { useActiveTenant } from "@/features/tenants";
 
 import { useAttachPolicyToRole } from "../queries";
 import type { Policy } from "../types";
+
+const attachRoleSchema = z.object({
+  roleId: z.string().min(1, "Please select a workspace role"),
+});
+
+type AttachRoleInput = z.infer<typeof attachRoleSchema>;
 
 interface AttachRoleDialogProps {
   open: boolean;
@@ -30,25 +34,68 @@ interface AttachRoleDialogProps {
   policy: Policy | null;
 }
 
-export function AttachRoleDialog({ open, onOpenChange, policy }: AttachRoleDialogProps) {
+function AttachRoleFormInner({ policy, onClose }: { policy: Policy; onClose: () => void }) {
   const { activeTenant } = useActiveTenant();
   const { data: roles = [] } = useTenantRoles(activeTenant?.id);
   const attachMutation = useAttachPolicyToRole();
-  const [selectedRoleId, setSelectedRoleId] = useState<string>("");
 
-  const handleAttach = async () => {
-    if (!policy || !selectedRoleId) return;
+  const methods = useForm<AttachRoleInput>({
+    resolver: zodResolver(attachRoleSchema),
+    defaultValues: {
+      roleId: "",
+    },
+  });
+
+  const roleOptions = useMemo(
+    () =>
+      roles.map((role) => ({
+        label: `${role.name} ${role.isSystem ? "(System)" : ""}`,
+        value: role.id,
+      })),
+    [roles],
+  );
+
+  const onSubmit = async (values: AttachRoleInput) => {
     await attachMutation.mutateAsync({
       policyId: policy.id,
-      roleId: selectedRoleId,
+      roleId: values.roleId,
     });
-    setSelectedRoleId("");
-    onOpenChange(false);
+    methods.reset();
+    onClose();
   };
 
   return (
+    <FormWrapper methods={methods} onSubmit={onSubmit} className="space-y-4">
+      <ControlledSelect
+        control={methods.control}
+        name="roleId"
+        label="Select Workspace Role"
+        placeholder="Choose a role..."
+        options={roleOptions}
+        required
+      />
+
+      <DialogFooter className="pt-2">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onClose}
+          disabled={attachMutation.isPending}
+        >
+          Cancel
+        </Button>
+        <SubmitButton pending={attachMutation.isPending} pendingText="Attaching...">
+          Attach Policy
+        </SubmitButton>
+      </DialogFooter>
+    </FormWrapper>
+  );
+}
+
+export function AttachRoleDialog({ open, onOpenChange, policy }: AttachRoleDialogProps) {
+  return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Attach Policy to Role</DialogTitle>
           <DialogDescription>
@@ -57,32 +104,9 @@ export function AttachRoleDialog({ open, onOpenChange, policy }: AttachRoleDialo
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Select Workspace Role</label>
-            <Select value={selectedRoleId} onValueChange={setSelectedRoleId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Choose a role..." />
-              </SelectTrigger>
-              <SelectContent>
-                {roles.map((role) => (
-                  <SelectItem key={role.id} value={role.id}>
-                    {role.name} {role.isSystem ? "(System)" : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleAttach} disabled={!selectedRoleId || attachMutation.isPending}>
-            {attachMutation.isPending ? "Attaching..." : "Attach Policy"}
-          </Button>
-        </DialogFooter>
+        {open && policy && (
+          <AttachRoleFormInner policy={policy} onClose={() => onOpenChange(false)} />
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 import {
   Edit2Icon,
   Link2Icon,
@@ -34,11 +36,11 @@ import {
 import { useDeletePolicy, usePolicies } from "../queries";
 import type { Policy } from "../types";
 import { AttachRoleDialog } from "./attach-role-dialog";
-import { PolicyFormDialog } from "./policy-form-dialog";
 
 export function PoliciesTable() {
+  const params = useParams<{ tenantSlug: string }>();
+  const tenantSlug = params?.tenantSlug ?? "";
   const [search, setSearch] = useState("");
-  const [formOpen, setFormOpen] = useState(false);
   const [attachOpen, setAttachOpen] = useState(false);
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
 
@@ -46,11 +48,6 @@ export function PoliciesTable() {
   const deleteMutation = useDeletePolicy();
 
   const policies = data?.items ?? [];
-
-  const handleEdit = (policy: Policy) => {
-    setSelectedPolicy(policy);
-    setFormOpen(true);
-  };
 
   const handleAttach = (policy: Policy) => {
     setSelectedPolicy(policy);
@@ -75,15 +72,11 @@ export function PoliciesTable() {
             className="pl-8"
           />
         </div>
-        <Button
-          onClick={() => {
-            setSelectedPolicy(null);
-            setFormOpen(true);
-          }}
-          className="gap-2"
-        >
-          <PlusIcon className="h-4 w-4" />
-          Create Policy
+        <Button asChild className="gap-2">
+          <Link href={`/w/${tenantSlug}/policies/new`}>
+            <PlusIcon className="h-4 w-4" />
+            Create Policy
+          </Link>
         </Button>
       </div>
 
@@ -164,18 +157,26 @@ export function PoliciesTable() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleAttach(policy)} className="gap-2">
+                        <DropdownMenuItem
+                          onClick={() => handleAttach(policy)}
+                          className="cursor-pointer gap-2"
+                        >
                           <Link2Icon className="h-4 w-4" />
                           Attach to Role
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleEdit(policy)} className="gap-2">
-                          <Edit2Icon className="h-4 w-4" />
-                          Edit Policy
+                        <DropdownMenuItem asChild>
+                          <Link
+                            href={`/w/${tenantSlug}/policies/${policy.id}/edit`}
+                            className="flex cursor-pointer items-center gap-2"
+                          >
+                            <Edit2Icon className="h-4 w-4" />
+                            Edit Policy
+                          </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onClick={() => handleDelete(policy)}
-                          className="text-destructive focus:text-destructive gap-2"
+                          className="text-destructive focus:text-destructive cursor-pointer gap-2"
                         >
                           <Trash2Icon className="h-4 w-4" />
                           Delete Policy
@@ -189,8 +190,6 @@ export function PoliciesTable() {
           </TableBody>
         </Table>
       </div>
-
-      <PolicyFormDialog open={formOpen} onOpenChange={setFormOpen} policy={selectedPolicy} />
 
       <AttachRoleDialog open={attachOpen} onOpenChange={setAttachOpen} policy={selectedPolicy} />
     </div>

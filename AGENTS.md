@@ -151,6 +151,14 @@ src/features/<feature-name>/
     └── index.ts                       # Public barrel export
     ```
   - **Strict Constants vs Utilities Boundary**: `*.constants.ts` files must contain **only** static declarations and objects (`as const`). They must **never** contain executable functions or business logic. All helper functions must live in `*.utils.ts`.
+- **Mandatory FormWrapper & Controlled Components (Zero Fragmented Form State)**:
+  - For ALL form inputs, creation, updating, or data mutation workflows, **MUST** use `FormWrapper` from `@/components/molecules/forms` wired with `useForm` and `zodResolver`.
+  - **MUST** use controlled components from `@/components/molecules/forms` (`ControlledInput`, `ControlledSelect`, `ControlledSwitch`, `ControlledCheckbox`, `ControlledTextarea`, `ControlledPhoneInput`, `ControlledRadioGroup`).
+  - **FORBIDDEN**: Using raw `<input>`, `<Select>`, or unintegrated UI components with a web of separate `useState` hooks for form mutations.
+  - **FORBIDDEN**: Writing manual `<form onSubmit={handleSubmit}>` without `FormWrapper`.
+- **Page vs Dialog Invariant (The 4-5 Field Threshold)**:
+  - **Dialog / Modal IS STRICTLY FOR <= 4 FIELDS**: Modals (`Dialog`, `Sheet`) are reserved strictly for quick lightweight operations with 4 or fewer fields (confirmation prompts, quick status toggles, change password with 3 fields, invite member with 3 fields).
+  - **Dedicated Page REQUIRED FOR > 4-5 FIELDS**: If any form for creating, changing, or updating has **more than 4-5 fields**, it **MUST NEVER** be implemented as a Dialog modal. It **MUST** be implemented as a dedicated full-screen page route (`/new` or `/[id]/edit`) using `<Resource>FormPage` (`*-form-page.tsx`), featuring a top back button (`ArrowLeft`), page title & description, responsive layout, Card section grouping, and standard Cancel/Submit buttons. See `.agents/rules/forms-and-mutations.md`.
 
 ---
 

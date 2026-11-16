@@ -1,8 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Briefcase, Building, Camera, User } from "lucide-react";
+import { useForm, useWatch } from "react-hook-form";
+import { toast } from "sonner";
 
+import { ControlledInput, FormWrapper } from "@/components/molecules/forms";
+import { SubmitButton } from "@/components/molecules/submit-button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,10 +18,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { getErrorMessage } from "@/lib/api/errors";
 
 import { usePlatformMe, useUpdatePlatformProfile } from "../queries";
+import { updatePlatformProfileSchema, type UpdatePlatformProfileInput } from "../schemas";
 
 interface PlatformProfileDialogProps {
   open: boolean;
@@ -25,38 +31,39 @@ interface PlatformProfileDialogProps {
 function PlatformProfileFormInner({ onClose }: { onClose: () => void }) {
   const { data: staff } = usePlatformMe();
   const updateMutation = useUpdatePlatformProfile();
+  const [formError, setFormError] = useState<string | null>(null);
 
-  const [displayName, setDisplayName] = useState(staff?.displayName ?? "");
-  const [avatarUrl, setAvatarUrl] = useState(staff?.avatarUrl ?? "");
-  const [department, setDepartment] = useState(staff?.department ?? "");
-  const [jobTitle, setJobTitle] = useState(staff?.jobTitle ?? "");
-  const [error, setError] = useState<string | null>(null);
+  const methods = useForm<UpdatePlatformProfileInput>({
+    resolver: zodResolver(updatePlatformProfileSchema),
+    defaultValues: {
+      displayName: staff?.displayName ?? "",
+      avatarUrl: staff?.avatarUrl ?? "",
+      department: staff?.department ?? "",
+      jobTitle: staff?.jobTitle ?? "",
+    },
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
+  const avatarUrl = useWatch({ control: methods.control, name: "avatarUrl" });
+  const displayName = useWatch({ control: methods.control, name: "displayName" });
 
-    if (avatarUrl && !avatarUrl.startsWith("http://") && !avatarUrl.startsWith("https://")) {
-      setError("Profile picture must be a valid http or https URL");
-      return;
-    }
-
+  const onSubmit = async (values: UpdatePlatformProfileInput) => {
+    setFormError(null);
     try {
       await updateMutation.mutateAsync({
-        displayName: displayName.trim(),
-        avatarUrl: avatarUrl.trim() || null,
-        department: department.trim() || null,
-        jobTitle: jobTitle.trim() || null,
+        displayName: values.displayName?.trim() || undefined,
+        avatarUrl: values.avatarUrl?.trim() || null,
+        department: values.department?.trim() || null,
+        jobTitle: values.jobTitle?.trim() || null,
       });
+      toast.success("Platform operator profile updated successfully!");
       onClose();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to update profile";
-      setError(msg);
+      setFormError(getErrorMessage(err, "Failed to update operator profile"));
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <FormWrapper methods={methods} onSubmit={onSubmit} className="space-y-4">
       {/* Avatar Preview */}
       <div className="flex items-center gap-4 py-1">
         <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-indigo-500/30 bg-indigo-500/10">
@@ -66,7 +73,6 @@ function PlatformProfileFormInner({ onClose }: { onClose: () => void }) {
               src={avatarUrl}
               alt={displayName || "Staff Profile"}
               className="h-full w-full object-cover"
-              onError={() => setError("Unable to load image from provided URL")}
             />
           ) : displayName ? (
             <span className="text-xl font-bold text-indigo-600 dark:text-indigo-400">
@@ -85,66 +91,42 @@ function PlatformProfileFormInner({ onClose }: { onClose: () => void }) {
         </div>
       </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="staff-display-name">Display Name</Label>
-        <Input
-          id="staff-display-name"
-          placeholder="e.g. Sarah Connor"
-          value={displayName}
-          onChange={(e) => setDisplayName(e.target.value)}
-          required
-        />
-      </div>
+      {formError && (
+        <Alert variant="destructive">
+          <AlertDescription>{formError}</AlertDescription>
+        </Alert>
+      )}
 
-      <div className="space-y-1.5">
-        <Label htmlFor="staff-avatar-url" className="flex items-center gap-1.5">
-          <Camera className="text-muted-foreground h-3.5 w-3.5" />
-          <span>Profile Picture URL</span>
-        </Label>
-        <Input
-          id="staff-avatar-url"
-          type="url"
-          placeholder="https://example.com/avatar.jpg"
-          value={avatarUrl}
-          onChange={(e) => {
-            setAvatarUrl(e.target.value);
-            setError(null);
-          }}
-        />
-        <p className="text-muted-foreground text-[11px]">
-          Enter an image URL (PNG, JPEG, WebP) to display as your staff avatar.
-        </p>
-      </div>
+      <ControlledInput
+        control={methods.control}
+        name="displayName"
+        label="Display Name"
+        placeholder="e.g. Sarah Connor"
+        required
+      />
+
+      <ControlledInput
+        control={methods.control}
+        name="avatarUrl"
+        label="Profile Picture URL"
+        placeholder="https://example.com/avatar.jpg"
+        description="Enter an image URL (PNG, JPEG, WebP) to display as your staff avatar."
+      />
 
       <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5">
-          <Label htmlFor="staff-job-title" className="flex items-center gap-1.5">
-            <Briefcase className="text-muted-foreground h-3.5 w-3.5" />
-            <span>Job Title</span>
-          </Label>
-          <Input
-            id="staff-job-title"
-            placeholder="Security Engineer"
-            value={jobTitle}
-            onChange={(e) => setJobTitle(e.target.value)}
-          />
-        </div>
-
-        <div className="space-y-1.5">
-          <Label htmlFor="staff-department" className="flex items-center gap-1.5">
-            <Building className="text-muted-foreground h-3.5 w-3.5" />
-            <span>Department</span>
-          </Label>
-          <Input
-            id="staff-department"
-            placeholder="Infrastructure"
-            value={department}
-            onChange={(e) => setDepartment(e.target.value)}
-          />
-        </div>
+        <ControlledInput
+          control={methods.control}
+          name="jobTitle"
+          label="Job Title"
+          placeholder="Security Engineer"
+        />
+        <ControlledInput
+          control={methods.control}
+          name="department"
+          label="Department"
+          placeholder="Infrastructure"
+        />
       </div>
-
-      {error && <p className="text-destructive text-xs font-medium">{error}</p>}
 
       <DialogFooter className="pt-2">
         <Button
@@ -155,18 +137,18 @@ function PlatformProfileFormInner({ onClose }: { onClose: () => void }) {
         >
           Cancel
         </Button>
-        <Button type="submit" disabled={updateMutation.isPending || !displayName.trim()}>
-          {updateMutation.isPending ? "Saving..." : "Save Changes"}
-        </Button>
+        <SubmitButton pending={updateMutation.isPending} pendingText="Saving...">
+          Save Changes
+        </SubmitButton>
       </DialogFooter>
-    </form>
+    </FormWrapper>
   );
 }
 
 export function PlatformProfileDialog({ open, onOpenChange }: PlatformProfileDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Operator Profile Settings</DialogTitle>
           <DialogDescription>

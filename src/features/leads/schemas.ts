@@ -14,12 +14,12 @@ export const createLeadSchema = z.object({
   email: z.string().email("Valid email required"),
   phone: z.string().max(30).optional(),
   company: z.string().max(100).optional(),
-  status: leadStatusSchema.default("new"),
-  value: z.coerce.number().int().min(0).default(0),
+  status: leadStatusSchema,
+  value: z.coerce.number().int().min(0),
   departmentId: z.string().max(50).optional(),
   regionId: z.string().max(50).optional(),
   assignedMemberId: z.string().uuid().optional().or(z.literal("")),
-  isConfidential: z.boolean().default(false),
+  isConfidential: z.boolean(),
   notes: z.string().max(2000).optional(),
 });
 
