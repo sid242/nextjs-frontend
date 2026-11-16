@@ -55,6 +55,14 @@ export {
   useEnablePlatformTwoFactor,
   useDisablePlatformTwoFactor,
   useVerifyPlatformTwoFactor,
+  usePlatformPolicies,
+  usePlatformPolicy,
+  useCreatePlatformPolicy,
+  useUpdatePlatformPolicy,
+  useDeletePlatformPolicy,
+  useAttachPlatformPolicyToRole,
+  useDetachPlatformPolicyFromRole,
+  usePlatformRolePolicies,
 } from "./queries";
 
 export { PlatformShell } from "./components/platform-shell";
@@ -76,6 +84,9 @@ export { TenantInspector } from "./components/tenant-inspector";
 export { PlatformTwoFactorDialog } from "./components/platform-two-factor-dialog";
 export { PlatformProfileDialog } from "./components/platform-profile-dialog";
 export { PlatformChangePasswordDialog } from "./components/platform-change-password-dialog";
+export { PlatformPoliciesTable } from "./components/platform-policies-table";
+export { PlatformPolicyFormPage } from "./components/platform-policy-form-page";
+export { AttachPlatformRoleDialog } from "./components/attach-platform-role-dialog";
 export { PlatformPermissionGate } from "./components/platform-permission-gate";
 export {
   PLATFORM_PERMISSION_KEYS,

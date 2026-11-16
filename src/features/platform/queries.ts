@@ -2,14 +2,25 @@
 
 import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import type {
+  CreatePolicyInput,
+  ListPoliciesFilter,
+  Policy,
+  UpdatePolicyInput,
+} from "@/features/policies";
+
 import {
   activateStaffMember,
   activateTenant,
+  attachPlatformPolicyToRole,
   changePlatformPassword,
   checkStaffEmail,
   closeTenant,
+  createPlatformPolicy,
   createPlatformRole,
   createStaffMember,
+  deletePlatformPolicy,
+  detachPlatformPolicyFromRole,
   disablePlatformTwoFactor,
   enablePlatformTwoFactor,
   endSupportSession,
@@ -17,6 +28,9 @@ import {
   getPlatformAuditLogs,
   getPlatformMe,
   getPlatformPermissions,
+  getPlatformPolicies,
+  getPlatformPolicy,
+  getPlatformRolePolicies,
   getPlatformRoles,
   getPlatformTenant,
   getPlatformTenants,
@@ -43,6 +57,7 @@ import {
   suspendStaffMember,
   suspendTenant,
   updatePlatformMe,
+  updatePlatformPolicy,
   updatePlatformRole,
   updatePlatformTenant,
   updatePlatformTenantSubscription,
@@ -676,5 +691,98 @@ export function useCheckStaffEmail(email?: string) {
     enabled: isValid,
     staleTime: 30 * 1000,
     retry: false,
+  });
+}
+
+// ==========================================
+// Platform PBAC Policies Hooks
+// ==========================================
+
+export const platformPoliciesKeys = {
+  all: ["platform", "policies"] as const,
+  lists: () => [...platformPoliciesKeys.all, "list"] as const,
+  list: (filters?: ListPoliciesFilter) => [...platformPoliciesKeys.lists(), filters] as const,
+  details: () => [...platformPoliciesKeys.all, "detail"] as const,
+  detail: (id: string) => [...platformPoliciesKeys.details(), id] as const,
+  rolePolicies: (roleId: string) => [...platformPoliciesKeys.all, "role", roleId] as const,
+};
+
+export function usePlatformPolicies(filters?: ListPoliciesFilter) {
+  return useQuery({
+    queryKey: platformPoliciesKeys.list(filters),
+    queryFn: ({ signal }) => getPlatformPolicies(filters, signal),
+    staleTime: 30 * 1000,
+  });
+}
+
+export function usePlatformPolicy(policyId: string) {
+  return useQuery({
+    queryKey: platformPoliciesKeys.detail(policyId),
+    queryFn: ({ signal }) => getPlatformPolicy(policyId, signal),
+    enabled: Boolean(policyId),
+  });
+}
+
+export function useCreatePlatformPolicy() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreatePolicyInput) => createPlatformPolicy(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: platformPoliciesKeys.all });
+    },
+  });
+}
+
+export function useUpdatePlatformPolicy() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ policyId, input }: { policyId: string; input: UpdatePolicyInput }) =>
+      updatePlatformPolicy(policyId, input),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: platformPoliciesKeys.detail(vars.policyId) });
+      queryClient.invalidateQueries({ queryKey: platformPoliciesKeys.lists() });
+    },
+  });
+}
+
+export function useDeletePlatformPolicy() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (policyId: string) => deletePlatformPolicy(policyId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: platformPoliciesKeys.all });
+    },
+  });
+}
+
+export function useAttachPlatformPolicyToRole() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ policyId, roleId }: { policyId: string; roleId: string }) =>
+      attachPlatformPolicyToRole(policyId, roleId),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: platformPoliciesKeys.rolePolicies(vars.roleId) });
+      queryClient.invalidateQueries({ queryKey: platformPoliciesKeys.all });
+    },
+  });
+}
+
+export function useDetachPlatformPolicyFromRole() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ policyId, roleId }: { policyId: string; roleId: string }) =>
+      detachPlatformPolicyFromRole(policyId, roleId),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: platformPoliciesKeys.rolePolicies(vars.roleId) });
+      queryClient.invalidateQueries({ queryKey: platformPoliciesKeys.all });
+    },
+  });
+}
+
+export function usePlatformRolePolicies(roleId: string) {
+  return useQuery({
+    queryKey: platformPoliciesKeys.rolePolicies(roleId),
+    queryFn: ({ signal }) => getPlatformRolePolicies(roleId, signal),
+    enabled: Boolean(roleId),
   });
 }

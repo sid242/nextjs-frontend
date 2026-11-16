@@ -1,3 +1,9 @@
+import type {
+  CreatePolicyInput,
+  ListPoliciesFilter,
+  Policy,
+  UpdatePolicyInput,
+} from "@/features/policies";
 import { api, platformAuthApi } from "@/lib/api/http";
 import { buildQueryString } from "@/lib/utils";
 
@@ -487,4 +493,58 @@ export async function executeTenantDatabaseOperation(
     `/platform/database-operations/${tenantId}/execute`,
     input,
   );
+}
+
+// ==========================================
+// 10. Platform PBAC Policies
+// ==========================================
+
+export async function getPlatformPolicies(
+  params?: ListPoliciesFilter,
+  signal?: AbortSignal,
+): Promise<PaginatedResult<Policy>> {
+  const qs = buildQueryString(params);
+  return api.get<PaginatedResult<Policy>>(`/platform/policies${qs}`, { signal });
+}
+
+export async function getPlatformPolicy(policyId: string, signal?: AbortSignal): Promise<Policy> {
+  return api.get<Policy>(`/platform/policies/${policyId}`, { signal });
+}
+
+export async function createPlatformPolicy(input: CreatePolicyInput): Promise<Policy> {
+  return api.post<Policy>("/platform/policies", input);
+}
+
+export async function updatePlatformPolicy(
+  policyId: string,
+  input: UpdatePolicyInput,
+): Promise<Policy> {
+  return api.patch<Policy>(`/platform/policies/${policyId}`, input);
+}
+
+export async function deletePlatformPolicy(policyId: string): Promise<void> {
+  await api.delete(`/platform/policies/${policyId}`);
+}
+
+export async function attachPlatformPolicyToRole(policyId: string, roleId: string): Promise<void> {
+  await api.post(`/platform/policies/${policyId}/roles/${roleId}`, {});
+}
+
+export async function detachPlatformPolicyFromRole(
+  policyId: string,
+  roleId: string,
+): Promise<void> {
+  await api.delete(`/platform/policies/${policyId}/roles/${roleId}`);
+}
+
+export async function getPlatformRolePolicies(
+  roleId: string,
+  signal?: AbortSignal,
+): Promise<Policy[]> {
+  const res = await api.get<Policy[] | { data: Policy[] }>(`/platform/policies/roles/${roleId}`, {
+    signal,
+  });
+  if (Array.isArray(res)) return res;
+  if (res && "data" in res && Array.isArray(res.data)) return res.data;
+  return [];
 }

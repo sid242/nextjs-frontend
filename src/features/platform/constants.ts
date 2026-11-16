@@ -6,6 +6,7 @@ import {
   Layers,
   LayoutDashboard,
   LifeBuoy,
+  Shield,
   ShieldCheck,
   UserCheck,
   Users,
@@ -90,6 +91,13 @@ export const PLATFORM_NAV_GROUPS: NavGroup[] = [
         label: "Roles & Matrix",
         description: "System & custom resource:action catalogue",
         icon: ShieldCheck,
+        permission: PLATFORM_PERMISSION_KEYS.ROLES_READ,
+      },
+      {
+        href: "/platform/policies",
+        label: "Access Policies",
+        description: "Dynamic PBAC attribute policies for operators",
+        icon: Shield,
         permission: PLATFORM_PERMISSION_KEYS.ROLES_READ,
       },
       {
