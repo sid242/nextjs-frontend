@@ -308,7 +308,7 @@ export function PlatformShell({ children }: PlatformShellProps) {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Link
-                    href="/dashboard"
+                    href="/select-workspace"
                     className="border-border/60 text-muted-foreground hover:border-border hover:bg-muted hover:text-foreground mx-auto flex h-10 w-10 items-center justify-center rounded-lg border transition-colors"
                   >
                     <ExternalLink className="h-4 w-4" />
@@ -318,7 +318,7 @@ export function PlatformShell({ children }: PlatformShellProps) {
               </Tooltip>
             ) : (
               <Link
-                href="/dashboard"
+                href="/select-workspace"
                 className="group border-border/60 bg-muted/30 text-muted-foreground hover:border-border hover:bg-muted/70 hover:text-foreground flex items-center justify-between rounded-lg border px-3 py-2 text-xs font-medium transition-all"
               >
                 <div className="flex items-center gap-2">

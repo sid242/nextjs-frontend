@@ -97,6 +97,7 @@ export const PLATFORM_PERMISSION_KEYS = {
 
   AUDIT_READ: "platform_audit:read",
   HEALTH_READ: "system_health:read",
+  DATABASE_OPERATE: "database:operate",
 } as const;
 
 export type PlatformPermissionKey =

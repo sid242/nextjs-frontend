@@ -6,6 +6,7 @@ import {
   listScimTokens,
   lookupSso,
   revokeScimToken,
+  rotateScimToken,
   testSsoConnection,
   updateTenantSsoConfig,
 } from "./api";
@@ -56,6 +57,19 @@ export function useCreateScimToken(tenantId?: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: CreateScimTokenInput) => createScimToken(tenantId!, input),
+    onSuccess: () => {
+      if (tenantId) {
+        queryClient.invalidateQueries({ queryKey: ssoKeys.tokens(tenantId) });
+      }
+    },
+  });
+}
+
+export function useRotateScimToken(tenantId?: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ tokenId, expiresInDays }: { tokenId: string; expiresInDays?: number }) =>
+      rotateScimToken(tenantId!, tokenId, { expiresInDays }),
     onSuccess: () => {
       if (tenantId) {
         queryClient.invalidateQueries({ queryKey: ssoKeys.tokens(tenantId) });

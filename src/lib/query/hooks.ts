@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import {
@@ -21,13 +20,22 @@ export const DEFAULT_QUERY_CONFIG = {
 } as const;
 
 export type QueryOverrides<TData = unknown, TError = DefaultError> = Partial<
-  Omit<UseQueryOptions<any, TError, TData, any>, "queryKey" | "queryFn">
+  Omit<UseQueryOptions<never, TError, TData, QueryKey>, "queryKey" | "queryFn">
 > & {
   queryKey?: QueryKey;
 };
 
-export function useAppQuery<TData = unknown, TError = DefaultError>(
-  baseOptions: any,
+export function useAppQuery<
+  TQueryFnData = unknown,
+  TError = DefaultError,
+  TData = TQueryFnData,
+  TQueryKey extends QueryKey = QueryKey,
+>(
+  baseOptions:
+    | UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>
+    | (() => UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    | any,
   overrides?: QueryOverrides<TData, TError> | Record<string, unknown>,
 ): UseQueryResult<TData, TError> {
   const resolvedBase = typeof baseOptions === "function" ? baseOptions() : baseOptions;
@@ -38,6 +46,7 @@ export function useAppQuery<TData = unknown, TError = DefaultError>(
     ...overrides,
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return useQuery(mergedOptions as UseQueryOptions<any, TError, TData, any>);
 }
 
@@ -65,10 +74,16 @@ export function useAppMutation<
   TVariables = void,
   TContext = unknown,
 >(
-  baseOptions: any,
+  baseOptions:
+    | AppMutationOptions<TData, TError, TVariables, TContext>
+    | (() => AppMutationOptions<TData, TError, TVariables, TContext>)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    | any,
   overrides?: MutationOverrides<TData, TVariables, TError, TContext> | Record<string, unknown>,
 ): UseMutationResult<TData, TError, TVariables, TContext> {
   const queryClient = useQueryClient();
+
+  const resolvedBase = typeof baseOptions === "function" ? baseOptions() : baseOptions;
 
   const {
     successMessage,
@@ -78,7 +93,7 @@ export function useAppMutation<
     onError: baseOnError,
     onSettled: baseOnSettled,
     ...restBase
-  } = (baseOptions ?? {}) as AppMutationOptions<TData, TError, TVariables, TContext>;
+  } = (resolvedBase ?? {}) as AppMutationOptions<TData, TError, TVariables, TContext>;
 
   const {
     successMessage: overrideSuccessMessage,
@@ -94,46 +109,64 @@ export function useAppMutation<
   const resolvedErrorMessage = overrideErrorMessage ?? errorMessage;
   const keysToInvalidate = [...(invalidateKeys ?? []), ...(overrideInvalidateKeys ?? [])];
 
-  return useMutation({
+  const mutationOptions: UseMutationOptions<TData, TError, TVariables, TContext> = {
     ...restBase,
     ...restOverrides,
-    onSuccess: (...args: any[]) => {
+    onSuccess: (...args) => {
       if (keysToInvalidate?.length) {
         keysToInvalidate.forEach((key) => {
-          queryClient.invalidateQueries({ queryKey: key });
+          void queryClient.invalidateQueries({ queryKey: key });
         });
       }
 
-      (baseOnSuccess as any)?.(...args);
-      (overrideOnSuccess as any)?.(...args);
+      if (typeof baseOnSuccess === "function") {
+        (baseOnSuccess as (...a: unknown[]) => unknown)(...args);
+      }
+      if (typeof overrideOnSuccess === "function") {
+        (overrideOnSuccess as (...a: unknown[]) => unknown)(...args);
+      }
 
       if (resolvedSuccessMessage) {
         const message =
           typeof resolvedSuccessMessage === "function"
-            ? (resolvedSuccessMessage as any)(args[0], args[1])
+            ? (resolvedSuccessMessage as (data: unknown, variables: unknown) => string)(
+                args[0],
+                args[1],
+              )
             : resolvedSuccessMessage;
         if (message) {
           toast.success(message);
         }
       }
     },
-    onError: (...args: any[]) => {
-      (baseOnError as any)?.(...args);
-      (overrideOnError as any)?.(...args);
+    onError: (...args) => {
+      if (typeof baseOnError === "function") {
+        (baseOnError as (...a: unknown[]) => unknown)(...args);
+      }
+      if (typeof overrideOnError === "function") {
+        (overrideOnError as (...a: unknown[]) => unknown)(...args);
+      }
 
       if (resolvedErrorMessage) {
         const message =
           typeof resolvedErrorMessage === "function"
-            ? (resolvedErrorMessage as any)(args[0])
+            ? (resolvedErrorMessage as (error: unknown) => string)(args[0])
             : resolvedErrorMessage;
         if (message) {
           toast.error(message);
         }
       }
     },
-    onSettled: (...args: any[]) => {
-      (baseOnSettled as any)?.(...args);
-      (overrideOnSettled as any)?.(...args);
+    onSettled: (...args) => {
+      if (typeof baseOnSettled === "function") {
+        (baseOnSettled as (...a: unknown[]) => unknown)(...args);
+      }
+      if (typeof overrideOnSettled === "function") {
+        (overrideOnSettled as (...a: unknown[]) => unknown)(...args);
+      }
     },
-  }) as UseMutationResult<TData, TError, TVariables, TContext>;
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return useMutation(mutationOptions as any);
 }

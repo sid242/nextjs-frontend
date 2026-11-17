@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/config/site";
 import { SidebarProvider } from "@/lib/context/sidebar-context";
 import { useUiStore } from "@/lib/stores/ui-store";
+import { useTenantHref } from "@/lib/tenancy";
 import { cn } from "@/lib/utils";
 
 import { SidebarNav } from "./sidebar-nav";
@@ -20,6 +21,7 @@ interface AppSidebarProps {
 
 /** Desktop sidebar. The collapsed state is a persisted zustand preference. */
 export function AppSidebar({ tenantSwitcher, userProfile, navigationSlot }: AppSidebarProps) {
+  const tenantHref = useTenantHref();
   const collapsed = useUiStore((state) => state.sidebarCollapsed);
   const toggle = useUiStore((state) => state.toggleSidebar);
 
@@ -43,7 +45,7 @@ export function AppSidebar({ tenantSwitcher, userProfile, navigationSlot }: AppS
               >
                 {!collapsed && (
                   <Link
-                    href="/dashboard"
+                    href={tenantHref("/dashboard")}
                     className="text-sidebar-foreground px-2 text-lg font-semibold tracking-tight"
                   >
                     {siteConfig.name}

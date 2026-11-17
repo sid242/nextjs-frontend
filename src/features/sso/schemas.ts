@@ -18,6 +18,10 @@ export const tenantSsoConfigSchema = z.object({
   allowedDomains: z.array(z.string()).default([]),
   defaultRoleId: z.string().nullable().optional(),
   jitProvisioning: z.boolean().default(true),
+  spEntityId: z.string().optional().nullable(),
+  acsUrl: z.string().optional().nullable(),
+  oidcCallbackUrl: z.string().optional().nullable(),
+  metadataUrl: z.string().optional().nullable(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
 });
@@ -50,14 +54,21 @@ export const scimTokenSchema = z.object({
   name: z.string(),
   tokenPrefix: z.string(),
   status: scimTokenStatusSchema,
+  allowedIps: z.array(z.string()).default([]),
   lastUsedAt: z.string().nullable().optional(),
+  lastUsedIp: z.string().nullable().optional(),
   expiresAt: z.string().nullable().optional(),
   createdAt: z.string(),
 });
 
 export const createScimTokenSchema = z.object({
   name: z.string().trim().min(2, "Name must be at least 2 characters").max(100),
-  expiresInDays: z.number().int().min(1).max(365).optional().nullable(),
+  expiresInDays: z.number().int().min(1).max(365).default(365),
+  allowedIps: z.array(z.string().trim()).default([]),
+});
+
+export const rotateScimTokenSchema = z.object({
+  expiresInDays: z.number().int().min(1).max(365).default(365),
 });
 
 export const createScimTokenResponseSchema = z.object({
@@ -67,9 +78,5 @@ export const createScimTokenResponseSchema = z.object({
 
 export const ssoLookupResponseSchema = z.object({
   ssoAvailable: z.boolean(),
-  tenantId: z.string().optional(),
-  tenantSlug: z.string().optional(),
-  tenantName: z.string().optional(),
-  enforceSso: z.boolean().optional(),
-  providerType: ssoProviderTypeSchema.optional(),
+  redirectUrl: z.string().optional(),
 });

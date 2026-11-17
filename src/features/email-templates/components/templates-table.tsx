@@ -475,7 +475,7 @@ export function TemplatesTable() {
               </Button>
             ) : (
               <Button asChild variant="outline" size="sm" className="mt-2 gap-1.5 rounded-xl">
-                <Link href="/email-templates/new">
+                <Link href={tenantHref("/email-templates/new")}>
                   <PlusIcon className="size-3.5" />
                   <span>Create Template</span>
                 </Link>

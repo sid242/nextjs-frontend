@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useVerifyMagicLink } from "@/features/auth";
 import { getErrorMessage } from "@/lib/api/errors";
+import { safeNextPath } from "@/lib/auth/paths";
 import { resetAllStores } from "@/lib/stores/reset";
 
 function MagicLinkVerifyContent() {
@@ -36,7 +37,9 @@ function MagicLinkVerifyContent() {
         resetAllStores();
         // Give the user a brief visual celebration before entering workspace
         setTimeout(() => {
-          router.replace("/dashboard");
+          const next = searchParams?.get?.("next");
+          const destination = next ? safeNextPath(next, "/select-workspace") : "/select-workspace";
+          router.replace(destination);
           router.refresh();
         }, 1200);
       } catch (err: unknown) {

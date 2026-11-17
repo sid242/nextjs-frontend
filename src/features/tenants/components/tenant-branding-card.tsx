@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { getErrorMessage } from "@/lib/api/errors";
+import { useTenantHref } from "@/lib/tenancy";
 import { cn } from "@/lib/utils";
 
 import { requestBrandingUploadUrl, uploadBrandingAsset } from "../api";
@@ -127,6 +128,7 @@ interface BrandingFormData {
 }
 
 function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBrandingFormProps) {
+  const tenantHref = useTenantHref();
   const updateBrandingMutation = useUpdateTenantBranding(activeTenantId);
 
   // Grouped form state (single state container with typed updater)
@@ -1246,7 +1248,10 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                     Upgrade to Pro or Enterprise to remove the platform watermark and white-label
                     your workspace.
                   </span>
-                  <Link href="/settings/billing" className="font-medium underline hover:opacity-80">
+                  <Link
+                    href={tenantHref("/settings/billing")}
+                    className="font-medium underline hover:opacity-80"
+                  >
                     View Plans →
                   </Link>
                 </div>
@@ -1260,7 +1265,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                   <Globe className="text-primary size-3.5" /> Domain & URL Settings
                 </span>
                 <Link
-                  href="/settings/url"
+                  href={tenantHref("/settings/url")}
                   className="text-primary hover:text-primary/80 text-xs font-medium underline-offset-2 hover:underline"
                 >
                   Manage domains →
@@ -1411,7 +1416,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                 {previewTab === "app" ? (
                   /* Simulation: Split Sidebar + Content Layout */
                   <div className="flex min-h-[360px]">
-                    {/* Mock Sidebar */}
+                    {/* Live Preview Sidebar */}
                     <div
                       className="flex w-32 shrink-0 flex-col justify-between border-r p-2.5 transition-colors"
                       style={{
@@ -1435,7 +1440,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                           </span>
                         </div>
 
-                        {/* Mock Navigation links */}
+                        {/* Live Preview Navigation links */}
                         <div className="space-y-1 text-[11px]">
                           <div
                             className="flex items-center gap-1.5 rounded px-2 py-1 font-semibold transition-opacity"
@@ -1468,7 +1473,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                       </div>
                     </div>
 
-                    {/* Mock Main Area */}
+                    {/* Live Preview Main Area */}
                     <div className="flex-1 p-3">
                       {/* Header bar */}
                       <div
@@ -1496,7 +1501,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                           </div>
                         </div>
 
-                        {/* Buttons Mockup */}
+                        {/* Live Preview Buttons */}
                         <div className="flex flex-wrap items-center gap-1.5">
                           <button
                             type="button"
@@ -1524,7 +1529,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                           </button>
                         </div>
 
-                        {/* Mock Input */}
+                        {/* Live Preview Input */}
                         <input
                           type="text"
                           readOnly
@@ -1612,7 +1617,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                         </div>
                       </div>
 
-                      {/* Right Mock Form */}
+                      {/* Right Live Preview Form */}
                       <div className="col-span-6 flex flex-col justify-center space-y-2.5 p-3.5">
                         <div className="space-y-0.5">
                           <div className="text-xs font-bold">Sign In</div>
@@ -1930,6 +1935,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
 }
 
 export function TenantBrandingCard() {
+  const tenantHref = useTenantHref();
   const { activeTenant, activeTenantId } = useActiveTenant();
   const { data: branding, isLoading } = useTenantBranding(activeTenantId);
 

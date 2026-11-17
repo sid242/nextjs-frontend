@@ -227,4 +227,77 @@ describe("BFF Generic Proxy Route & Security Hardening", () => {
       expect(setCookie).toContain("platform_staff_token=");
     });
   });
+
+  describe("Tenant Header Isolation & Client Spoofing Prevention", () => {
+    it("overwrites client-supplied forged x-tenant-id with backend-resolved tenantId", async () => {
+      // Mock first call for resolveTenantBySlug ("legit-acme")
+      vi.mocked(backendModule.backendFetch).mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            success: true,
+            data: { tenantId: "legit-tenant-123", slug: "legit-acme", status: "ACTIVE" },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+      );
+
+      // Mock second call for the actual upstream proxy request
+      vi.mocked(backendModule.backendFetch).mockResolvedValueOnce(
+        new Response(JSON.stringify({ data: { success: true } }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      );
+
+      // Client sends forged x-tenant-id: evil-tenant-999 on platform host with referer to /w/legit-acme
+      const req = new NextRequest("http://localhost:3000/api/proxy/files", {
+        method: "GET",
+        headers: {
+          host: "localhost:3000",
+          referer: "http://localhost:3000/w/legit-acme/files",
+          cookie: `${ACCESS_COOKIE}=valid-customer-token`,
+          "x-tenant-id": "evil-tenant-999",
+        },
+      });
+
+      const res = await GET(req, {
+        params: Promise.resolve({ path: ["files"] }),
+      });
+
+      expect(res.status).toBe(200);
+
+      // Verified that evil-tenant-999 is NOT passed through to backend, and real tenant ID is passed
+      const proxyCall = vi
+        .mocked(backendModule.backendFetch)
+        .mock.calls.find((call) => call[0] === "/files");
+      expect(proxyCall).toBeDefined();
+      expect(proxyCall?.[1]?.headers?.["x-tenant-id"]).toBe("legit-tenant-123");
+    });
+
+    it("omits x-tenant-id header entirely when tenant context is unresolved", async () => {
+      vi.mocked(backendModule.backendFetch).mockResolvedValueOnce(
+        new Response(JSON.stringify({ data: [] }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      );
+
+      // Request on platform host without any referer
+      const req = new NextRequest("http://localhost:3000/api/proxy/users/me", {
+        method: "GET",
+        headers: {
+          host: "localhost:3000",
+          cookie: `${ACCESS_COOKIE}=valid-customer-token`,
+        },
+      });
+
+      const res = await GET(req, {
+        params: Promise.resolve({ path: ["users", "me"] }),
+      });
+
+      expect(res.status).toBe(200);
+      const calledOptions = vi.mocked(backendModule.backendFetch).mock.calls[0]?.[1];
+      expect(calledOptions?.headers?.["x-tenant-id"]).toBeUndefined();
+    });
+  });
 });

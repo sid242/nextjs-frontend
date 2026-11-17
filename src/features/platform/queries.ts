@@ -12,7 +12,9 @@ import type {
 import {
   activateStaffMember,
   activateTenant,
+  approveTenantDbOperation,
   attachPlatformPolicyToRole,
+  cancelTenantDbOperation,
   changePlatformPassword,
   checkStaffEmail,
   closeTenant,
@@ -41,6 +43,8 @@ import {
   getSupportSessions,
   getTenantDatabaseHealth,
   getTenantDatabases,
+  getTenantDbOperation,
+  getTenantDbOperations,
   getTenantMembers,
   inviteStaffMember,
   loginPlatformStaff,
@@ -676,7 +680,64 @@ export function useExecuteTenantDatabaseOperation() {
       queryClient.invalidateQueries({ queryKey: platformKeys.databaseOperations() });
       queryClient.invalidateQueries({ queryKey: platformKeys.tenantDetail(variables.tenantId) });
       queryClient.invalidateQueries({ queryKey: platformKeys.tenantDbHealth(variables.tenantId) });
+      queryClient.invalidateQueries({
+        queryKey: platformKeys.tenantDbOperations(variables.tenantId),
+      });
       queryClient.invalidateQueries({ queryKey: platformKeys.tenants() });
+    },
+  });
+}
+
+export function useTenantDbOperation(operationId?: string | null) {
+  return useQuery({
+    queryKey: operationId ? platformKeys.tenantDbOperation(operationId) : ["platform", "op-null"],
+    queryFn: ({ signal }) => (operationId ? getTenantDbOperation(operationId, signal) : null),
+    enabled: Boolean(operationId),
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      return status === "RUNNING" || status === "QUEUED" ? 2000 : false;
+    },
+  });
+}
+
+export function useTenantDbOperations(tenantId?: string | null) {
+  return useQuery({
+    queryKey: tenantId ? platformKeys.tenantDbOperations(tenantId) : ["platform", "ops-null"],
+    queryFn: ({ signal }) => (tenantId ? getTenantDbOperations(tenantId, signal) : []),
+    enabled: Boolean(tenantId),
+    refetchInterval: 5000,
+  });
+}
+
+export function useApproveTenantDbOperation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ operationId, reason }: { operationId: string; reason: string }) =>
+      approveTenantDbOperation(operationId, reason),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: platformKeys.databaseOperations() });
+      if (data?.tenantId) {
+        queryClient.invalidateQueries({ queryKey: platformKeys.tenantDbOperations(data.tenantId) });
+      }
+      if (data?.id) {
+        queryClient.invalidateQueries({ queryKey: platformKeys.tenantDbOperation(data.id) });
+      }
+    },
+  });
+}
+
+export function useCancelTenantDbOperation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ operationId }: { operationId: string }) => cancelTenantDbOperation(operationId),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: platformKeys.databaseOperations() });
+      if (data?.tenantId) {
+        queryClient.invalidateQueries({ queryKey: platformKeys.tenantDbOperations(data.tenantId) });
+      }
+      if (data?.id) {
+        queryClient.invalidateQueries({ queryKey: platformKeys.tenantDbOperation(data.id) });
+      }
     },
   });
 }

@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useTenantHref } from "@/lib/tenancy";
 import { generateSlug } from "@/lib/utils";
 
 import { CATEGORY_SELECT_OPTIONS, DEFAULT_STARTER_HTML, STATUS_SELECT_OPTIONS } from "../constants";
@@ -88,6 +89,7 @@ interface StudioState {
 
 export function TemplateStudio({ initialTemplate }: TemplateStudioProps) {
   const router = useRouter();
+  const tenantHref = useTenantHref();
   const { resolvedTheme } = useTheme();
 
   const isEditing = Boolean(initialTemplate?.id);
@@ -111,13 +113,13 @@ export function TemplateStudio({ initialTemplate }: TemplateStudioProps) {
 
   const createMutation = useCreateEmailTemplate({
     onSuccess: () => {
-      router.push("/email-templates");
+      router.push(tenantHref("/email-templates"));
     },
   });
 
   const updateMutation = useUpdateEmailTemplate({
     onSuccess: () => {
-      router.push("/email-templates");
+      router.push(tenantHref("/email-templates"));
     },
   });
 
@@ -218,7 +220,7 @@ export function TemplateStudio({ initialTemplate }: TemplateStudioProps) {
             asChild
             title="Back to Templates"
           >
-            <Link href="/email-templates">
+            <Link href={tenantHref("/email-templates")}>
               <ArrowLeftIcon className="size-4" />
             </Link>
           </Button>
@@ -272,7 +274,7 @@ export function TemplateStudio({ initialTemplate }: TemplateStudioProps) {
             variant="outline"
             size="sm"
             className="border-border/80 h-9 rounded-xl text-xs"
-            onClick={() => router.push("/email-templates")}
+            onClick={() => router.push(tenantHref("/email-templates"))}
             disabled={isSaving}
           >
             Cancel

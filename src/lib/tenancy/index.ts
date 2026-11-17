@@ -3,3 +3,4 @@ export * from "./urls";
 export * from "./context";
 export * from "./handoff";
 export * from "./after-login";
+export * from "./use-tenant-href";

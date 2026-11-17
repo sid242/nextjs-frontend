@@ -8,6 +8,7 @@ import { ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePlatformMe } from "@/features/platform";
+import { useTenantHref } from "@/lib/tenancy";
 
 import { hasTenantPermission } from "../permissions";
 import { useActiveTenant, useTenantContext } from "../queries";
@@ -25,6 +26,7 @@ export function TenantPermissionGate({
   fallback,
   hideInsteadOfBanner = false,
 }: TenantPermissionGateProps) {
+  const tenantHref = useTenantHref();
   const params = useParams();
   const slugFromParam = typeof params?.tenantSlug === "string" ? params.tenantSlug : undefined;
   const { activeTenant, isLoading: tenantLoading } = useActiveTenant();
@@ -114,7 +116,7 @@ export function TenantPermissionGate({
       </p>
       <div className="mt-6 flex items-center gap-3">
         <Button asChild variant="outline">
-          <Link href="/dashboard">Back to Dashboard</Link>
+          <Link href={tenantHref("/dashboard")}>Back to Dashboard</Link>
         </Button>
       </div>
     </div>

@@ -27,6 +27,34 @@ export function tenantHref(
 }
 
 /**
+ * Extracts TenantUrlContextValue from incoming request headers or a string slug.
+ * Useful in Server Components and route handlers.
+ */
+export function getTenantUrlContext(
+  headersOrSlug?: { get: (name: string) => string | null } | string | null,
+): TenantUrlContextValue | null {
+  if (!headersOrSlug) return null;
+  if (typeof headersOrSlug === "string") {
+    return {
+      slug: headersOrSlug,
+      mode: "path",
+      canonicalBase: "",
+    };
+  }
+  const slug = headersOrSlug.get("x-tenant-slug");
+  if (!slug) return null;
+  const rawMode = headersOrSlug.get("x-tenant-mode");
+  const mode =
+    rawMode === "subdomain" || rawMode === "customDomain" || rawMode === "path" ? rawMode : "path";
+  const canonicalBase = headersOrSlug.get("x-tenant-canonical") ?? "";
+  return {
+    slug,
+    mode,
+    canonicalBase,
+  };
+}
+
+/**
  * Builds an absolute canonical URL to a tenant resource.
  */
 export function absoluteTenantUrl(canonicalBase: string, path = "/"): string {

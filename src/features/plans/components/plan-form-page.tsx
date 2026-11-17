@@ -569,7 +569,7 @@ export function PlanFormPage({ planId: propPlanId }: PlanFormPageProps) {
                   </div>
                 </CardHeader>
                 <CardContent className="p-5">
-                  {/* Mock Pricing Card that customers see */}
+                  {/* Preview Pricing Card that customers see */}
                   <div className="border-border/80 bg-card hover:border-primary/50 relative overflow-hidden rounded-2xl border p-5 shadow-xs transition-all">
                     {previewIsPublic && (
                       <div className="bg-primary text-primary-foreground absolute top-0 right-0 rounded-bl-lg px-2.5 py-0.5 text-[10px] font-semibold tracking-wider uppercase">

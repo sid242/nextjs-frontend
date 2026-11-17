@@ -1,1 +1,1 @@
-export { default, metadata } from "../../../settings/billing/page";
+export { default, metadata } from "../settings/billing/page";

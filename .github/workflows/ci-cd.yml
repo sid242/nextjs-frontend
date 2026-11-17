@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm }
+        with: { node-version: 24, cache: npm }
       - run: npm ci
       - run: npm run format:check
       - run: npm run typecheck
@@ -29,6 +29,23 @@ jobs:
       - run: npm test
       - run: npm run build
         env: { NEXT_TELEMETRY_DISABLED: "1" }
+      - name: Verify ECS task definition env and secrets
+        run: |
+          node -e '
+            const td = require("./deploy/task-def-web.json");
+            const container = td.containerDefinitions[0];
+            const envNames = new Set((container.environment || []).map(e => e.name));
+            const secretNames = new Set((container.secrets || []).map(s => s.name));
+            const requiredEnv = ["API_URL", "SOCKET_URL", "NEXT_PUBLIC_APP_BASE_DOMAIN", "PLATFORM_HOST"];
+            const requiredSecrets = ["BFF_SHARED_SECRET"];
+            for (const name of requiredEnv) {
+              if (!envNames.has(name)) throw new Error("Missing env: " + name);
+            }
+            for (const name of requiredSecrets) {
+              if (!secretNames.has(name)) throw new Error("Missing secret: " + name);
+            }
+            console.log("ECS task definition env and secrets verified successfully.");
+          '
 
   deploy:
     needs: verify

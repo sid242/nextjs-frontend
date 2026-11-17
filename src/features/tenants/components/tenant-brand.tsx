@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { useTenantHref } from "@/lib/tenancy";
 import { cn } from "@/lib/utils";
 
 import { useActiveTenant, useTenantBranding } from "../queries";
@@ -16,12 +17,13 @@ interface TenantBrandProps {
  * Clickable brand header linking to /dashboard, displaying the active tenant's dynamic logo.
  */
 export function TenantBrand({ className, showIconOnly = false }: TenantBrandProps) {
+  const tenantHref = useTenantHref();
   const { activeTenant } = useActiveTenant();
   const { data: branding } = useTenantBranding(activeTenant?.id);
 
   return (
     <Link
-      href="/dashboard"
+      href={tenantHref("/dashboard")}
       className={cn(
         "flex items-center gap-2.5 font-semibold tracking-tight transition-opacity hover:opacity-85",
         className,

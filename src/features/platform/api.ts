@@ -29,6 +29,7 @@ import type {
   StartSupportSessionInput,
   StartSupportSessionResponse,
   TenantDatabaseItem,
+  TenantDbOperation,
   UpdatePlatformProfileInput,
   UpdatePlatformRoleInput,
   UpdatePlatformTenantInput,
@@ -492,6 +493,43 @@ export async function executeTenantDatabaseOperation(
   return api.post<Record<string, unknown>>(
     `/platform/database-operations/${tenantId}/execute`,
     input,
+  );
+}
+
+export async function getTenantDbOperation(
+  operationId: string,
+  signal?: AbortSignal,
+): Promise<TenantDbOperation> {
+  return api.get<TenantDbOperation>(`/platform/database-operations/history/${operationId}`, {
+    signal,
+  });
+}
+
+export async function getTenantDbOperations(
+  tenantId: string,
+  signal?: AbortSignal,
+): Promise<TenantDbOperation[]> {
+  return api.get<TenantDbOperation[]>(`/platform/tenants/${tenantId}/database-operations`, {
+    signal,
+  });
+}
+
+export async function approveTenantDbOperation(
+  operationId: string,
+  reason: string,
+): Promise<TenantDbOperation> {
+  return api.post<TenantDbOperation>(
+    `/platform/database-operations/history/${operationId}/approve`,
+    {
+      reason,
+    },
+  );
+}
+
+export async function cancelTenantDbOperation(operationId: string): Promise<TenantDbOperation> {
+  return api.post<TenantDbOperation>(
+    `/platform/database-operations/history/${operationId}/cancel`,
+    {},
   );
 }
 

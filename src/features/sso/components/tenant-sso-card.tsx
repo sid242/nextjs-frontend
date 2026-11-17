@@ -2,7 +2,16 @@
 
 import { useState, type ChangeEvent, type KeyboardEvent } from "react";
 import Link from "next/link";
-import { AlertCircle, CheckCircle2, Copy, KeyRound, Plus, Trash2 } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  Copy,
+  KeyRound,
+  Plus,
+  RefreshCw,
+  ShieldCheck,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -25,10 +34,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useTenantSubscription, type TenantSubscription } from "@/features/plans";
 import { useActiveTenant } from "@/features/tenants";
+import { useTenantHref } from "@/lib/tenancy";
 
 import {
   useCreateScimToken,
   useRevokeScimToken,
+  useRotateScimToken,
   useScimTokens,
   useTenantSsoConfig,
   useTestSsoConnection,
@@ -51,6 +62,7 @@ interface SsoFormData {
 }
 
 export function TenantSsoCard() {
+  const tenantHref = useTenantHref();
   const { activeTenant } = useActiveTenant();
   const tenantId = activeTenant?.id;
   const { data: ssoConfig, isLoading: isLoadingConfig } = useTenantSsoConfig(tenantId);
@@ -81,11 +93,13 @@ interface TenantSsoCardInnerProps {
 }
 
 function TenantSsoCardInner({ tenantId, ssoConfig, subscription }: TenantSsoCardInnerProps) {
+  const tenantHref = useTenantHref();
   const { data: scimTokens, isLoading: isLoadingTokens } = useScimTokens(tenantId);
 
   const updateConfig = useUpdateTenantSsoConfig(tenantId);
   const testConnection = useTestSsoConnection(tenantId);
   const createScimToken = useCreateScimToken(tenantId);
+  const rotateScimToken = useRotateScimToken(tenantId);
   const revokeScimToken = useRevokeScimToken(tenantId);
 
   // Grouped form state container initialized from server data
@@ -109,7 +123,18 @@ function TenantSsoCardInner({ tenantId, ssoConfig, subscription }: TenantSsoCard
   // SCIM token dialog state
   const [isTokenDialogOpen, setIsTokenDialogOpen] = useState(false);
   const [newTokenName, setNewTokenName] = useState("");
+  const [newTokenExpiryDays, setNewTokenExpiryDays] = useState(365);
+  const [newTokenAllowedIps, setNewTokenAllowedIps] = useState("");
   const [generatedRawToken, setGeneratedRawToken] = useState<string | null>(null);
+
+  // SCIM token rotation state
+  const [isRotateDialogOpen, setIsRotateDialogOpen] = useState(false);
+  const [selectedTokenForRotate, setSelectedTokenForRotate] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [rotateExpiryDays, setRotateExpiryDays] = useState(365);
+  const [rotatedRawToken, setRotatedRawToken] = useState<string | null>(null);
 
   const isEnterprise =
     subscription?.plan?.key === "ENTERPRISE" ||
@@ -200,12 +225,19 @@ function TenantSsoCardInner({ tenantId, ssoConfig, subscription }: TenantSsoCard
     }
 
     try {
+      const allowedIps = newTokenAllowedIps
+        .split(",")
+        .map((ip) => ip.trim())
+        .filter(Boolean);
+
       const res = await createScimToken.mutateAsync({
         name: newTokenName.trim(),
-        expiresInDays: 90,
+        expiresInDays: newTokenExpiryDays || 365,
+        allowedIps,
       });
       setGeneratedRawToken(res.rawToken);
       setNewTokenName("");
+      setNewTokenAllowedIps("");
       toast.success("SCIM token created");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to generate SCIM token";
@@ -213,7 +245,30 @@ function TenantSsoCardInner({ tenantId, ssoConfig, subscription }: TenantSsoCard
     }
   };
 
+  const handleRotateScimToken = async () => {
+    if (!selectedTokenForRotate) return;
+
+    try {
+      const res = await rotateScimToken.mutateAsync({
+        tokenId: selectedTokenForRotate.id,
+        expiresInDays: rotateExpiryDays || 365,
+      });
+      setRotatedRawToken(res.rawToken);
+      toast.success(`SCIM token "${selectedTokenForRotate.name}" rotated successfully`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to rotate token";
+      toast.error(msg);
+    }
+  };
+
   const handleRevokeToken = async (tokenId: string) => {
+    if (
+      !window.confirm(
+        "Are you sure you want to revoke this SCIM token? Any IdP sync using this token will stop working immediately.",
+      )
+    ) {
+      return;
+    }
     try {
       await revokeScimToken.mutateAsync(tokenId);
       toast.success("SCIM token revoked");
@@ -248,7 +303,7 @@ function TenantSsoCardInner({ tenantId, ssoConfig, subscription }: TenantSsoCard
           <AlertDescription className="text-amber-800 dark:text-amber-300">
             SAML 2.0 / OIDC Single Sign-On and SCIM 2.0 Directory Sync are exclusive features of the
             Enterprise tier.{" "}
-            <Link href="/settings/billing" className="font-semibold underline">
+            <Link href={tenantHref("/settings/billing")} className="font-semibold underline">
               Upgrade to Enterprise
             </Link>{" "}
             to enable SAML, Okta, Azure AD / Entra ID, and automated SCIM provisioning.
@@ -305,6 +360,57 @@ function TenantSsoCardInner({ tenantId, ssoConfig, subscription }: TenantSsoCard
 
             {/* SAML Tab */}
             <TabsContent value="SAML" className="mt-4 space-y-4">
+              {/* Service Provider (SP) Configuration details for Okta / Azure AD */}
+              {ssoConfig?.acsUrl && (
+                <div className="border-border/50 bg-muted/40 space-y-2 rounded-md border p-3 text-xs">
+                  <div className="text-foreground flex items-center justify-between font-semibold">
+                    <span>Service Provider (SP) Configuration for IdP Setup</span>
+                    {ssoConfig.metadataUrl && (
+                      <a
+                        href={ssoConfig.metadataUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-primary text-[11px] hover:underline"
+                      >
+                        View SP Metadata XML
+                      </a>
+                    )}
+                  </div>
+                  <div className="space-y-1.5 font-mono text-[11px]">
+                    <div className="bg-background/80 flex items-center justify-between rounded border px-2 py-1">
+                      <span className="text-muted-foreground mr-2 font-sans text-xs font-medium">
+                        SP Entity ID:
+                      </span>
+                      <span className="truncate">{ssoConfig.spEntityId}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="ml-1.5 h-6 w-6 shrink-0 p-0"
+                        onClick={() => copyToClipboard(ssoConfig.spEntityId || "")}
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    <div className="bg-background/80 flex items-center justify-between rounded border px-2 py-1">
+                      <span className="text-muted-foreground mr-2 font-sans text-xs font-medium">
+                        ACS URL:
+                      </span>
+                      <span className="truncate">{ssoConfig.acsUrl}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="ml-1.5 h-6 w-6 shrink-0 p-0"
+                        onClick={() => copyToClipboard(ssoConfig.acsUrl || "")}
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium">IdP Entity ID / Issuer URL</Label>
                 <Input
@@ -346,6 +452,29 @@ function TenantSsoCardInner({ tenantId, ssoConfig, subscription }: TenantSsoCard
 
             {/* OIDC Tab */}
             <TabsContent value="OIDC" className="mt-4 space-y-4">
+              {ssoConfig?.oidcCallbackUrl && (
+                <div className="border-border/50 bg-muted/40 space-y-1.5 rounded-md border p-3 text-xs">
+                  <div className="text-foreground font-semibold">
+                    Authorized Redirect URI for OIDC Provider
+                  </div>
+                  <div className="bg-background/80 flex items-center justify-between rounded border px-2 py-1 font-mono text-[11px]">
+                    <span className="text-muted-foreground mr-2 font-sans text-xs font-medium">
+                      Callback URL:
+                    </span>
+                    <span className="truncate">{ssoConfig.oidcCallbackUrl}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="ml-1.5 h-6 w-6 shrink-0 p-0"
+                      onClick={() => copyToClipboard(ssoConfig.oidcCallbackUrl || "")}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium">OIDC Discovery URL (Well-Known)</Label>
                 <Input
@@ -552,6 +681,30 @@ function TenantSsoCardInner({ tenantId, ssoConfig, subscription }: TenantSsoCard
                         }
                       />
                     </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-medium">Expiration (Days)</Label>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={365}
+                          value={newTokenExpiryDays}
+                          onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                            setNewTokenExpiryDays(Number(e.target.value) || 365)
+                          }
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-medium">Allowed IPs (Optional)</Label>
+                        <Input
+                          placeholder="e.g. 54.210.1.2, 52.1.2.3"
+                          value={newTokenAllowedIps}
+                          onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                            setNewTokenAllowedIps(e.target.value)
+                          }
+                        />
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-4 py-2">
@@ -645,26 +798,69 @@ function TenantSsoCardInner({ tenantId, ssoConfig, subscription }: TenantSsoCard
                       <th className="px-3 py-2 font-medium">Name</th>
                       <th className="px-3 py-2 font-medium">Token Prefix</th>
                       <th className="px-3 py-2 font-medium">Created</th>
+                      <th className="px-3 py-2 font-medium">Expires</th>
+                      <th className="px-3 py-2 font-medium">Last Used</th>
                       <th className="px-3 py-2 font-medium">Status</th>
-                      <th className="px-3 py-2 text-right font-medium">Action</th>
+                      <th className="px-3 py-2 text-right font-medium">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
                     {scimTokens?.map((token) => (
                       <tr key={token.id} className="hover:bg-muted/20">
-                        <td className="px-3 py-2.5 font-medium">{token.name}</td>
+                        <td className="px-3 py-2.5 font-medium">
+                          <div>{token.name}</div>
+                          {token.allowedIps && token.allowedIps.length > 0 && (
+                            <div className="text-muted-foreground text-[10px]">
+                              IPs: {token.allowedIps.join(", ")}
+                            </div>
+                          )}
+                        </td>
                         <td className="text-muted-foreground px-3 py-2.5 font-mono text-[11px]">
                           {token.tokenPrefix}
                         </td>
                         <td className="text-muted-foreground px-3 py-2.5">
                           {new Date(token.createdAt).toLocaleDateString()}
                         </td>
+                        <td className="text-muted-foreground px-3 py-2.5">
+                          {token.expiresAt
+                            ? new Date(token.expiresAt).toLocaleDateString()
+                            : "Never"}
+                        </td>
+                        <td className="text-muted-foreground px-3 py-2.5">
+                          {token.lastUsedAt ? (
+                            <div>
+                              <div>{new Date(token.lastUsedAt).toLocaleDateString()}</div>
+                              {token.lastUsedIp && (
+                                <div className="text-muted-foreground font-mono text-[10px]">
+                                  {token.lastUsedIp}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground/60 italic">Never</span>
+                          )}
+                        </td>
                         <td className="px-3 py-2.5">
                           <Badge variant={token.status === "ACTIVE" ? "default" : "secondary"}>
                             {token.status}
                           </Badge>
                         </td>
-                        <td className="px-3 py-2.5 text-right">
+                        <td className="space-x-1 px-3 py-2.5 text-right">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-muted-foreground hover:text-foreground h-7 px-2"
+                            onClick={() => {
+                              setSelectedTokenForRotate({ id: token.id, name: token.name });
+                              setRotatedRawToken(null);
+                              setIsRotateDialogOpen(true);
+                            }}
+                            disabled={token.status !== "ACTIVE" || rotateScimToken.isPending}
+                          >
+                            <RefreshCw className="mr-1 size-3.5" />
+                            Rotate
+                          </Button>
                           <Button
                             type="button"
                             variant="ghost"
@@ -684,8 +880,125 @@ function TenantSsoCardInner({ tenantId, ssoConfig, subscription }: TenantSsoCard
               </div>
             )}
           </div>
+
+          {/* IdP Setup Documentation Quick Links */}
+          <div className="bg-muted/20 space-y-3 rounded-lg border p-4">
+            <div className="flex items-center gap-2 text-xs font-semibold">
+              <ShieldCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
+              <span>Identity Provider Integration Quick Guide</span>
+            </div>
+            <div className="text-muted-foreground grid grid-cols-1 gap-4 text-xs md:grid-cols-2">
+              <div className="space-y-1">
+                <span className="text-foreground font-medium">Okta SCIM 2.0 Integration:</span>
+                <p>
+                  1. In Okta Admin Console, navigate to Applications &gt; Add SCIM 2.0 Test App.
+                </p>
+                <p>
+                  2. Set SCIM connector base URL to:{" "}
+                  <code className="text-foreground font-mono text-[11px]">{scimBaseUrl}</code>
+                </p>
+                <p>
+                  3. Unique identifier field for users:{" "}
+                  <code className="text-foreground font-mono text-[11px]">userName</code> (email).
+                </p>
+                <p>4. Authentication Mode: HTTP Header (Authorization: Bearer &lt;Token&gt;).</p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-foreground font-medium">Microsoft Entra ID (Azure AD):</span>
+                <p>1. In Entra ID Enterprise Applications, select Provisioning &gt; Automatic.</p>
+                <p>
+                  2. Set Tenant URL to:{" "}
+                  <code className="text-foreground font-mono text-[11px]">{scimBaseUrl}</code>
+                </p>
+                <p>3. Set Secret Token to your generated SCIM Bearer Token.</p>
+                <p>4. Click Test Connection to verify directory schema synchronization.</p>
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
+
+      {/* Rotate SCIM Token Dialog */}
+      <Dialog open={isRotateDialogOpen} onOpenChange={setIsRotateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rotate SCIM Bearer Token</DialogTitle>
+            <DialogDescription>
+              {selectedTokenForRotate && (
+                <>
+                  Rotating <strong>{selectedTokenForRotate.name}</strong> will invalidate the
+                  previous credentials. A new Bearer token will be generated immediately.
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          {!rotatedRawToken ? (
+            <div className="space-y-4 py-2">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">New Token Expiry (Days)</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={365}
+                  value={rotateExpiryDays}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setRotateExpiryDays(Number(e.target.value) || 365)
+                  }
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4 py-2">
+              <Alert className="border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/20">
+                <AlertCircle className="size-4 text-amber-600 dark:text-amber-400" />
+                <AlertTitle className="text-amber-900 dark:text-amber-200">
+                  Copy this rotated token now
+                </AlertTitle>
+                <AlertDescription className="text-xs text-amber-800 dark:text-amber-300">
+                  Update your IdP configuration with this new token immediately. For security
+                  reasons, this token will not be displayed again.
+                </AlertDescription>
+              </Alert>
+
+              <div className="flex items-center gap-2">
+                <Input readOnly value={rotatedRawToken} className="font-mono text-xs" />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => copyToClipboard(rotatedRawToken, "Rotated SCIM token copied")}
+                >
+                  <Copy className="size-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            {!rotatedRawToken ? (
+              <Button
+                type="button"
+                onClick={handleRotateScimToken}
+                disabled={rotateScimToken.isPending}
+              >
+                {rotateScimToken.isPending ? "Rotating..." : "Rotate Token"}
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                onClick={() => {
+                  setRotatedRawToken(null);
+                  setSelectedTokenForRotate(null);
+                  setIsRotateDialogOpen(false);
+                }}
+              >
+                Done
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

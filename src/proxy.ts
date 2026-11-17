@@ -267,7 +267,7 @@ export async function proxy(req: NextRequest) {
 
     // 3b. Legacy unscoped tenant paths on platform host -> redirect
     const isLegacyTenantPath =
-      /^\/(dashboard|team|roles|files|settings|audit-logs|email-templates|branding)(\/.*)?$/.test(
+      /^\/(dashboard|team|roles|files|settings|audit-logs|email-templates|branding|groups)(\/.*)?$/.test(
         pathname,
       );
     if (isLegacyTenantPath) {

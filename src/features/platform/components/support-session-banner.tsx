@@ -8,9 +8,18 @@ import { Button } from "@/components/ui/button";
 interface SupportSessionBannerProps {
   sessionId?: string;
   tenantSlug?: string;
+  staffName?: string;
+  scope?: string;
+  expiresAt?: string | number;
 }
 
-export function SupportSessionBanner({ sessionId, tenantSlug }: SupportSessionBannerProps) {
+export function SupportSessionBanner({
+  sessionId,
+  tenantSlug,
+  staffName,
+  scope,
+  expiresAt,
+}: SupportSessionBannerProps) {
   const [isPending, setIsPending] = useState(false);
 
   const handleEndSession = async () => {
@@ -30,18 +39,26 @@ export function SupportSessionBanner({ sessionId, tenantSlug }: SupportSessionBa
     }
   };
 
+  const isReadOnly = scope === "READ_ONLY";
+
   return (
     <aside
       aria-label="Platform support session banner"
       className="border-b border-emerald-500/40 bg-gradient-to-r from-emerald-950/80 via-emerald-900/60 to-teal-950/80 px-4 py-2 text-emerald-100 shadow-sm backdrop-blur"
     >
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 sm:flex-row">
-        <div className="flex items-center gap-2.5 text-xs font-medium">
+        <div className="flex flex-wrap items-center gap-2 text-xs font-medium">
           <div className="flex size-6 shrink-0 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400">
             <ShieldAlert className="size-3.5" />
           </div>
           <span>
             <strong className="font-semibold text-white">Audited Support Delegation Active</strong>
+            {staffName ? (
+              <>
+                {" "}
+                &bull; Operator: <span className="font-semibold text-emerald-200">{staffName}</span>
+              </>
+            ) : null}
             {tenantSlug ? (
               <>
                 {" "}
@@ -56,9 +73,13 @@ export function SupportSessionBanner({ sessionId, tenantSlug }: SupportSessionBa
                   {sessionId.slice(0, 8)}...
                 </span>
               </>
-            ) : null}{" "}
-            &bull; All actions are recorded to the platform compliance audit log.
+            ) : null}
           </span>
+          {isReadOnly && (
+            <span className="rounded-md border border-amber-500/40 bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-200">
+              READ-ONLY MODE
+            </span>
+          )}
         </div>
 
         <Button

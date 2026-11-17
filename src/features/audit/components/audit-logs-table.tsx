@@ -67,6 +67,28 @@ export function AuditLogsTable({ tenantId, isExportAllowed = true }: AuditLogsTa
 
   const [activeLogForDetails, setActiveLogForDetails] = React.useState<AuditLog | null>(null);
   const [isExporting, setIsExporting] = React.useState(false);
+  const [isVerifying, setIsVerifying] = React.useState(false);
+
+  const handleVerifyChain = async () => {
+    setIsVerifying(true);
+    try {
+      const res = await fetch(`/api/v1/tenants/${tenantId}/audit/verify`);
+      const payload = await res.json().catch(() => null);
+      if (payload?.data?.verified) {
+        toast.success(
+          `Cryptographic Audit Chain Verified: ${payload.data.totalChecked} records validated without tampering.`,
+        );
+      } else {
+        toast.error(
+          payload?.data?.error || "Audit chain verification detected potential tampering",
+        );
+      }
+    } catch {
+      toast.error("Failed to verify cryptographic audit chain");
+    } finally {
+      setIsVerifying(false);
+    }
+  };
 
   const queryFilters: AuditLogsFilter = React.useMemo(() => {
     return {
@@ -175,6 +197,13 @@ export function AuditLogsTable({ tenantId, isExportAllowed = true }: AuditLogsTa
         </div>
 
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleVerifyChain} disabled={isVerifying}>
+            <ShieldCheckIcon
+              className={`mr-2 h-4 w-4 text-emerald-600 ${isVerifying ? "animate-spin" : ""}`}
+            />
+            {isVerifying ? "Verifying..." : "Verify Chain"}
+          </Button>
+
           <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
             <RefreshCwIcon className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
             Refresh

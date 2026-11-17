@@ -28,8 +28,7 @@ export type BoxProps<C extends BoxComponent = "div"> = {
   children?: ReactNode;
 
   /** Direct ref forwarding */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ref?: Ref<any>;
+  ref?: Ref<Element>;
 } & Omit<ComponentPropsWithoutRef<C>, "className" | "children" | "ref">;
 
 /**
@@ -48,8 +47,7 @@ export function Box<C extends BoxComponent = "div">({
   const Tag = (as ?? "div") as ElementType;
 
   return (
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    <Tag ref={ref as any} className={cn(className)} {...props}>
+    <Tag ref={ref as unknown as Ref<HTMLDivElement>} className={cn(className)} {...props}>
       {children}
     </Tag>
   );

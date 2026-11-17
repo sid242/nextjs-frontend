@@ -7,7 +7,7 @@ import { useSocket } from "./use-socket";
 
 /**
  * Join a room while mounted. Re-joins automatically after a reconnect, because the server forgets a socket's
- * rooms when it disconnects. NOTE: the backend must authorize who may join which room (see its TODO).
+ * rooms when it disconnects. Room membership and permissions are authorized by backend socket middleware.
  */
 export function useRoom(roomId: string | null) {
   const socket = useSocket();

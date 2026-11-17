@@ -30,6 +30,10 @@ export const platformKeys = {
   databaseOperations: () => [...platformKeys.all, "database-operations"] as const,
   databaseOperationsList: (params?: unknown) =>
     [...platformKeys.databaseOperations(), "list", params] as const,
+  tenantDbOperations: (tenantId: string) =>
+    [...platformKeys.all, "database-operations", "tenant", tenantId] as const,
+  tenantDbOperation: (operationId: string) =>
+    [...platformKeys.all, "database-operations", "op", operationId] as const,
 
   me: () => [...platformKeys.all, "me"] as const,
   twoFactorStatus: () => [...platformKeys.all, "2fa", "status"] as const,

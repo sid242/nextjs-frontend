@@ -46,6 +46,17 @@ export async function createScimToken(
   return api.post<CreateScimTokenResponse>(`/tenants/${tenantId}/scim/tokens`, input);
 }
 
+export async function rotateScimToken(
+  tenantId: string,
+  tokenId: string,
+  input: { expiresInDays?: number },
+): Promise<CreateScimTokenResponse> {
+  return api.post<CreateScimTokenResponse>(
+    `/tenants/${tenantId}/scim/tokens/${tokenId}/rotate`,
+    input,
+  );
+}
+
 export async function revokeScimToken(
   tenantId: string,
   tokenId: string,

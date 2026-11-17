@@ -21,6 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useDebouncedValue } from "@/lib/hooks";
+import { useTenantHref } from "@/lib/tenancy";
 
 import { ROLE_OPTIONS } from "../constants";
 import { useActiveTenant, useCheckMemberEmail } from "../queries";
@@ -72,6 +73,7 @@ export function InviteMemberDialog({
   planName,
   roles,
 }: InviteMemberDialogProps) {
+  const tenantHref = useTenantHref();
   const { activeTenant } = useActiveTenant();
   const methods = useForm<InviteMemberFormValues>({
     resolver: zodResolver(inviteMemberFormSchema),
@@ -165,7 +167,7 @@ export function InviteMemberDialog({
                 </div>
               </div>
               <Button asChild size="sm" variant="default" className="gap-1 text-xs">
-                <Link href="/settings/billing" onClick={() => onOpenChange(false)}>
+                <Link href={tenantHref("/settings/billing")} onClick={() => onOpenChange(false)}>
                   Upgrade Plan <ArrowUpRight className="h-3.5 w-3.5" />
                 </Link>
               </Button>

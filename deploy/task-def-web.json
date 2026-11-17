@@ -17,9 +17,17 @@
         { "name": "NODE_ENV", "value": "production" },
         { "name": "API_URL", "value": "https://api.example.com/api/v1" },
         { "name": "SOCKET_URL", "value": "https://api.example.com" },
+        { "name": "NEXT_PUBLIC_APP_BASE_DOMAIN", "value": "example.com" },
+        { "name": "PLATFORM_HOST", "value": "admin.example.com" },
         {
           "name": "CSP_CONNECT_EXTRA",
           "value": "https://my-app-prod-uploads.s3.ap-south-1.amazonaws.com"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "BFF_SHARED_SECRET",
+          "valueFrom": "arn:aws:secretsmanager:ap-south-1:ACCOUNT_ID:secret:app/prod/bff-shared-secret"
         }
       ],
       "healthCheck": {

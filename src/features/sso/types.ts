@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   createScimTokenResponseSchema,
   createScimTokenSchema,
+  rotateScimTokenSchema,
   scimTokenSchema,
   scimTokenStatusSchema,
   ssoLookupResponseSchema,
@@ -23,5 +24,6 @@ export type TestSsoConnectionInput = z.infer<typeof testSsoConnectionSchema>;
 
 export type ScimToken = z.infer<typeof scimTokenSchema>;
 export type CreateScimTokenInput = z.infer<typeof createScimTokenSchema>;
+export type RotateScimTokenInput = z.infer<typeof rotateScimTokenSchema>;
 export type CreateScimTokenResponse = z.infer<typeof createScimTokenResponseSchema>;
 export type SsoLookupResponse = z.infer<typeof ssoLookupResponseSchema>;

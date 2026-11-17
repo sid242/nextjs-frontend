@@ -67,21 +67,5 @@ export async function POST(req: NextRequest) {
     maxAge: 0,
   });
 
-  res.cookies.set("active_tenant_id", "", {
-    httpOnly: false,
-    secure,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 0,
-  });
-
-  res.cookies.set("ctx_slug", "", {
-    httpOnly: true,
-    secure,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 0,
-  });
-
   return res;
 }

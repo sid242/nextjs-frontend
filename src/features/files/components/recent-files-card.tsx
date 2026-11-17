@@ -21,6 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getErrorMessage } from "@/lib/api/errors";
 import type { FileRecord } from "@/lib/api/types";
 import { formatBytes, formatDate } from "@/lib/format";
+import { useTenantHref } from "@/lib/tenancy";
 
 import { getDownloadUrl } from "../api";
 import { triggerFileDownload } from "../download";
@@ -45,6 +46,7 @@ function getFileIcon(filename: string, contentType: string) {
 }
 
 export function RecentFilesCard() {
+  const tenantHref = useTenantHref();
   const { data, isPending, isError } = useFiles();
   const fileList = useMemo(() => {
     if (Array.isArray(data)) return data;
@@ -77,7 +79,7 @@ export function RecentFilesCard() {
             </CardDescription>
           </div>
           <Button asChild variant="ghost" size="sm" className="h-8 gap-1 rounded-lg text-xs">
-            <Link href="/files">
+            <Link href={tenantHref("/files")}>
               <span>View all files</span>
               <ArrowRightIcon className="size-3.5" />
             </Link>
@@ -107,7 +109,7 @@ export function RecentFilesCard() {
                 </p>
               </div>
               <Button asChild size="sm" variant="outline" className="mt-1 h-7 rounded-lg text-xs">
-                <Link href="/files">
+                <Link href={tenantHref("/files")}>
                   <UploadIcon className="mr-1.5 size-3" />
                   Upload a file
                 </Link>

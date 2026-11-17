@@ -8,6 +8,7 @@ import {
   Archive,
   ArrowRightLeft,
   CheckCircle2,
+  Clock,
   Database,
   PlayCircle,
   RefreshCw,
@@ -42,6 +43,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -69,11 +71,21 @@ import {
 } from "@/lib/hooks";
 
 import { hasPlatformPermission, PLATFORM_PERMISSION_KEYS } from "../permissions";
-import { useExecuteTenantDatabaseOperation, usePlatformMe, useTenantDatabases } from "../queries";
+import {
+  useApproveTenantDbOperation,
+  useCancelTenantDbOperation,
+  useExecuteTenantDatabaseOperation,
+  usePlatformMe,
+  useTenantDatabases,
+  useTenantDbHealth,
+  useTenantDbOperation,
+  useTenantDbOperations,
+} from "../queries";
 import type {
   ExecuteTenantDatabaseOperationInput,
   ListTenantDatabasesQuery,
   TenantDatabaseItem,
+  TenantDbOperation,
 } from "../schemas";
 
 type DatabaseColumnId =
@@ -136,6 +148,14 @@ export function DatabaseOperationsTable() {
   const [opBackupConfirmed, setOpBackupConfirmed] = useState(false);
   const [opError, setOpError] = useState<string | null>(null);
   const [opSuccessMessage, setOpSuccessMessage] = useState<string | null>(null);
+  const [activeOpId, setActiveOpId] = useState<string | null>(null);
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [historyTenant, setHistoryTenant] = useState<TenantDatabaseItem | null>(null);
+
+  const { data: activeOp } = useTenantDbOperation(activeOpId);
+  const { data: tenantOps, isLoading: loadingOps } = useTenantDbOperations(historyTenant?.id);
+  const approveOpMutation = useApproveTenantDbOperation();
+  const cancelOpMutation = useCancelTenantDbOperation();
 
   const tableColumns = useTableColumns<DatabaseColumnId>({
     columns: DATABASE_COLUMNS,
@@ -192,6 +212,7 @@ export function DatabaseOperationsTable() {
     setOpBackupConfirmed(false);
     setOpError(null);
     setOpSuccessMessage(null);
+    setActiveOpId(null);
     setOperationModalOpen(true);
   };
 
@@ -225,15 +246,22 @@ export function DatabaseOperationsTable() {
         input: payload,
       });
 
-      setOpSuccessMessage(
-        `Operation ${opAction} completed successfully for ${selectedTenant.name}. Details: ${JSON.stringify(
-          result,
-        )}`,
-      );
-      setTimeout(() => {
-        setOperationModalOpen(false);
-        setOpSuccessMessage(null);
-      }, 1500);
+      const opId = (result as Record<string, unknown>)?.operationId as string | undefined;
+      if (opId) {
+        setActiveOpId(opId);
+        setOpSuccessMessage(
+          `Operation ${opAction} enqueued successfully. Monitoring live execution...`,
+        );
+      } else {
+        setOpSuccessMessage(
+          `Operation ${opAction} executed successfully for ${selectedTenant.name}.`,
+        );
+        setTimeout(() => {
+          setOperationModalOpen(false);
+          setOpSuccessMessage(null);
+          setActiveOpId(null);
+        }, 1500);
+      }
     } catch (err) {
       setOpError(getErrorMessage(err));
     }
@@ -337,7 +365,7 @@ export function DatabaseOperationsTable() {
           <TableCell key="provisioning">
             {renderProvisioningBadge(item.provisioningStatus)}
             {item.provisioningError && (
-              <div className="text-destructive mt-0.5 max-w-[180px] truncate text-[11px]">
+              <div className="text-destructive mt-0.5 max-w-45 truncate text-[11px]">
                 {item.provisioningError}
               </div>
             )}
@@ -352,9 +380,18 @@ export function DatabaseOperationsTable() {
       case "schemaVersion":
         return (
           <TableCell key="schemaVersion">
-            <Badge variant="outline" className="font-mono text-xs">
-              v{item.schemaVersion}
-            </Badge>
+            <div className="flex flex-col items-start gap-1">
+              <Badge variant="outline" className="font-mono text-xs">
+                v{item.schemaVersion}
+              </Badge>
+              {item.strategy === "dedicated" &&
+                (item.isOutdated || item.migrationStatus !== "UP_TO_DATE") && (
+                  <Badge variant="destructive" className="gap-1 px-1.5 py-0 font-mono text-[10px]">
+                    <AlertTriangle className="h-2.5 w-2.5" />
+                    OUTDATED (503)
+                  </Badge>
+                )}
+            </div>
           </TableCell>
         );
       case "health":
@@ -388,6 +425,13 @@ export function DatabaseOperationsTable() {
                 {formatDate(item.lastMigrationAt)}
               </div>
             )}
+            {item.lastBackupAt && (
+              <div className="text-muted-foreground mt-1 flex items-center gap-1 font-mono text-[11px]">
+                <Archive className="h-3 w-3 text-sky-500" />
+                Snapshot: {formatDate(item.lastBackupAt)}
+                {item.lastBackupSize ? ` (${Math.round(item.lastBackupSize / 1024)} KB)` : ""}
+              </div>
+            )}
           </TableCell>
         );
       case "actions":
@@ -416,6 +460,23 @@ export function DatabaseOperationsTable() {
                 >
                   <Archive className="h-4 w-4 text-sky-500" />
                   Create Backup Snapshot
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => openOperationModal(item, "VERIFY")}
+                  className="cursor-pointer gap-2"
+                >
+                  <CheckCircle2 className="h-4 w-4 text-blue-500" />
+                  Verify Table Counts & IDs
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setHistoryTenant(item);
+                    setHistoryModalOpen(true);
+                  }}
+                  className="cursor-pointer gap-2 text-purple-600"
+                >
+                  <Clock className="h-4 w-4 text-purple-500" />
+                  Operations Timeline
                 </DropdownMenuItem>
 
                 {canManageTenants && (
@@ -809,26 +870,166 @@ export function DatabaseOperationsTable() {
                   </div>
                 </div>
               )}
+              {activeOp && (
+                <div className="space-y-3 rounded-md border border-indigo-500/30 bg-indigo-500/5 p-4">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-semibold text-indigo-700 dark:text-indigo-400">
+                      Live Job: {activeOp.kind}
+                    </span>
+                    <Badge
+                      variant={
+                        activeOp.status === "SUCCEEDED"
+                          ? "outline"
+                          : activeOp.status === "FAILED"
+                            ? "destructive"
+                            : "secondary"
+                      }
+                      className="font-mono text-xs"
+                    >
+                      {activeOp.status}
+                    </Badge>
+                  </div>
+                  <Progress
+                    value={
+                      activeOp.progress?.percent ?? (activeOp.status === "SUCCEEDED" ? 100 : 25)
+                    }
+                  />
+                  <div className="text-muted-foreground flex justify-between font-mono text-[11px]">
+                    <span>Step: {activeOp.progress?.currentStep ?? activeOp.status}</span>
+                    <span>{activeOp.progress?.percent ?? 0}%</span>
+                  </div>
+                  {activeOp.error && <p className="text-destructive text-xs">{activeOp.error}</p>}
+                </div>
+              )}
             </div>
 
             <DialogFooter className="gap-2 sm:gap-0">
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setOperationModalOpen(false)}
+                onClick={() => {
+                  setOperationModalOpen(false);
+                  setActiveOpId(null);
+                }}
                 disabled={executeMutation.isPending}
               >
-                Cancel
+                {activeOp?.status === "SUCCEEDED" ? "Done" : "Cancel"}
               </Button>
-              <Button
-                type="submit"
-                disabled={executeMutation.isPending}
-                variant={opAction === "ROLLBACK" ? "destructive" : "default"}
-              >
-                {executeMutation.isPending ? "Executing..." : `Execute ${opAction}`}
-              </Button>
+              {(!activeOp || activeOp.status === "FAILED") && (
+                <Button
+                  type="submit"
+                  disabled={executeMutation.isPending}
+                  variant={opAction === "ROLLBACK" ? "destructive" : "default"}
+                >
+                  {executeMutation.isPending ? "Submitting..." : `Execute ${opAction}`}
+                </Button>
+              )}
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Operations Timeline Dialog */}
+      <Dialog open={historyModalOpen} onOpenChange={setHistoryModalOpen}>
+        <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Clock className="text-primary h-5 w-5" />
+              Database Operations Timeline
+            </DialogTitle>
+            <DialogDescription>
+              Audit trail and real-time execution status for{" "}
+              <span className="text-foreground font-semibold">
+                {historyTenant?.name} ({historyTenant?.slug})
+              </span>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {loadingOps ? (
+              <div className="space-y-3">
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+              </div>
+            ) : !tenantOps || tenantOps.length === 0 ? (
+              <div className="text-muted-foreground py-8 text-center text-sm">
+                No database operations recorded yet for this workspace.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {tenantOps.map((op) => (
+                  <div
+                    key={op.id}
+                    className="bg-card text-card-foreground space-y-2 rounded-lg border p-3.5 shadow-sm"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="font-mono text-xs font-semibold">
+                          {op.kind}
+                        </Badge>
+                        <Badge
+                          variant={
+                            op.status === "SUCCEEDED"
+                              ? "outline"
+                              : op.status === "FAILED"
+                                ? "destructive"
+                                : "secondary"
+                          }
+                          className="font-mono text-[11px]"
+                        >
+                          {op.status}
+                        </Badge>
+                      </div>
+                      <span className="text-muted-foreground font-mono text-xs">
+                        {formatDate(op.createdAt)}
+                      </span>
+                    </div>
+
+                    <p className="text-muted-foreground text-xs">{op.reason}</p>
+
+                    {op.status === "RUNNING" && (
+                      <div className="space-y-1 pt-1">
+                        <Progress value={op.progress?.percent ?? 50} />
+                        <div className="text-muted-foreground flex justify-between font-mono text-[11px]">
+                          <span>{op.progress?.currentStep ?? "In Progress"}</span>
+                          <span>{op.progress?.percent ?? 0}%</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {op.error && (
+                      <div className="bg-destructive/10 text-destructive rounded p-2 text-xs">
+                        {op.error}
+                      </div>
+                    )}
+
+                    <div className="text-muted-foreground flex items-center justify-between border-t pt-1 text-[11px]">
+                      <span>ID: {op.id.slice(0, 8)}...</span>
+                      {op.status === "QUEUED" && (
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="h-7 text-xs"
+                            onClick={() => cancelOpMutation.mutate({ operationId: op.id })}
+                            disabled={cancelOpMutation.isPending}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setHistoryModalOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </Card>

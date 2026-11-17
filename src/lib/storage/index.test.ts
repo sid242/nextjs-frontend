@@ -18,7 +18,7 @@ describe("clientStorage in Node / SSR environment", () => {
   });
 });
 
-describe("clientStorage & tenantStorage in Browser environment", () => {
+describe("clientStorage in Browser environment", () => {
   let mockStore: Record<string, string> = {};
   let mockCookies: string[] = [];
 

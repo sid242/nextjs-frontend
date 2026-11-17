@@ -21,6 +21,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getErrorMessage } from "@/lib/api/errors";
+import { useTenantHref } from "@/lib/tenancy";
 import { cn } from "@/lib/utils";
 
 import {
@@ -33,6 +34,7 @@ import {
 import type { TenantUrlStyle } from "../schemas";
 
 export function TenantUrlCard() {
+  const tenantHref = useTenantHref();
   const { activeTenant } = useActiveTenant();
   const activeTenantId = activeTenant?.id ?? "";
 
@@ -261,7 +263,7 @@ export function TenantUrlCard() {
                         size="sm"
                         className="text-primary hover:text-primary/80 h-auto p-0 text-[11px]"
                       >
-                        <Link href="/settings/billing">
+                        <Link href={tenantHref("/settings/billing")}>
                           Upgrade to Pro <ArrowUpRight className="size-3" />
                         </Link>
                       </Button>
@@ -315,7 +317,7 @@ export function TenantUrlCard() {
                         size="sm"
                         className="text-primary hover:text-primary/80 h-auto p-0 text-[11px]"
                       >
-                        <Link href="/settings/billing">
+                        <Link href={tenantHref("/settings/billing")}>
                           Upgrade to Enterprise <ArrowUpRight className="size-3" />
                         </Link>
                       </Button>

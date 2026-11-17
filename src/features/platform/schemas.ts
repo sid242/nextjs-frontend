@@ -433,6 +433,11 @@ export const tenantDatabaseItemSchema = z.object({
   provisioningError: z.string().nullable().optional(),
   migrationStatus: z.enum(["UP_TO_DATE", "PENDING", "MIGRATING", "FAILED"]),
   lastMigrationAt: z.string().nullable().optional(),
+  lastBackupAt: z.string().nullable().optional(),
+  lastBackupId: z.string().nullable().optional(),
+  lastBackupSize: z.number().nullable().optional(),
+  lastBackupChecksum: z.string().nullable().optional(),
+  isOutdated: z.boolean().optional(),
   health: tenantDatabaseHealthSchema,
   maintenanceWindow: z.string().nullable().optional(),
   createdAt: z.string(),
@@ -440,6 +445,40 @@ export const tenantDatabaseItemSchema = z.object({
 });
 
 export type TenantDatabaseItem = z.infer<typeof tenantDatabaseItemSchema>;
+
+export const tenantDbOperationSchema = z.object({
+  id: z.string().uuid(),
+  tenantId: z.string().uuid(),
+  kind: z.enum([
+    "PROVISION",
+    "MIGRATE_SCHEMA",
+    "SWITCH_TO_DEDICATED",
+    "ROLLBACK_TO_SHARED",
+    "BACKUP",
+    "RESTORE",
+    "VERIFY",
+    "HEALTH_CHECK",
+  ]),
+  status: z.enum(["QUEUED", "RUNNING", "SUCCEEDED", "FAILED", "CANCELLED"]),
+  requestedByStaffId: z.string().nullable().optional(),
+  approvedByStaffId: z.string().nullable().optional(),
+  reason: z.string(),
+  params: z.record(z.unknown()).nullable().optional(),
+  progress: z
+    .object({
+      currentStep: z.string().optional(),
+      percent: z.number().optional(),
+      tables: z.record(z.object({ copied: z.number(), total: z.number() })).optional(),
+    })
+    .nullable()
+    .optional(),
+  error: z.string().nullable().optional(),
+  startedAt: z.string().nullable().optional(),
+  finishedAt: z.string().nullable().optional(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type TenantDbOperation = z.infer<typeof tenantDbOperationSchema>;
 
 export const listTenantDatabasesQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1).optional(),
@@ -467,11 +506,14 @@ export const executeTenantDatabaseOperationSchema = z.object({
     "BACKUP",
     "RESTORE",
     "ROLLBACK",
+    "VERIFY",
   ]),
   targetVersion: z.string().trim().max(50).optional(),
   maintenanceWindow: z.string().trim().max(100).optional(),
   reason: z.string().trim().min(5, "Reason must be at least 5 characters").max(500),
   backupConfirmed: z.boolean().default(false).optional(),
+  discardDedicatedData: z.boolean().default(false).optional(),
+  approvedByStaffId: z.string().uuid().optional(),
   poolLimit: z.coerce.number().int().min(1).max(50).optional(),
   customDatabaseName: z.string().trim().max(63).optional(),
   connectionUrl: z.string().trim().url().or(z.literal("")).optional(),
