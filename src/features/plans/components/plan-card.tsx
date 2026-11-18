@@ -50,7 +50,12 @@ export function PlanCard({ plan, isCurrent, actionSlot }: PlanCardProps) {
             <Badge variant="outline" className="font-mono text-[11px] font-semibold uppercase">
               {plan?.key}
             </Badge>
-            {isEnterprise ? (
+            {plan?.badge ? (
+              <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-500">
+                <Sparkles className="h-3 w-3" />
+                {plan.badge}
+              </span>
+            ) : plan?.isFeatured || isEnterprise ? (
               <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-500">
                 <Sparkles className="h-3 w-3" />
                 Popular
@@ -78,52 +83,63 @@ export function PlanCard({ plan, isCurrent, actionSlot }: PlanCardProps) {
           </div>
 
           <div className="border-border/60 space-y-2.5 border-t pt-3 text-xs">
-            <div className="flex items-center gap-2">
-              <Check className="text-primary h-3.5 w-3.5 shrink-0" />
-              <span>
-                Up to{" "}
-                <strong className="font-semibold">
-                  {plan?.entitlements?.maxMembers ?? 5} team seats
-                </strong>
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Check className="text-primary h-3.5 w-3.5 shrink-0" />
-              <span>
-                <strong className="font-semibold">
-                  {plan?.entitlements?.maxProjects ?? 10} active projects
-                </strong>
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Check className="text-primary h-3.5 w-3.5 shrink-0" />
-              <span>
-                <strong className="font-semibold">
-                  {((plan?.entitlements?.maxStorageMb ?? 1024) / 1024).toFixed(0)} GB
-                </strong>{" "}
-                secure cloud storage
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Check className="text-primary h-3.5 w-3.5 shrink-0" />
-              <span>
-                {plan?.entitlements?.hasCustomRoles
-                  ? "Custom dynamic RBAC roles"
-                  : "Standard workspace roles"}
-              </span>
-            </div>
-            {plan?.entitlements?.hasAdvancedAnalytics ? (
-              <div className="flex items-center gap-2">
-                <Check className="text-primary h-3.5 w-3.5 shrink-0" />
-                <span>Executive analytics & digests</span>
-              </div>
-            ) : null}
-            {plan?.entitlements?.hasPrioritySupport ? (
-              <div className="flex items-center gap-2">
-                <Check className="text-primary h-3.5 w-3.5 shrink-0" />
-                <span>24/7 Priority delegated support</span>
-              </div>
-            ) : null}
+            {plan?.features && plan.features.length > 0 ? (
+              plan.features.map((feature, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <Check className="text-primary h-3.5 w-3.5 shrink-0" />
+                  <span>{feature}</span>
+                </div>
+              ))
+            ) : (
+              <>
+                <div className="flex items-center gap-2">
+                  <Check className="text-primary h-3.5 w-3.5 shrink-0" />
+                  <span>
+                    Up to{" "}
+                    <strong className="font-semibold">
+                      {plan?.entitlements?.maxMembers ?? 5} team seats
+                    </strong>
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="text-primary h-3.5 w-3.5 shrink-0" />
+                  <span>
+                    <strong className="font-semibold">
+                      {plan?.entitlements?.maxProjects ?? 10} active projects
+                    </strong>
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="text-primary h-3.5 w-3.5 shrink-0" />
+                  <span>
+                    <strong className="font-semibold">
+                      {((plan?.entitlements?.maxStorageMb ?? 1024) / 1024).toFixed(0)} GB
+                    </strong>{" "}
+                    secure cloud storage
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="text-primary h-3.5 w-3.5 shrink-0" />
+                  <span>
+                    {plan?.entitlements?.hasCustomRoles
+                      ? "Custom dynamic RBAC roles"
+                      : "Standard workspace roles"}
+                  </span>
+                </div>
+                {plan?.entitlements?.hasAdvancedAnalytics ? (
+                  <div className="flex items-center gap-2">
+                    <Check className="text-primary h-3.5 w-3.5 shrink-0" />
+                    <span>Executive analytics & digests</span>
+                  </div>
+                ) : null}
+                {plan?.entitlements?.hasPrioritySupport ? (
+                  <div className="flex items-center gap-2">
+                    <Check className="text-primary h-3.5 w-3.5 shrink-0" />
+                    <span>24/7 Priority delegated support</span>
+                  </div>
+                ) : null}
+              </>
+            )}
           </div>
         </CardContent>
       </div>

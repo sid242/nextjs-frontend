@@ -21,6 +21,32 @@ export const invoiceSchema = z.object({
   amountCents: z.number().int(),
   taxCents: z.number().int(),
   totalCents: z.number().int(),
+  subtotalMinor: z.number().int().default(0).optional(),
+  discountMinor: z.number().int().default(0).optional(),
+  taxBreakdown: z
+    .array(
+      z.object({
+        name: z.string(),
+        ratePercent: z.number(),
+        amountMinor: z.number(),
+      }),
+    )
+    .nullable()
+    .optional(),
+  customerSnapshot: z
+    .object({
+      name: z.string(),
+      email: z.string(),
+      address: z.string().optional(),
+      taxId: z.string().optional(),
+    })
+    .nullable()
+    .optional(),
+  creditedMinor: z.number().int().default(0).optional(),
+  attemptCount: z.number().int().default(0).optional(),
+  nextAttemptAt: z.string().nullable().optional(),
+  invoiceYear: z.number().int().nullable().optional(),
+  invoiceSeq: z.number().int().nullable().optional(),
   currency: z.string(),
   lineItems: z.array(invoiceLineItemSchema).nullable().optional(),
   billingPeriodStart: z.string().nullable().optional(),
