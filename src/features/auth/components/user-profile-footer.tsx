@@ -12,7 +12,12 @@ import { initials } from "@/lib/format";
 import { useTenantHref } from "@/lib/tenancy/use-tenant-href";
 
 interface UserProfileFooterProps {
-  user: Pick<User, "name" | "email">;
+  user: {
+    name?: string | null;
+    email?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+  };
   collapsed?: boolean;
   onToggleCollapse?: () => void;
 }
@@ -26,6 +31,12 @@ export function UserProfileFooter({
   const tenantHref = useTenantHref();
   const collapsed = propCollapsed ?? sidebar.collapsed;
   const toggle = onToggleCollapse ?? sidebar.toggle;
+  const displayName =
+    [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
+    user?.name ||
+    user?.email ||
+    "User";
+
   if (collapsed) {
     return (
       <div className="flex flex-col items-center gap-2">
@@ -34,13 +45,13 @@ export function UserProfileFooter({
             <Link href={tenantHref("/settings")}>
               <Avatar className="border-sidebar-border size-8 border transition-opacity hover:opacity-80">
                 <AvatarFallback className="bg-sidebar-accent text-sidebar-foreground text-xs font-semibold">
-                  {initials(user?.name)}
+                  {initials(displayName)}
                 </AvatarFallback>
               </Avatar>
             </Link>
           </TooltipTrigger>
           <TooltipContent side="right">
-            <p className="font-medium">{user?.name}</p>
+            <p className="font-medium">{displayName}</p>
             <p className="text-muted-foreground text-xs">{user?.email}</p>
           </TooltipContent>
         </Tooltip>
@@ -73,12 +84,12 @@ export function UserProfileFooter({
       >
         <Avatar className="border-sidebar-border size-8 shrink-0 border">
           <AvatarFallback className="bg-sidebar-accent text-sidebar-foreground text-xs font-semibold">
-            {initials(user?.name)}
+            {initials(displayName)}
           </AvatarFallback>
         </Avatar>
         <div className="grid min-w-0 text-left leading-tight">
           <span className="text-sidebar-foreground truncate text-xs font-semibold">
-            {user?.name}
+            {displayName}
           </span>
           <span className="text-sidebar-foreground/60 truncate text-[11px]">{user?.email}</span>
         </div>

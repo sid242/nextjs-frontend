@@ -21,7 +21,16 @@ import { useTenantHref } from "@/lib/tenancy/use-tenant-href";
 
 import { logout } from "../api";
 
-export function UserMenu({ user }: { user: Pick<User, "name" | "email"> }) {
+export function UserMenu({
+  user,
+}: {
+  user: {
+    name?: string | null;
+    email?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+  };
+}) {
   const queryClient = useQueryClient();
   const tenantHref = useTenantHref();
 
@@ -36,18 +45,26 @@ export function UserMenu({ user }: { user: Pick<User, "name" | "email"> }) {
     },
   });
 
+  const displayName =
+    [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
+    user?.name ||
+    user?.email ||
+    "User";
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="rounded-full" aria-label="Account menu">
           <Avatar className="size-8">
-            <AvatarFallback className="text-xs font-semibold">{initials(user.name)}</AvatarFallback>
+            <AvatarFallback className="text-xs font-semibold">
+              {initials(displayName)}
+            </AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56 shadow-lg">
         <DropdownMenuLabel className="grid gap-0.5">
-          <span className="truncate font-semibold">{user.name}</span>
+          <span className="truncate font-semibold">{displayName}</span>
           <span className="text-muted-foreground truncate text-xs font-normal">{user.email}</span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />

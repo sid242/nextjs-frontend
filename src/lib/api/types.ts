@@ -1,9 +1,9 @@
 export interface User {
   id: string;
   email: string;
-  name: string;
   firstName?: string | null;
   lastName?: string | null;
+  name?: string;
   locale?: string | null;
   timezone?: string | null;
   dateFormat?: string | null;

@@ -23,7 +23,14 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
   if (res.status === 401) return null;
   if (!res.ok) throw new Error(`Could not load session (${res.status})`);
   const body = (await res.json()) as { data?: User } | User;
-  return ("data" in body && body.data ? body.data : body) as User;
+  const user = ("data" in body && body.data ? body.data : body) as User;
+  if (user && !user.name) {
+    user.name =
+      [user.firstName, user.lastName].filter(Boolean).join(" ") ||
+      user.email.split("@")[0] ||
+      "User";
+  }
+  return user;
 });
 
 /**
