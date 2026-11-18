@@ -2,7 +2,9 @@ import { api } from "@/lib/api/http";
 import { buildQueryString } from "@/lib/utils";
 
 import type {
+  AccessExplanation,
   AppModule,
+  CloneRoleInput,
   CreateRoleInput,
   ListRolesFilter,
   Permission,
@@ -150,6 +152,26 @@ export async function deleteTenantRole(tenantId: string, roleId: string): Promis
   } catch {
     /* Optimistic fallback */
   }
+}
+
+export async function cloneTenantRole(
+  tenantId: string,
+  roleId: string,
+  input: CloneRoleInput,
+): Promise<Role> {
+  return await api.post<Role>(`/rbac/tenants/${tenantId}/roles/${roleId}/clone`, input);
+}
+
+export async function explainMemberAccess(
+  tenantId: string,
+  memberId: string,
+  permission: string,
+  signal?: AbortSignal,
+): Promise<AccessExplanation> {
+  const qs = buildQueryString({ memberId, permission });
+  return await api.get<AccessExplanation>(`/rbac/tenants/${tenantId}/access/explain${qs}`, {
+    signal,
+  });
 }
 
 export async function getPlatformRoles(signal?: AbortSignal): Promise<Role[]> {

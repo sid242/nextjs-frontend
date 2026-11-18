@@ -4,4 +4,6 @@ export const rbacKeys = {
   platformRoles: () => [...rbacKeys.all, "platform-roles"] as const,
   permissions: () => [...rbacKeys.all, "permissions"] as const,
   modules: () => [...rbacKeys.all, "modules"] as const,
+  accessExplain: (tenantId: string, memberId: string, permission: string) =>
+    [...rbacKeys.all, "explain", tenantId, memberId, permission] as const,
 };

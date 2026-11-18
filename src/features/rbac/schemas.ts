@@ -85,3 +85,30 @@ export const listRolesFilterSchema = z.object({
   limit: z.number().optional(),
 });
 export type ListRolesFilter = z.infer<typeof listRolesFilterSchema>;
+
+export const cloneRoleSchema = z.object({
+  name: z.string().trim().min(2, "Role name must be at least 2 characters").max(50),
+  description: z.string().trim().max(255).optional().or(z.literal("")),
+});
+export type CloneRoleInput = z.infer<typeof cloneRoleSchema>;
+
+export const accessExplanationReasonSchema = z.object({
+  source: z.enum(["OWNER", "DIRECT_ROLE", "GROUP_ROLE", "MODULE_DISABLED"]),
+  granted: z.boolean(),
+  name: z.string(),
+  detail: z.string(),
+});
+export type AccessExplanationReason = z.infer<typeof accessExplanationReasonSchema>;
+
+export const accessExplanationSchema = z.object({
+  allowed: z.boolean(),
+  permission: z.string(),
+  permissionName: z.string(),
+  moduleName: z.string(),
+  memberId: z.string(),
+  userId: z.string(),
+  isOwner: z.boolean(),
+  isModuleEnabled: z.boolean(),
+  reasons: z.array(accessExplanationReasonSchema),
+});
+export type AccessExplanation = z.infer<typeof accessExplanationSchema>;

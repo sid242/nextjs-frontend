@@ -1,20 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import {
-  Briefcase,
-  Building,
-  Calendar,
-  Clock,
-  Mail,
-  MapPin,
-  Phone,
-  Shield,
-  ShieldAlert,
-  UserCheck,
-  UserMinus,
-  Users,
-} from "lucide-react";
+import { Briefcase, Calendar, Mail, MapPin, Shield, UserMinus } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -35,16 +22,19 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { MemberAccessExplainer } from "@/features/rbac";
 import { formatDate } from "@/lib/date";
 import { initials } from "@/lib/format";
 
 import { MEMBER_ROLE_OPTIONS } from "../constants";
+import { useActiveTenant } from "../queries";
 import type { TenantMember } from "../schemas";
 
 interface MemberDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   member: TenantMember | null;
+  tenantId?: string;
   onRoleChange?: (memberId: string, newRole: string) => void;
   onOffboardMember?: (member: TenantMember) => void;
   onManageAddresses?: (memberId: string, memberName: string) => void;
@@ -57,6 +47,7 @@ export function MemberDrawer({
   open,
   onOpenChange,
   member,
+  tenantId,
   onRoleChange,
   onOffboardMember,
   onManageAddresses,
@@ -64,6 +55,9 @@ export function MemberDrawer({
   canRemoveMembers = true,
   roles,
 }: MemberDrawerProps) {
+  const { activeTenantId } = useActiveTenant();
+  const effectiveTenantId = tenantId ?? member?.tenantId ?? activeTenantId ?? "";
+
   const availableRoleOptions = useMemo(() => {
     if (roles && roles.length > 0) {
       return roles.map((r) => {
@@ -287,6 +281,10 @@ export function MemberDrawer({
                 </div>
               )}
             </div>
+
+            {effectiveTenantId && member.id && (
+              <MemberAccessExplainer tenantId={effectiveTenantId} memberId={member.id} />
+            )}
           </TabsContent>
 
           {/* Tab 3: Actions */}

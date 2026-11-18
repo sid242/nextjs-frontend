@@ -142,6 +142,7 @@ export type TenantModule = z.infer<typeof tenantModuleSchema>;
 export const tenantMemberSchema = z.object({
   id: z.string(),
   userId: z.string(),
+  tenantId: z.string().optional(),
   name: z.string(),
   email: z.string(),
   status: z.enum(["ACTIVE", "INVITED", "SUSPENDED", "REMOVED"]).default("ACTIVE"),

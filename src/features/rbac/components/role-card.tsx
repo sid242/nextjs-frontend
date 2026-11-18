@@ -1,4 +1,4 @@
-import { Lock, Shield, ShieldCheck, Trash2Icon, Users } from "lucide-react";
+import { Copy, Lock, Shield, ShieldCheck, Trash2Icon, Users } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -61,9 +61,10 @@ export function ActionBadge({ action, permKey }: { action?: string; permKey?: st
 interface RoleCardProps {
   role: Role;
   onDelete?: (roleId: string, roleName: string) => void;
+  onClone?: (role: Role) => void;
 }
 
-export function RoleCard({ role, onDelete }: RoleCardProps) {
+export function RoleCard({ role, onDelete, onClone }: RoleCardProps) {
   const isWildcard = role?.permissions?.includes("*");
   const permissionsList = role?.permissions ?? [];
 
@@ -139,17 +140,33 @@ export function RoleCard({ role, onDelete }: RoleCardProps) {
           </div>
         </div>
 
-        {!role?.isSystem && onDelete && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 size-8 rounded-lg"
-            onClick={() => onDelete(role?.id, role?.name)}
-            aria-label={`Delete ${role?.name}`}
-          >
-            <Trash2Icon className="size-4" />
-          </Button>
-        )}
+        <div className="flex items-center gap-1">
+          {onClone && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-muted-foreground hover:text-foreground size-8 rounded-lg"
+              onClick={() => onClone(role)}
+              aria-label={`Clone ${role?.name}`}
+              title="Clone this role"
+            >
+              <Copy className="size-4" />
+            </Button>
+          )}
+
+          {!role?.isSystem && onDelete && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 size-8 rounded-lg"
+              onClick={() => onDelete(role?.id, role?.name)}
+              aria-label={`Delete ${role?.name}`}
+              title="Delete role"
+            >
+              <Trash2Icon className="size-4" />
+            </Button>
+          )}
+        </div>
       </CardHeader>
 
       <CardContent className="border-border/40 border-t pt-2">

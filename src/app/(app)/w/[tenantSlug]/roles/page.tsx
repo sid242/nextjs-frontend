@@ -7,14 +7,17 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/molecules/page-header";
 import { Button } from "@/components/ui/button";
 import {
+  CloneRoleDialog,
   CreateRoleDialog,
   RoleCard,
   RoleStatsCards,
+  useCloneTenantRole,
   useCreateTenantRole,
   useDeleteTenantRole,
   useModules,
   usePermissions,
   useTenantRoles,
+  type Role,
 } from "@/features/rbac";
 import { TENANT_PERMISSIONS, TenantPermissionGate, useActiveTenant } from "@/features/tenants";
 
@@ -26,8 +29,10 @@ export default function RolesPage() {
 
   const createRoleMutation = useCreateTenantRole(activeTenantId ?? "");
   const deleteRoleMutation = useDeleteTenantRole(activeTenantId ?? "");
+  const cloneRoleMutation = useCloneTenantRole(activeTenantId ?? "");
 
   const [createOpen, setCreateOpen] = useState(false);
+  const [cloningRole, setCloningRole] = useState<Role | null>(null);
 
   const handleCreateRole = async (data: {
     name: string;
@@ -41,6 +46,17 @@ export default function RolesPage() {
       setCreateOpen(false);
     } catch {
       toast.error("Failed to create role. Please try again.");
+    }
+  };
+
+  const handleCloneRole = async (roleId: string, data: { name: string; description?: string }) => {
+    if (!activeTenantId) return;
+    try {
+      await cloneRoleMutation.mutateAsync({ roleId, input: data });
+      toast.success(`Role "${data.name}" cloned successfully!`);
+      setCloningRole(null);
+    } catch {
+      toast.error("Failed to clone role. Please try again.");
     }
   };
 
@@ -104,7 +120,14 @@ export default function RolesPage() {
               </div>
             </div>
           ) : (
-            roles.map((role) => <RoleCard key={role.id} role={role} onDelete={handleDeleteRole} />)
+            roles.map((role) => (
+              <RoleCard
+                key={role.id}
+                role={role}
+                onDelete={handleDeleteRole}
+                onClone={(r) => setCloningRole(r)}
+              />
+            ))
           )}
         </div>
 
@@ -116,6 +139,14 @@ export default function RolesPage() {
           rawPermissions={rawPermissions}
           onSubmit={handleCreateRole}
           isSubmitting={createRoleMutation.isPending}
+        />
+
+        <CloneRoleDialog
+          open={Boolean(cloningRole)}
+          onOpenChange={(open) => !open && setCloningRole(null)}
+          role={cloningRole}
+          onSubmit={handleCloneRole}
+          isSubmitting={cloneRoleMutation.isPending}
         />
       </div>
     </TenantPermissionGate>

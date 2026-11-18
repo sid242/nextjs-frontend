@@ -3,15 +3,17 @@
 import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
+  cloneTenantRole,
   createTenantRole,
   deleteTenantRole,
+  explainMemberAccess,
   getPlatformModules,
   getPlatformPermissions,
   getTenantRoles,
   updateTenantRole,
 } from "./api";
 import { rbacKeys } from "./keys";
-import type { CreateRoleInput, ListRolesFilter, UpdateRoleInput } from "./schemas";
+import type { CloneRoleInput, CreateRoleInput, ListRolesFilter, UpdateRoleInput } from "./schemas";
 
 export const tenantRolesQueryOptions = (tenantId: string, params?: ListRolesFilter) =>
   queryOptions({
@@ -78,5 +80,30 @@ export function useDeleteTenantRole(tenantId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: rbacKeys.roles(tenantId) });
     },
+  });
+}
+
+export function useCloneTenantRole(tenantId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ roleId, input }: { roleId: string; input: CloneRoleInput }) =>
+      cloneTenantRole(tenantId, roleId, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: rbacKeys.roles(tenantId) });
+    },
+  });
+}
+
+export function useExplainMemberAccess(
+  tenantId?: string | null,
+  memberId?: string | null,
+  permission?: string | null,
+) {
+  return useQuery({
+    queryKey: rbacKeys.accessExplain(tenantId ?? "", memberId ?? "", permission ?? ""),
+    queryFn: ({ signal }) => explainMemberAccess(tenantId!, memberId!, permission!, signal),
+    enabled: Boolean(tenantId && memberId && permission),
+    staleTime: 30 * 1000,
   });
 }
