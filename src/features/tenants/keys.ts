@@ -11,4 +11,6 @@ export const tenantKeys = {
   urlSettings: (id: string) => [...tenantKeys.all, "urlSettings", id] as const,
   auditLogsSearch: (id: string, criteria: Record<string, unknown>) =>
     [...tenantKeys.all, "auditLogsSearch", id, criteria] as const,
+  settings: (id: string) => [...tenantKeys.all, "settings", id] as const,
+  securityPolicy: (id: string) => [...tenantKeys.all, "securityPolicy", id] as const,
 };

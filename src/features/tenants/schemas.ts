@@ -234,3 +234,49 @@ export interface TenantContext {
   };
   permissions: string[];
 }
+
+export const tenantSettingsSchema = z.object({
+  id: z.string().optional(),
+  tenantId: z.string(),
+  timezone: z.string().default("UTC"),
+  locale: z.string().default("en-US"),
+  currency: z.string().default("USD"),
+  dateFormat: z.string().default("YYYY-MM-DD"),
+  timeFormat: z.enum(["12h", "24h"]).default("24h"),
+  weekStartsOn: z.enum(["sunday", "monday"]).default("monday"),
+  fiscalYearStartMonth: z.number().int().min(1).max(12).default(1),
+  country: z.string().default("US"),
+  industry: z.string().nullable().optional(),
+  companySize: z.string().nullable().optional(),
+  legalName: z.string().nullable().optional(),
+  taxId: z.string().nullable().optional(),
+  billingAddressId: z.string().nullable().optional(),
+  supportEmail: z.string().nullable().optional(),
+  websiteUrl: z.string().nullable().optional(),
+  termsUrl: z.string().nullable().optional(),
+  privacyUrl: z.string().nullable().optional(),
+  defaultMemberRoleId: z.string().nullable().optional(),
+  allowedEmailDomains: z.array(z.string()).default([]),
+  autoJoinDomains: z.boolean().default(false),
+  memberLimitNotified: z.boolean().default(false),
+});
+export type TenantSettings = z.infer<typeof tenantSettingsSchema>;
+
+export const tenantSecurityPolicySchema = z.object({
+  id: z.string().optional(),
+  tenantId: z.string(),
+  requireMfa: z.enum(["ALL", "ADMINS", "NONE"]).default("NONE"),
+  passwordMinLength: z.number().int().min(8).default(8),
+  passwordMaxAgeDays: z.number().int().nullable().optional(),
+  sessionIdleMinutes: z.number().int().min(5).default(60),
+  sessionMaxHours: z.number().int().min(1).default(24),
+  ipAllowlist: z.array(z.string()).default([]),
+  allowedAuthMethods: z
+    .array(z.enum(["PASSWORD", "MAGIC", "SSO"]))
+    .default(["PASSWORD", "MAGIC", "SSO"]),
+  enforceSso: z.boolean().default(false),
+  allowSupportAccess: z.boolean().default(true),
+  inviteExpiryDays: z.number().int().min(1).default(7),
+  allowPersonalEmails: z.boolean().default(true),
+});
+export type TenantSecurityPolicy = z.infer<typeof tenantSecurityPolicySchema>;

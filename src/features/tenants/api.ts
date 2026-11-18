@@ -10,6 +10,8 @@ import type {
   TenantContext,
   TenantEmailConfig,
   TenantMember,
+  TenantSecurityPolicy,
+  TenantSettings,
   TenantUrlSettings,
   TestEmailInput,
   UpdateTenantBrandingInput,
@@ -305,4 +307,32 @@ export async function updateTenantUrlSettings(
 
 export async function deleteTenantCustomDomain(tenantId: string): Promise<TenantUrlSettings> {
   return api.delete<TenantUrlSettings>(`/tenants/${tenantId}/url-settings/custom-domain`);
+}
+
+export async function getTenantSettings(
+  tenantId: string,
+  signal?: AbortSignal,
+): Promise<TenantSettings> {
+  return api.get<TenantSettings>(`/tenants/${tenantId}/settings`, { signal });
+}
+
+export async function updateTenantSettings(
+  tenantId: string,
+  input: Partial<TenantSettings>,
+): Promise<TenantSettings> {
+  return api.patch<TenantSettings>(`/tenants/${tenantId}/settings`, input);
+}
+
+export async function getTenantSecurityPolicy(
+  tenantId: string,
+  signal?: AbortSignal,
+): Promise<TenantSecurityPolicy> {
+  return api.get<TenantSecurityPolicy>(`/tenants/${tenantId}/settings/security`, { signal });
+}
+
+export async function updateTenantSecurityPolicy(
+  tenantId: string,
+  input: Partial<TenantSecurityPolicy>,
+): Promise<TenantSecurityPolicy> {
+  return api.patch<TenantSecurityPolicy>(`/tenants/${tenantId}/settings/security`, input);
 }

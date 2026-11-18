@@ -9,6 +9,8 @@ export {
   tenantAuditLogsQueryOptions,
   tenantAuditLogsSearchQueryOptions,
   tenantModulesQueryOptions,
+  tenantSecurityPolicyQueryOptions,
+  tenantSettingsQueryOptions,
   tenantUrlSettingsQueryOptions,
   useTenants,
   useTenantBranding,
@@ -18,6 +20,8 @@ export {
   useTenantAuditLogsSearch,
   useTenantModules,
   useTenantContext,
+  useTenantSecurityPolicy,
+  useTenantSettings,
   useTenantUrlSettings,
   tenantContextQueryOptions,
   useActiveTenant,
@@ -25,6 +29,8 @@ export {
   useCheckTenantSlug,
   useCreateTenant,
   useUpdateTenant,
+  useUpdateTenantSecurityPolicy,
+  useUpdateTenantSettings,
   useAddTenantMember,
   useRemoveTenantMember,
   useUpdateMemberRole,
@@ -37,6 +43,12 @@ export {
   useTransferTenantOwnership,
   useVerifyTenantCustomDomain,
 } from "./queries";
+export {
+  getTenantSettings,
+  updateTenantSettings,
+  getTenantSecurityPolicy,
+  updateTenantSecurityPolicy,
+} from "./api";
 export { TenantSwitcher } from "./components/tenant-switcher";
 export { TenantBrand } from "./components/tenant-brand";
 export { TenantLogo } from "./components/tenant-logo";

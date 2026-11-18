@@ -25,6 +25,8 @@ import {
   getTenantMembers,
   getTenantModules,
   getTenants,
+  getTenantSecurityPolicy,
+  getTenantSettings,
   getTenantUrlSettings,
   removeTenantMember,
   saveTenantEmailConfig,
@@ -35,6 +37,8 @@ import {
   updateTenant,
   updateTenantBranding,
   updateTenantMemberRole,
+  updateTenantSecurityPolicy,
+  updateTenantSettings,
   updateTenantUrlSettings,
   verifyTenantCustomDomain,
 } from "./api";
@@ -50,6 +54,8 @@ import type {
   TenantEmailConfig,
   TenantMember,
   TenantModule,
+  TenantSecurityPolicy,
+  TenantSettings,
   TenantUrlSettings,
   TestEmailInput,
   UpdateTenantBrandingInput,
@@ -557,5 +563,67 @@ export function useCheckMemberEmail(tenantId?: string | null, email?: string) {
       staleTime: 30 * 1000,
       retry: false,
     }),
+  );
+}
+
+// ─── Workspace Settings & Security Policies ─────────────────────────────────
+
+export const tenantSettingsQueryOptions = (tenantId: string) =>
+  queryOptions({
+    queryKey: tenantKeys.settings(tenantId),
+    queryFn: ({ signal }) => getTenantSettings(tenantId, signal),
+    staleTime: 60 * 1000,
+  });
+
+export function useTenantSettings(tenantId: string) {
+  return useAppQuery(tenantSettingsQueryOptions(tenantId));
+}
+
+export function useUpdateTenantSettings(
+  tenantId: string,
+  options?: MutationOverrides<TenantSettings, Partial<TenantSettings>>,
+) {
+  const queryClient = useQueryClient();
+
+  return useAppMutation(
+    {
+      mutationFn: (input: Partial<TenantSettings>) => updateTenantSettings(tenantId, input),
+      onSuccess: (data: TenantSettings) => {
+        queryClient.setQueryData(tenantKeys.settings(tenantId), data);
+        void queryClient.invalidateQueries({ queryKey: tenantKeys.detail(tenantId) });
+        void queryClient.invalidateQueries({ queryKey: tenantKeys.context(tenantId) });
+      },
+    },
+    options,
+  );
+}
+
+export const tenantSecurityPolicyQueryOptions = (tenantId: string) =>
+  queryOptions({
+    queryKey: tenantKeys.securityPolicy(tenantId),
+    queryFn: ({ signal }) => getTenantSecurityPolicy(tenantId, signal),
+    staleTime: 60 * 1000,
+  });
+
+export function useTenantSecurityPolicy(tenantId: string) {
+  return useAppQuery(tenantSecurityPolicyQueryOptions(tenantId));
+}
+
+export function useUpdateTenantSecurityPolicy(
+  tenantId: string,
+  options?: MutationOverrides<TenantSecurityPolicy, Partial<TenantSecurityPolicy>>,
+) {
+  const queryClient = useQueryClient();
+
+  return useAppMutation(
+    {
+      mutationFn: (input: Partial<TenantSecurityPolicy>) =>
+        updateTenantSecurityPolicy(tenantId, input),
+      onSuccess: (data: TenantSecurityPolicy) => {
+        queryClient.setQueryData(tenantKeys.securityPolicy(tenantId), data);
+        void queryClient.invalidateQueries({ queryKey: tenantKeys.context(tenantId) });
+      },
+    },
+    options,
   );
 }
