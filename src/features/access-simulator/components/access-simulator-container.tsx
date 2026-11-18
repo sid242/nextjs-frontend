@@ -20,9 +20,13 @@ import { EffectiveAccessView } from "./effective-access-view";
 interface TenantMemberItem {
   id: string;
   userId: string;
+  firstName?: string | null;
+  lastName?: string | null;
   name?: string | null;
   email?: string | null;
   user?: {
+    firstName?: string | null;
+    lastName?: string | null;
     name?: string | null;
     email?: string | null;
   } | null;
@@ -36,7 +40,7 @@ export function AccessSimulatorContainer() {
     return (rawMembers as TenantMemberItem[]).map((m) => ({
       id: m.id,
       userId: m.userId,
-      name: m.user?.name ?? m.name ?? null,
+      name: [m.user?.firstName, m.user?.lastName].filter(Boolean).join(" ") || m.name || null,
       email: m.user?.email ?? m.email ?? "",
     }));
   }, [rawMembers]);

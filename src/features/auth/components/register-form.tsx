@@ -65,6 +65,7 @@ export function RegisterForm({
           label="Last name"
           autoComplete="family-name"
           placeholder="Doe"
+          required
         />
       </div>
       <ControlledInput

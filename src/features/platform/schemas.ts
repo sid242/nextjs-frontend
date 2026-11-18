@@ -61,7 +61,8 @@ export type UpdateStaffInput = z.infer<typeof updateStaffSchema>;
 export const platformUserSchema = z.object({
   id: z.string().uuid(),
   email: z.string().email(),
-  name: z.string(),
+  firstName: z.string().default(""),
+  lastName: z.string().default(""),
   status: z.enum(["PENDING_VERIFICATION", "ACTIVE", "SUSPENDED", "DEACTIVATED"]),
   emailVerified: z.boolean().default(false),
   phoneNumber: z.string().nullable().optional(),

@@ -109,43 +109,6 @@ describe("Proxy / Middleware Routing Decision Table", () => {
   });
 
   describe("Platform Host Routing", () => {
-    it("redirects legacy unscoped path to /w/{ctxSlug}{path} when ctx_slug cookie exists", async () => {
-      const req = new NextRequest("http://example.com/dashboard", {
-        headers: {
-          host: "example.com",
-          cookie: "ctx_slug=initech",
-        },
-      });
-
-      const res = await proxy(req);
-      expect(res.status).toBe(307);
-      expect(res.headers.get("location")).toBe("http://example.com/w/initech/dashboard");
-    });
-
-    it("redirects legacy unscoped path to /select-workspace when ctx_slug cookie is missing", async () => {
-      const req = new NextRequest("http://example.com/team", {
-        headers: {
-          host: "example.com",
-        },
-      });
-
-      const res = await proxy(req);
-      expect(res.status).toBe(307);
-      expect(res.headers.get("location")).toBe("http://example.com/select-workspace");
-    });
-
-    it("redirects legacy /{slug}/login to /w/{slug}/login", async () => {
-      const req = new NextRequest("http://example.com/acme/login", {
-        headers: {
-          host: "example.com",
-        },
-      });
-
-      const res = await proxy(req);
-      expect(res.status).toBe(307);
-      expect(res.headers.get("location")).toBe("http://example.com/w/acme/login");
-    });
-
     it("gates unauthenticated platform staff access to /platform/login?next=...", async () => {
       const req = new NextRequest("http://example.com/platform/tenants", {
         headers: {

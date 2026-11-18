@@ -59,16 +59,6 @@ export const RESERVED_ROOT_SEGMENTS = new Set([
   "sitemap.xml",
 ]);
 
-export function matchTenantAuthPath(
-  pathname: string,
-): { tenantSlug: string; action: "login" | "register" } | null {
-  const match = pathname.match(/^\/([a-zA-Z0-9_-]+)\/(login|register)$/);
-  if (!match) return null;
-  const [, slug, action] = match;
-  if (!slug || RESERVED_ROOT_SEGMENTS.has(slug.toLowerCase())) return null;
-  return { tenantSlug: slug, action: action as "login" | "register" };
-}
-
 export const PLATFORM_PREFIX = "/platform";
 export const PLATFORM_LOGIN_PATH = "/platform/login";
 
@@ -80,9 +70,7 @@ export const isProtectedPath = (pathname: string): boolean => {
 };
 
 export const isAuthPage = (pathname: string): boolean =>
-  (AUTH_PAGES as readonly string[]).includes(pathname) ||
-  isTenantAuthPath(pathname) ||
-  matchTenantAuthPath(pathname) !== null;
+  (AUTH_PAGES as readonly string[]).includes(pathname) || isTenantAuthPath(pathname);
 
 export const isPlatformPath = (pathname: string) =>
   pathname === PLATFORM_PREFIX || pathname.startsWith(`${PLATFORM_PREFIX}/`);

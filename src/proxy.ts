@@ -6,7 +6,6 @@ import {
   isPlatformLogin,
   isPlatformPath,
   isProtectedPath,
-  matchTenantAuthPath,
   safeNextPath,
   tenantSlugFromPath,
 } from "@/lib/auth/paths";
@@ -155,7 +154,6 @@ export async function proxy(req: NextRequest) {
   const hasAccess = req?.cookies?.has?.(ACCESS_COOKIE);
   const hasRefresh = req?.cookies?.has?.(REFRESH_COOKIE);
   const hasPlatformStaff = req?.cookies?.has?.(PLATFORM_STAFF_COOKIE);
-  const ctxSlug = req?.cookies?.get?.("ctx_slug")?.value;
 
   const rawHost =
     (process.env.TRUST_PROXY === "true" ? req?.headers?.get?.("x-forwarded-host") : null) ??
@@ -265,27 +263,6 @@ export async function proxy(req: NextRequest) {
       }
     }
 
-    // 3b. Legacy unscoped tenant paths on platform host -> redirect
-    const isLegacyTenantPath =
-      /^\/(dashboard|team|roles|files|settings|audit-logs|email-templates|branding|groups)(\/.*)?$/.test(
-        pathname,
-      );
-    if (isLegacyTenantPath) {
-      if (ctxSlug) {
-        return NextResponse.redirect(new URL(`/w/${ctxSlug}${pathname}${search}`, req?.url), 307);
-      }
-      return NextResponse.redirect(new URL("/select-workspace", req?.url), 307);
-    }
-
-    // 3c. Legacy /{slug}/login|register -> redirect to /w/{slug}/...
-    const legacyAuth = matchTenantAuthPath(pathname);
-    if (legacyAuth) {
-      return NextResponse.redirect(
-        new URL(`/w/${legacyAuth.tenantSlug}/${legacyAuth.action}${search}`, req?.url),
-        307,
-      );
-    }
-
     // 3d. Platform staff console gate
     if (isPlatformPath(pathname)) {
       if (isPlatformLogin(pathname)) {
@@ -322,9 +299,6 @@ export async function proxy(req: NextRequest) {
       const slug = tenantSlugFromPath(pathname);
       if (slug) {
         return NextResponse.redirect(new URL(`/w/${slug}/dashboard`, req?.url));
-      }
-      if (ctxSlug) {
-        return NextResponse.redirect(new URL(`/w/${ctxSlug}/dashboard`, req?.url));
       }
       return NextResponse.redirect(new URL("/select-workspace", req?.url));
     }

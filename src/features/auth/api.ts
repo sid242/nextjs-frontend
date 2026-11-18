@@ -35,16 +35,8 @@ export type LoginResult =
 
 // These hit our own Next.js BFF routes (/api/auth/*), which keep tokens in httpOnly cookies.
 export const login = (values: LoginValues) => authApi.post<LoginResult>("/login", values);
-export const register = (values: RegisterValues) => {
-  const payload = {
-    ...values,
-    name:
-      values.name ||
-      [values.firstName, values.lastName].filter(Boolean).join(" ").trim() ||
-      undefined,
-  };
-  return authApi.post<{ user: User }>("/register", payload);
-};
+export const register = (values: RegisterValues) =>
+  authApi.post<{ user: User }>("/register", values);
 export const logout = () => authApi.post("/logout");
 
 // ─── Two-Factor Authentication (2FA) ────────────────────────────────────────────

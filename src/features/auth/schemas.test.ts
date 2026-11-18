@@ -16,7 +16,12 @@ describe("auth schemas", () => {
   });
   it("rejects short passwords on register but not on login", () => {
     expect(
-      registerSchema.safeParse({ name: "A", email: "a@b.co", password: "short" }).success,
+      registerSchema.safeParse({
+        firstName: "Alice",
+        lastName: "Smith",
+        email: "a@b.co",
+        password: "short",
+      }).success,
     ).toBe(false);
     expect(loginSchema.safeParse({ email: "a@b.co", password: "short" }).success).toBe(true);
   });

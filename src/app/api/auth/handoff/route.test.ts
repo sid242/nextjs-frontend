@@ -80,7 +80,6 @@ describe("Handoff Route (/api/auth/handoff)", () => {
     const setCookie = res.headers.get("set-cookie");
     expect(setCookie).toContain("access_token=");
     expect(setCookie).toContain("refresh_token=");
-    expect(setCookie).toContain("ctx_slug=acme");
   });
 
   it("respects safe relative next parameter on successful handoff", async () => {

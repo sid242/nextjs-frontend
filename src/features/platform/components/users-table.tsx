@@ -174,7 +174,9 @@ export function PlatformUsersTable() {
       case "user":
         return (
           <TableCell key="user">
-            <div className="text-foreground font-medium">{user.name}</div>
+            <div className="text-foreground font-medium">
+              {[user.firstName, user.lastName].filter(Boolean).join(" ") || user.email}
+            </div>
             <div className="text-muted-foreground font-mono text-xs">{user.email}</div>
           </TableCell>
         );
@@ -423,13 +425,23 @@ export function PlatformUsersTable() {
               {statusModal.targetStatus === "SUSPENDED" ? (
                 <>
                   Are you sure you want to suspend access for{" "}
-                  <strong>{statusModal.user?.name}</strong> ({statusModal.user?.email})? They will
-                  be immediately logged out and unable to access any associated tenants.
+                  <strong>
+                    {[statusModal.user?.firstName, statusModal.user?.lastName]
+                      .filter(Boolean)
+                      .join(" ") || statusModal.user?.email}
+                  </strong>{" "}
+                  ({statusModal.user?.email})? They will be immediately logged out and unable to
+                  access any associated tenants.
                 </>
               ) : (
                 <>
-                  Reactivate access for <strong>{statusModal.user?.name}</strong> (
-                  {statusModal.user?.email})? They will regain access to their tenant memberships.
+                  Reactivate access for{" "}
+                  <strong>
+                    {[statusModal.user?.firstName, statusModal.user?.lastName]
+                      .filter(Boolean)
+                      .join(" ") || statusModal.user?.email}
+                  </strong>{" "}
+                  ({statusModal.user?.email})? They will regain access to their tenant memberships.
                 </>
               )}
             </DialogDescription>

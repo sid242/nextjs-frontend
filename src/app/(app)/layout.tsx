@@ -19,7 +19,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const topBanner = supportSessionId ? (
     <SupportSessionBanner sessionId={supportSessionId} />
   ) : impersonating ? (
-    <ImpersonationBanner userName={user.name} />
+    <ImpersonationBanner userName={`${user.firstName} ${user.lastName}`.trim()} />
   ) : null;
 
   return (

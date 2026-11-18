@@ -19,19 +19,15 @@ import { profileSchema, type ProfileValues } from "../schemas";
 export function ProfileForm({
   user,
 }: {
-  user?: Pick<User, "name" | "firstName" | "lastName" | "email" | "phoneNumber">;
+  user?: Pick<User, "firstName" | "lastName" | "email" | "phoneNumber">;
 }) {
   const router = useRouter();
-
-  const userFirst = user?.firstName ?? (user?.name ? user.name.split(" ")[0] : "");
-  const userLast = user?.lastName ?? (user?.name ? user.name.split(" ").slice(1).join(" ") : "");
 
   const methods = useForm<ProfileValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      firstName: userFirst ?? "",
-      lastName: userLast ?? "",
-      name: user?.name ?? "",
+      firstName: user?.firstName ?? "",
+      lastName: user?.lastName ?? "",
       phoneNumber: user?.phoneNumber ?? "",
     },
     mode: "onChange",
@@ -42,7 +38,6 @@ export function ProfileForm({
       methods?.reset({
         firstName: updated?.firstName ?? "",
         lastName: updated?.lastName ?? "",
-        name: updated?.name ?? "",
         phoneNumber: updated?.phoneNumber ?? "",
       });
       router?.refresh();

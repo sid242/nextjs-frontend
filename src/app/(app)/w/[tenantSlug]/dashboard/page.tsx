@@ -21,7 +21,7 @@ export default async function DashboardPage() {
     <HydrationBoundary state={dehydrate(queryClient)}>
       <div className="grid gap-6">
         <PageHeader
-          title={`Welcome back, ${user.firstName || user.name?.split(" ")[0] || "there"}`}
+          title={`Welcome back, ${user.firstName}`}
           description="Here's a quick overview of your workspace and activity."
         />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

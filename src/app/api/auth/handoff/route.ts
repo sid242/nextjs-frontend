@@ -61,19 +61,5 @@ export async function GET(req: NextRequest) {
     refreshToken: authData.refreshToken,
   });
 
-  // Set ctx_slug cookie for legacy path redirects
-  const activeTenant = authData?.memberships?.find?.((m) => m?.tenantId === authData?.tenantId);
-  const activeSlug = activeTenant?.slug || authData?.memberships?.[0]?.slug;
-  if (activeSlug) {
-    const secure = process.env.NODE_ENV === "production" && process.env.COOKIE_SECURE !== "false";
-    res?.cookies?.set?.("ctx_slug", activeSlug, {
-      httpOnly: true,
-      secure,
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 30, // 30 days
-    });
-  }
-
   return res;
 }

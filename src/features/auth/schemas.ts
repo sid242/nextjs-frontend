@@ -6,18 +6,12 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Password is required").max(128),
 });
 
-export const registerSchema = z
-  .object({
-    firstName: z.string().trim().max(50).optional(),
-    lastName: z.string().trim().max(50).optional(),
-    name: z.string().trim().max(100).optional(),
-    email: z.string().trim().min(1, "Email is required").email("Enter a valid email").max(254),
-    password: z.string().min(8, "Use at least 8 characters").max(128, "Password is too long"),
-  })
-  .refine((data) => Boolean(data.firstName || data.name), {
-    message: "First name is required",
-    path: ["firstName"],
-  });
+export const registerSchema = z.object({
+  firstName: z.string().trim().min(1, "First name is required").max(50),
+  lastName: z.string().trim().min(1, "Last name is required").max(50),
+  email: z.string().trim().min(1, "Email is required").email("Enter a valid email").max(254),
+  password: z.string().min(8, "Use at least 8 characters").max(128, "Password is too long"),
+});
 
 export const forgotPasswordSchema = z.object({
   email: z.string().trim().min(1, "Email is required").email("Enter a valid email").max(254),
