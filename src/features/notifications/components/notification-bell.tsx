@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircleIcon,
   AlertOctagonIcon,
@@ -18,9 +19,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useSocketEvent } from "@/features/realtime";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
+import { notificationKeys } from "../keys";
 import { useMarkAllNotificationsRead, useMarkNotificationRead, useNotifications } from "../queries";
 import type { NotificationType } from "../schemas";
 
@@ -39,9 +42,14 @@ const TYPE_COLORS: Record<NotificationType, string> = {
 };
 
 export function NotificationBell() {
+  const queryClient = useQueryClient();
   const { data: notifications = [] } = useNotifications();
   const markRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
+
+  useSocketEvent("notification:new", () => {
+    void queryClient.invalidateQueries({ queryKey: notificationKeys.all });
+  });
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 

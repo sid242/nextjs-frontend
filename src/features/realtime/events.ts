@@ -8,6 +8,17 @@ export interface ServerToClientEvents {
   /** Emitted by the file worker when background processing finishes. */
   "file:processed": (payload: { fileId: string }) => void;
   "room:message": (payload: { roomId: string; text: string; from: string; at: number }) => void;
+  /** Emitted by notification service when new notification is dispatched. */
+  "notification:new": (payload: {
+    id: string;
+    type: string;
+    category?: string;
+    severity?: string;
+    title: string;
+    body: string;
+    link?: string | null;
+    createdAt: string;
+  }) => void;
 }
 
 export interface ClientToServerEvents {
