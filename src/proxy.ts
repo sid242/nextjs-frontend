@@ -250,6 +250,14 @@ export async function proxy(req: NextRequest) {
           return rewriteTo(req, "/tenant-suspended");
         }
 
+        if (slugResult?.isRedirect && slugResult?.slug && slugResult.slug !== slug) {
+          const restClean = rest?.startsWith("/") ? rest : `/${rest}`;
+          return NextResponse.redirect(
+            new URL(`/w/${slugResult.slug}${restClean}${search}`, req?.url),
+            307,
+          );
+        }
+
         // Effective mode !== 'path' (canonical elsewhere) -> 307 to canonical
         if (slugResult?.canonicalBase && slugResult?.urlMode && slugResult.urlMode !== "path") {
           const canonicalRedirect = redirectCanonical(

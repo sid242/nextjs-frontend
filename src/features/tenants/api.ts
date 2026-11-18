@@ -261,6 +261,10 @@ export async function updateTenant(tenantId: string, input: UpdateTenantInput): 
   return await api.patch<Tenant>(`/tenants/${tenantId}`, input);
 }
 
+export async function changeTenantSlug(tenantId: string, slug: string): Promise<Tenant> {
+  return await api.patch<Tenant>(`/tenants/${tenantId}/slug`, { slug });
+}
+
 export async function getTenantModules(
   tenantId: string,
   signal?: AbortSignal,

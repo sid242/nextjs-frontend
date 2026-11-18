@@ -29,6 +29,7 @@ export {
   useCheckTenantSlug,
   useCreateTenant,
   useUpdateTenant,
+  useChangeTenantSlug,
   useUpdateTenantSecurityPolicy,
   useUpdateTenantSettings,
   useAddTenantMember,
@@ -49,6 +50,7 @@ export {
   updateTenantSettings,
   getTenantSecurityPolicy,
   updateTenantSecurityPolicy,
+  changeTenantSlug,
 } from "./api";
 export { TenantSwitcher } from "./components/tenant-switcher";
 export { TenantBrand } from "./components/tenant-brand";
@@ -63,6 +65,7 @@ export { TeamStatsCards } from "./components/team-stats-cards";
 export { TeamMembersList } from "./components/team-members-list";
 export { InviteMemberDialog } from "./components/invite-member-dialog";
 export { OffboardMemberDialog } from "./components/offboard-member-dialog";
+export { ChangeSlugDialog } from "./components/change-slug-dialog";
 export { TenantPermissionGate } from "./components/tenant-permission-gate";
 export { TENANT_PERMISSIONS, hasTenantPermission, type TenantPermissionKey } from "./permissions";
 export {

@@ -111,10 +111,24 @@ export type CreateTenantInput = z.infer<typeof createTenantSchema>;
 
 export const updateTenantSchema = z.object({
   name: z.string().trim().min(2).max(100).optional(),
+  slug: z.string().trim().min(3).max(63).optional(),
   plan: tenantPlanSchema.optional(),
   allowSupportAccess: z.boolean().optional(),
 });
 export type UpdateTenantInput = z.infer<typeof updateTenantSchema>;
+
+export const changeSlugSchema = z.object({
+  slug: z
+    .string()
+    .trim()
+    .min(3, "Slug must be at least 3 characters")
+    .max(63, "Slug cannot exceed 63 characters")
+    .regex(
+      /^[a-z0-9](?:[a-z0-9-]{1,61}[a-z0-9])$/,
+      "Slug must follow DNS label rules (lowercase alphanumeric and hyphens, cannot start or end with hyphen)",
+    ),
+});
+export type ChangeSlugInput = z.infer<typeof changeSlugSchema>;
 
 export const tenantModuleSchema = z.object({
   id: z.string(),

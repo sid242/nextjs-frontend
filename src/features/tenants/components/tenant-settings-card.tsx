@@ -26,6 +26,8 @@ import {
   type TenantPlan,
 } from "@/features/tenants";
 
+import { ChangeSlugDialog } from "./change-slug-dialog";
+
 interface TenantSettingsFormState {
   orgName: string;
   selectedPlan: TenantPlan;
@@ -44,6 +46,7 @@ export function TenantSettingsCard() {
   const { data: modules = [], isLoading: modulesLoading } = useTenantModules(activeTenantId);
   const toggleModuleMutation = useToggleTenantModule(activeTenantId ?? "");
 
+  const [changeSlugOpen, setChangeSlugOpen] = useState(false);
   const [formState, setFormState] = useState<TenantSettingsFormState>({
     orgName: activeTenant?.name ?? "",
     selectedPlan: (activeTenant?.plan ?? "PRO") as TenantPlan,
@@ -125,10 +128,19 @@ export function TenantSettingsCard() {
             </Select>
           </div>
 
-          <div className="flex items-center justify-between pt-2 sm:col-span-2">
-            <div className="text-muted-foreground text-xs">
-              Workspace identifier:{" "}
+          <div className="flex flex-col gap-3 pt-2 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-muted-foreground flex items-center gap-2 text-xs">
+              <span>Workspace identifier:</span>
               <span className="text-foreground font-mono font-semibold">{activeTenant?.slug}</span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setChangeSlugOpen(true)}
+                className="h-6 px-2 text-[11px]"
+              >
+                Change Slug
+              </Button>
             </div>
             <Button
               onClick={handleUpdate}
@@ -141,6 +153,13 @@ export function TenantSettingsCard() {
           </div>
         </CardContent>
       </Card>
+
+      <ChangeSlugDialog
+        open={changeSlugOpen}
+        onOpenChange={setChangeSlugOpen}
+        tenantId={activeTenantId ?? ""}
+        currentSlug={activeTenant?.slug ?? ""}
+      />
 
       <Card className="border-border/80 rounded-2xl shadow-xs">
         <CardHeader>

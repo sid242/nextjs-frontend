@@ -14,6 +14,7 @@ import { useTenantUrl } from "@/lib/tenancy/context";
 
 import {
   addTenantMember,
+  changeTenantSlug,
   checkMemberEmail,
   checkTenantSlug,
   createTenant,
@@ -438,6 +439,27 @@ export function useUpdateTenant(
           tenantKeys.list(),
           (old = []) => old?.map((t) => (t?.id === tenantId ? { ...t, ...updated } : t)) ?? [],
         );
+      },
+    },
+    options,
+  );
+}
+
+export function useChangeTenantSlug(
+  tenantId: string,
+  options?: MutationOverrides<Tenant, { slug: string }>,
+) {
+  const queryClient = useQueryClient();
+
+  return useAppMutation(
+    {
+      mutationFn: ({ slug }: { slug: string }) => changeTenantSlug(tenantId, slug),
+      onSuccess: (updated: Tenant) => {
+        queryClient.setQueryData<Tenant[]>(
+          tenantKeys.list(),
+          (old = []) => old?.map((t) => (t?.id === tenantId ? { ...t, ...updated } : t)) ?? [],
+        );
+        void queryClient.invalidateQueries({ queryKey: tenantKeys.detail(tenantId) });
       },
     },
     options,

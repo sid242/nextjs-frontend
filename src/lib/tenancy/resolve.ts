@@ -35,6 +35,8 @@ export interface PublicTenantResolution {
   slug?: string;
   name?: string;
   status?: "ACTIVE" | "TRIALING" | "SUSPENDED" | "DEACTIVATED";
+  isRedirect?: boolean;
+  redirectedFromSlug?: string;
   pathOnly?: boolean;
   canonicalBase: string;
   urlMode?: "path" | "subdomain" | "customDomain";
