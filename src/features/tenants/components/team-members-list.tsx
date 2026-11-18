@@ -11,6 +11,7 @@ import {
   ShieldAlert,
   Trash2Icon,
   UserCheck,
+  UserMinus,
   Users,
 } from "lucide-react";
 
@@ -48,6 +49,7 @@ interface TeamMembersListProps {
   onSearchChange: (query: string) => void;
   onRoleChange: (memberId: string, newRole: string) => void;
   onRemoveMember: (memberId: string, memberName: string) => void;
+  onOffboardMember?: (member: TenantMember) => void;
   onTransferOwnership?: (memberId: string, memberName: string) => void;
   onResendInvite?: (email: string, role: string) => void;
   onManageAddresses?: (memberId: string, memberName: string) => void;
@@ -64,6 +66,7 @@ export function TeamMembersList({
   onSearchChange,
   onRoleChange,
   onRemoveMember,
+  onOffboardMember,
   onTransferOwnership,
   onResendInvite,
   isCurrentUserOwner = false,
@@ -359,6 +362,17 @@ export function TeamMembersList({
                               onClick={() => onTransferOwnership(member.id, member.name)}
                             >
                               <ShieldAlert className="size-3.5" /> Transfer Ownership
+                            </DropdownMenuItem>
+                          )}
+                        {canRemoveMembers &&
+                          member?.status === "ACTIVE" &&
+                          member?.role !== "OWNER" &&
+                          onOffboardMember && (
+                            <DropdownMenuItem
+                              className="gap-2 text-xs text-amber-600 focus:text-amber-600 dark:text-amber-400"
+                              onClick={() => onOffboardMember(member)}
+                            >
+                              <UserMinus className="size-3.5" /> Offboard Member
                             </DropdownMenuItem>
                           )}
                         {canRemoveMembers && (

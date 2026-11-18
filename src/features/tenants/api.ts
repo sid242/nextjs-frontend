@@ -4,6 +4,7 @@ import type {
   AddMemberInput,
   AuditLogEntry,
   CreateTenantInput,
+  OffboardMemberInput,
   SearchAuditLogsInput,
   Tenant,
   TenantBranding,
@@ -91,6 +92,18 @@ export async function addTenantMember(
 
 export async function removeTenantMember(tenantId: string, memberId: string): Promise<void> {
   await api.delete(`/tenants/${tenantId}/members/${memberId}`);
+}
+
+export async function offboardTenantMember(
+  tenantId: string,
+  memberId: string,
+  input?: OffboardMemberInput,
+): Promise<{
+  message: string;
+  member: TenantMember;
+  reassignedFilesCount: number;
+}> {
+  return await api.post(`/tenants/${tenantId}/members/${memberId}/offboard`, input ?? {});
 }
 
 export async function updateTenantMemberRole(

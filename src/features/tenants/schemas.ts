@@ -136,12 +136,28 @@ export const tenantMemberSchema = z.object({
   phone: z.string().nullable().optional(),
   jobTitle: z.string().nullable().optional(),
   department: z.string().nullable().optional(),
+  managerMemberId: z.string().nullable().optional(),
+  location: z.string().nullable().optional(),
+  employmentType: z.enum(["FULL_TIME", "PART_TIME", "CONTRACTOR", "INTERN"]).nullable().optional(),
+  startDate: z.string().nullable().optional(),
+  endDate: z.string().nullable().optional(),
+  workEmail: z.string().nullable().optional(),
+  avatarUrl: z.string().nullable().optional(),
+  offboardedAt: z.string().nullable().optional(),
+  offboardedByMemberId: z.string().nullable().optional(),
+  reassignedToMemberId: z.string().nullable().optional(),
   invitedAt: z.string().nullable().optional(),
   lastLoginAt: z.string().nullable().optional(),
   joinedAt: z.string().optional(),
   deletedAt: z.string().nullable().optional(),
 });
 export type TenantMember = z.infer<typeof tenantMemberSchema>;
+
+export const offboardMemberSchema = z.object({
+  reassignToMemberId: z.string().uuid().optional().nullable(),
+  reason: z.string().trim().max(500).optional(),
+});
+export type OffboardMemberInput = z.infer<typeof offboardMemberSchema>;
 
 export const addMemberSchema = z.object({
   email: z.string().email("Please enter a valid email"),

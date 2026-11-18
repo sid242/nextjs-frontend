@@ -32,6 +32,7 @@ export {
   useUpdateTenantSecurityPolicy,
   useUpdateTenantSettings,
   useAddTenantMember,
+  useOffboardTenantMember,
   useRemoveTenantMember,
   useUpdateMemberRole,
   useUpdateTenantBranding,
@@ -61,6 +62,7 @@ export { TenantSmtpCard } from "./components/tenant-smtp-card";
 export { TeamStatsCards } from "./components/team-stats-cards";
 export { TeamMembersList } from "./components/team-members-list";
 export { InviteMemberDialog } from "./components/invite-member-dialog";
+export { OffboardMemberDialog } from "./components/offboard-member-dialog";
 export { TenantPermissionGate } from "./components/tenant-permission-gate";
 export { TENANT_PERMISSIONS, hasTenantPermission, type TenantPermissionKey } from "./permissions";
 export {

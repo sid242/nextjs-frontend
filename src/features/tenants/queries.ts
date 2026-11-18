@@ -28,6 +28,7 @@ import {
   getTenantSecurityPolicy,
   getTenantSettings,
   getTenantUrlSettings,
+  offboardTenantMember,
   removeTenantMember,
   saveTenantEmailConfig,
   searchTenantAuditLogs,
@@ -47,6 +48,7 @@ import type {
   AddMemberInput,
   AuditLogEntry,
   CreateTenantInput,
+  OffboardMemberInput,
   SearchAuditLogsInput,
   Tenant,
   TenantBranding,
@@ -310,6 +312,27 @@ export function useRemoveTenantMember(tenantId: string, options?: MutationOverri
           tenantKeys.members(tenantId),
           (old = []) => old?.filter((m) => m?.id !== memberId) ?? [],
         );
+      },
+    },
+    options,
+  );
+}
+
+export function useOffboardTenantMember(
+  tenantId: string,
+  options?: MutationOverrides<
+    { message: string; member: TenantMember; reassignedFilesCount: number },
+    { memberId: string; input?: OffboardMemberInput }
+  >,
+) {
+  const queryClient = useQueryClient();
+
+  return useAppMutation(
+    {
+      mutationFn: ({ memberId, input }: { memberId: string; input?: OffboardMemberInput }) =>
+        offboardTenantMember(tenantId, memberId, input),
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: tenantKeys.members(tenantId) });
       },
     },
     options,

@@ -20,17 +20,20 @@ import { useTenantRoles } from "@/features/rbac";
 import {
   hasTenantPermission,
   InviteMemberDialog,
+  OffboardMemberDialog,
   TeamMembersList,
   TeamStatsCards,
   TENANT_PERMISSIONS,
   TenantPermissionGate,
   useActiveTenant,
   useAddTenantMember,
+  useOffboardTenantMember,
   useRemoveTenantMember,
   useTenantContext,
   useTenantMembers,
   useTransferTenantOwnership,
   useUpdateMemberRole,
+  type TenantMember,
 } from "@/features/tenants";
 
 export default function TeamPage() {
@@ -51,11 +54,13 @@ export default function TeamPage() {
 
   const addMemberMutation = useAddTenantMember(activeTenantId ?? "");
   const removeMemberMutation = useRemoveTenantMember(activeTenantId ?? "");
+  const offboardMutation = useOffboardTenantMember(activeTenantId ?? "");
   const updateRoleMutation = useUpdateMemberRole(activeTenantId ?? "");
   const transferOwnershipMutation = useTransferTenantOwnership(activeTenantId ?? "");
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [offboardTarget, setOffboardTarget] = useState<TenantMember | null>(null);
   const [transferTarget, setTransferTarget] = useState<{ id: string; name: string } | null>(null);
   const [addressMember, setAddressMember] = useState<{ id: string; name: string } | null>(null);
 
@@ -95,6 +100,23 @@ export default function TeamPage() {
       toast.success(`${memberName} has been removed from the organization.`);
     } catch {
       toast.error("Failed to remove member.");
+    }
+  };
+
+  const handleOffboard = async (memberId: string, reassignToMemberId?: string, reason?: string) => {
+    if (!activeTenantId) return;
+    try {
+      await offboardMutation.mutateAsync({
+        memberId,
+        input: {
+          reassignToMemberId,
+          reason,
+        },
+      });
+      toast.success("Team member has been offboarded successfully.");
+      setOffboardTarget(null);
+    } catch {
+      toast.error("Failed to offboard team member.");
     }
   };
 
@@ -153,6 +175,7 @@ export default function TeamPage() {
           onSearchChange={setSearchQuery}
           onRoleChange={handleRoleChange}
           onRemoveMember={handleRemove}
+          onOffboardMember={(member) => setOffboardTarget(member)}
           onTransferOwnership={(id, name) => setTransferTarget({ id, name })}
           onResendInvite={handleInvite}
           onManageAddresses={
@@ -186,6 +209,15 @@ export default function TeamPage() {
           destructive
           pending={transferOwnershipMutation.isPending}
           onConfirm={handleTransferOwnership}
+        />
+
+        <OffboardMemberDialog
+          open={Boolean(offboardTarget)}
+          onOpenChange={(open) => !open && setOffboardTarget(null)}
+          member={offboardTarget}
+          activeMembers={members}
+          onOffboard={handleOffboard}
+          isPending={offboardMutation.isPending}
         />
 
         <Dialog
