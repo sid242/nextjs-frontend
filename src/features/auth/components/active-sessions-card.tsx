@@ -1,6 +1,6 @@
 "use client";
 
-import { LaptopIcon, LogOutIcon, SmartphoneIcon } from "lucide-react";
+import { LaptopIcon, LogOutIcon, ShieldOffIcon, SmartphoneIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -9,11 +9,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { getErrorMessage } from "@/lib/api/errors";
 import { formatDate } from "@/lib/format";
 
-import { useRevokeSession, useUserSessions } from "../queries";
+import { useRevokeOtherSessions, useRevokeSession, useUserSessions } from "../queries";
 
 export function ActiveSessionsCard() {
   const { data: sessions = [], isLoading } = useUserSessions();
   const revokeSessionMutation = useRevokeSession();
+  const revokeOthersMutation = useRevokeOtherSessions();
 
   const handleRevoke = async (id: string) => {
     try {
@@ -24,13 +25,41 @@ export function ActiveSessionsCard() {
     }
   };
 
+  const handleRevokeOthers = async () => {
+    try {
+      const current = sessions.find((s) => s.isCurrent);
+      const res = (await revokeOthersMutation.mutateAsync(current?.id)) as
+        { message?: string } | undefined;
+      toast.success(res?.message ?? "Other device sessions revoked successfully.");
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    }
+  };
+
+  const hasOtherSessions = sessions.some((s) => !s.isCurrent);
+
   return (
     <Card className="border-border/60 shadow-xs">
       <CardHeader>
-        <CardTitle className="text-base font-semibold">Active Device Sessions</CardTitle>
-        <CardDescription className="text-xs">
-          Devices and browsers that are currently authenticated to your account.
-        </CardDescription>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle className="text-base font-semibold">Active Device Sessions</CardTitle>
+            <CardDescription className="text-xs">
+              Devices and browsers that are currently authenticated to your account.
+            </CardDescription>
+          </div>
+          {hasOtherSessions && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRevokeOthers}
+              disabled={revokeOthersMutation.isPending}
+              className="text-destructive hover:bg-destructive/10 border-destructive/30 h-8 gap-1.5 text-xs"
+            >
+              <ShieldOffIcon className="size-3.5" /> Sign out other devices
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="p-0">
         {isLoading ? (
@@ -49,6 +78,8 @@ export function ActiveSessionsCard() {
                 session.userAgent?.toLowerCase().includes("android") ||
                 session.userAgent?.toLowerCase().includes("iphone");
 
+              const location = [session.city, session.country].filter(Boolean).join(", ");
+
               return (
                 <div
                   key={session.id}
@@ -65,7 +96,7 @@ export function ActiveSessionsCard() {
                     <div className="grid leading-tight">
                       <div className="flex items-center gap-2">
                         <span className="text-foreground text-xs font-semibold">
-                          {session.userAgent || "Web Browser"}
+                          {session.deviceName || session.userAgent || "Web Browser"}
                         </span>
                         {session.isCurrent && (
                           <Badge
@@ -77,8 +108,9 @@ export function ActiveSessionsCard() {
                         )}
                       </div>
                       <span className="text-muted-foreground text-[11px]">
-                        IP: <span className="font-mono">{session.ipAddress ?? "Unknown"}</span> •
-                        Last active {formatDate(session.lastActiveAt)}
+                        IP: <span className="font-mono">{session.ipAddress ?? "Unknown"}</span>
+                        {location ? ` • ${location}` : ""} • Last active{" "}
+                        {formatDate(session.lastActiveAt)}
                       </span>
                     </div>
                   </div>

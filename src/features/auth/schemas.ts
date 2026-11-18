@@ -6,11 +6,18 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Password is required").max(128),
 });
 
-export const registerSchema = z.object({
-  name: z.string().trim().min(1, "Name is required").max(100, "Name is too long"),
-  email: z.string().trim().min(1, "Email is required").email("Enter a valid email").max(254),
-  password: z.string().min(8, "Use at least 8 characters").max(128, "Password is too long"),
-});
+export const registerSchema = z
+  .object({
+    firstName: z.string().trim().max(50).optional(),
+    lastName: z.string().trim().max(50).optional(),
+    name: z.string().trim().max(100).optional(),
+    email: z.string().trim().min(1, "Email is required").email("Enter a valid email").max(254),
+    password: z.string().min(8, "Use at least 8 characters").max(128, "Password is too long"),
+  })
+  .refine((data) => Boolean(data.firstName || data.name), {
+    message: "First name is required",
+    path: ["firstName"],
+  });
 
 export const forgotPasswordSchema = z.object({
   email: z.string().trim().min(1, "Email is required").email("Enter a valid email").max(254),
@@ -55,9 +62,25 @@ export const userSessionSchema = z.object({
   userId: z.string(),
   ipAddress: z.string().nullable().optional(),
   userAgent: z.string().nullable().optional(),
+  deviceName: z.string().nullable().optional(),
+  country: z.string().nullable().optional(),
+  city: z.string().nullable().optional(),
   lastActiveAt: z.string(),
   createdAt: z.string(),
   isCurrent: z.boolean().default(false),
+});
+
+export const userLoginEventSchema = z.object({
+  id: z.string(),
+  userId: z.string().nullable().optional(),
+  tenantId: z.string().nullable().optional(),
+  result: z.enum(["SUCCESS", "FAILED", "LOCKED", "MFA_FAILED"]),
+  method: z.string(),
+  ip: z.string().nullable().optional(),
+  userAgent: z.string().nullable().optional(),
+  country: z.string().nullable().optional(),
+  city: z.string().nullable().optional(),
+  createdAt: z.string(),
 });
 
 export type LoginValues = z.infer<typeof loginSchema>;
@@ -68,6 +91,7 @@ export type ChangePasswordValues = z.infer<typeof changePasswordSchema>;
 export type VerifyEmailValues = z.infer<typeof verifyEmailSchema>;
 export type RequestEmailVerificationValues = z.infer<typeof requestEmailVerificationSchema>;
 export type UserSession = z.infer<typeof userSessionSchema>;
+export type UserLoginEvent = z.infer<typeof userLoginEventSchema>;
 
 export const requestMagicLinkSchema = z.object({
   email: z.string().trim().min(1, "Email is required").email("Enter a valid email").max(254),
@@ -111,6 +135,7 @@ export type TwoFactorChallengeValues = z.infer<typeof twoFactorChallengeSchema>;
 export interface TwoFactorStatus {
   enabled: boolean;
   enabledAt: string | null;
+  recoveryCodesRemaining?: number;
 }
 
 export interface TwoFactorSetupData {
@@ -119,6 +144,17 @@ export interface TwoFactorSetupData {
 }
 
 export interface TwoFactorEnableData {
+  message: string;
+  recoveryCodes: string[];
+}
+
+export const regenerateRecoveryCodesSchema = z.object({
+  password: z.string().optional(),
+  code: z.string().optional(),
+});
+export type RegenerateRecoveryCodesValues = z.infer<typeof regenerateRecoveryCodesSchema>;
+
+export interface RegenerateRecoveryCodesData {
   message: string;
   recoveryCodes: string[];
 }

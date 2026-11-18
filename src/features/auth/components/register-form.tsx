@@ -24,7 +24,7 @@ export function RegisterForm({
   const queryClient = useQueryClient();
   const methods = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { name: "", email: "", password: "" },
+    defaultValues: { firstName: "", lastName: "", email: "", password: "" },
   });
 
   const mutation = useMutation({
@@ -52,13 +52,21 @@ export function RegisterForm({
           <AlertDescription>{getErrorMessage(mutation?.error)}</AlertDescription>
         </Alert>
       ) : null}
-      <ControlledInput
-        name="name"
-        label="Name"
-        autoComplete="name"
-        placeholder="Jane Doe"
-        required
-      />
+      <div className="grid grid-cols-2 gap-3">
+        <ControlledInput
+          name="firstName"
+          label="First name"
+          autoComplete="given-name"
+          placeholder="Jane"
+          required
+        />
+        <ControlledInput
+          name="lastName"
+          label="Last name"
+          autoComplete="family-name"
+          placeholder="Doe"
+        />
+      </div>
       <ControlledInput
         name="email"
         label="Email"

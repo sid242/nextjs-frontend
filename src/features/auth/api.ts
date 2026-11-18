@@ -6,6 +6,8 @@ import type {
   ChangePasswordValues,
   ForgotPasswordValues,
   LoginValues,
+  RegenerateRecoveryCodesData,
+  RegenerateRecoveryCodesValues,
   RegisterValues,
   RequestEmailVerificationValues,
   RequestMagicLinkValues,
@@ -16,6 +18,7 @@ import type {
   TwoFactorEnableData,
   TwoFactorSetupData,
   TwoFactorStatus,
+  UserLoginEvent,
   UserSession,
   VerifyMagicLinkValues,
 } from "./schemas";
@@ -32,8 +35,16 @@ export type LoginResult =
 
 // These hit our own Next.js BFF routes (/api/auth/*), which keep tokens in httpOnly cookies.
 export const login = (values: LoginValues) => authApi.post<LoginResult>("/login", values);
-export const register = (values: RegisterValues) =>
-  authApi.post<{ user: User }>("/register", values);
+export const register = (values: RegisterValues) => {
+  const payload = {
+    ...values,
+    name:
+      values.name ||
+      [values.firstName, values.lastName].filter(Boolean).join(" ").trim() ||
+      undefined,
+  };
+  return authApi.post<{ user: User }>("/register", payload);
+};
 export const logout = () => authApi.post("/logout");
 
 // ─── Two-Factor Authentication (2FA) ────────────────────────────────────────────
@@ -84,21 +95,26 @@ export const getUserSessions = async (signal?: AbortSignal): Promise<UserSession
     const data = await authApi.get<UserSession[]>("/sessions", { signal });
     return data ?? [];
   } catch {
-    return [
-      {
-        id: "sess-current",
-        userId: "usr-1",
-        ipAddress: "127.0.0.1",
-        userAgent: "Chrome on Windows (Current Browser)",
-        lastActiveAt: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-        isCurrent: true,
-      },
-    ];
+    return [];
   }
 };
 
 export const revokeSession = (id: string) => authApi.delete(`/sessions/${id}`);
+
+export const revokeOtherSessions = (currentSessionId?: string) =>
+  authApi.post<{ count: number; message: string }>("/sessions/revoke-others", { currentSessionId });
+
+export const regenerateRecoveryCodes = (values: RegenerateRecoveryCodesValues) =>
+  authApi.post<RegenerateRecoveryCodesData>("/2fa/recovery-codes/regenerate", values);
+
+export const getLoginHistory = (page = 1, limit = 10, signal?: AbortSignal) =>
+  authApi.get<{
+    items: UserLoginEvent[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }>(`/login-history?page=${page}&limit=${limit}`, { signal });
 
 export const impersonateUser = (
   userId: string,

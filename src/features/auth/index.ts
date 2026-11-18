@@ -18,9 +18,13 @@ export { TwoFactorChallengeForm } from "./components/two-factor-challenge-form";
 export { TwoFactorSettingsCard } from "./components/two-factor-settings-card";
 export { TwoFactorSetupDialog } from "./components/two-factor-setup-dialog";
 export { TwoFactorDisableDialog } from "./components/two-factor-disable-dialog";
+export { LoginHistoryCard } from "./components/login-history-card";
 export {
   useChangePassword,
   useRevokeSession,
+  useRevokeOtherSessions,
+  useRegenerateRecoveryCodes,
+  useLoginHistory,
   useStopImpersonation,
   useUserSessions,
   useVerifyEmail,

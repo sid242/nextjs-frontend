@@ -1,7 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2Icon, ShieldAlertIcon, ShieldCheckIcon, SmartphoneIcon } from "lucide-react";
+import {
+  KeyRoundIcon,
+  Loader2Icon,
+  ShieldAlertIcon,
+  ShieldCheckIcon,
+  SmartphoneIcon,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,11 +16,13 @@ import { formatDate } from "@/lib/format";
 
 import { useTwoFactorStatus } from "../queries";
 import { TwoFactorDisableDialog } from "./two-factor-disable-dialog";
+import { TwoFactorRecoveryCodesDialog } from "./two-factor-recovery-codes-dialog";
 import { TwoFactorSetupDialog } from "./two-factor-setup-dialog";
 
 export function TwoFactorSettingsCard() {
   const [setupOpen, setSetupOpen] = useState(false);
   const [disableOpen, setDisableOpen] = useState(false);
+  const [recoveryCodesOpen, setRecoveryCodesOpen] = useState(false);
 
   const { data: status, isLoading, refetch } = useTwoFactorStatus();
 
@@ -51,7 +59,7 @@ export function TwoFactorSettingsCard() {
             prompted for a 6-digit one-time code from your authenticator app.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <div className="border-border/50 bg-muted/20 flex flex-col items-start justify-between gap-4 rounded-lg border p-4 sm:flex-row sm:items-center">
             <div className="space-y-1">
               <p className="text-sm font-medium">
@@ -82,6 +90,37 @@ export function TwoFactorSettingsCard() {
               )}
             </div>
           </div>
+
+          {isEnabled && (
+            <div className="border-border/50 bg-muted/20 flex flex-col items-start justify-between gap-4 rounded-lg border p-4 sm:flex-row sm:items-center">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <KeyRoundIcon className="text-muted-foreground size-4" />
+                  <p className="text-sm font-medium">Recovery Codes</p>
+                  {status?.recoveryCodesRemaining !== undefined && (
+                    <Badge variant="secondary" className="text-[10px]">
+                      {status.recoveryCodesRemaining} remaining
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-muted-foreground text-xs">
+                  One-time backup codes can be used to log in if you lose access to your device.
+                </p>
+              </div>
+
+              <div className="shrink-0">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setRecoveryCodesOpen(true)}
+                  className="text-xs"
+                >
+                  Regenerate Codes
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -94,6 +133,12 @@ export function TwoFactorSettingsCard() {
       <TwoFactorDisableDialog
         open={disableOpen}
         onOpenChange={setDisableOpen}
+        onSuccess={() => refetch()}
+      />
+
+      <TwoFactorRecoveryCodesDialog
+        open={recoveryCodesOpen}
+        onOpenChange={setRecoveryCodesOpen}
         onSuccess={() => refetch()}
       />
     </>

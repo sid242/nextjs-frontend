@@ -7,10 +7,13 @@ import {
   changePassword,
   disableTwoFactor,
   enableTwoFactor,
+  getLoginHistory,
   getTwoFactorStatus,
   getUserSessions,
+  regenerateRecoveryCodes,
   requestEmailVerification,
   requestMagicLink,
+  revokeOtherSessions,
   revokeSession,
   setupTwoFactor,
   stopImpersonation,
@@ -21,6 +24,7 @@ import {
 import { authKeys } from "./keys";
 import type {
   ChangePasswordValues,
+  RegenerateRecoveryCodesValues,
   RequestEmailVerificationValues,
   RequestMagicLinkValues,
   TwoFactorChallengeValues,
@@ -104,6 +108,39 @@ export function useRevokeSession() {
       );
     },
   });
+}
+
+export function useRevokeOtherSessions() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (currentSessionId?: string) => revokeOtherSessions(currentSessionId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: authKeys.sessions() });
+    },
+  });
+}
+
+export function useRegenerateRecoveryCodes() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (values: RegenerateRecoveryCodesValues) => regenerateRecoveryCodes(values),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: authKeys.twoFactorStatus() });
+    },
+  });
+}
+
+export const loginHistoryQueryOptions = (page = 1, limit = 10) =>
+  queryOptions({
+    queryKey: authKeys.loginHistory(page, limit),
+    queryFn: ({ signal }) => getLoginHistory(page, limit, signal),
+    staleTime: 30 * 1000,
+  });
+
+export function useLoginHistory(page = 1, limit = 10) {
+  return useQuery(loginHistoryQueryOptions(page, limit));
 }
 
 export function useStopImpersonation() {

@@ -2,6 +2,11 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  locale?: string | null;
+  timezone?: string | null;
+  dateFormat?: string | null;
   phoneNumber?: string | null;
   createdAt: string;
 }
