@@ -106,6 +106,34 @@ export async function offboardTenantMember(
   return await api.post(`/tenants/${tenantId}/members/${memberId}/offboard`, input ?? {});
 }
 
+export async function exportTenantMembers(
+  tenantId: string,
+  format: "csv" | "json" = "csv",
+): Promise<void> {
+  const url = `/api/proxy/v1/tenants/${tenantId}/members/export?format=${format}`;
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      Accept: format === "csv" ? "text/csv" : "application/json",
+    },
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to export tenant members");
+  }
+
+  const blob = await response.blob();
+  const downloadUrl = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = downloadUrl;
+  a.download = `members-${new Date().toISOString().split("T")[0]}.${format}`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(downloadUrl);
+}
+
 export async function updateTenantMemberRole(
   tenantId: string,
   memberId: string,

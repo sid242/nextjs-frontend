@@ -18,8 +18,10 @@ import { AddressBook } from "@/features/addresses";
 import { useTenantSubscription } from "@/features/plans";
 import { useTenantRoles } from "@/features/rbac";
 import {
+  exportTenantMembers,
   hasTenantPermission,
   InviteMemberDialog,
+  MemberDrawer,
   OffboardMemberDialog,
   TeamMembersList,
   TeamStatsCards,
@@ -60,9 +62,20 @@ export default function TeamPage() {
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [drawerMember, setDrawerMember] = useState<TenantMember | null>(null);
   const [offboardTarget, setOffboardTarget] = useState<TenantMember | null>(null);
   const [transferTarget, setTransferTarget] = useState<{ id: string; name: string } | null>(null);
   const [addressMember, setAddressMember] = useState<{ id: string; name: string } | null>(null);
+
+  const handleExportMembers = async () => {
+    if (!activeTenantId) return;
+    try {
+      await exportTenantMembers(activeTenantId, "csv");
+      toast.success("Team members exported successfully.");
+    } catch {
+      toast.error("Failed to export team members.");
+    }
+  };
 
   const handleInvite = async (email: string, role: string) => {
     if (!email || !activeTenantId) return;
@@ -176,6 +189,8 @@ export default function TeamPage() {
           onRoleChange={handleRoleChange}
           onRemoveMember={handleRemove}
           onOffboardMember={(member) => setOffboardTarget(member)}
+          onSelectMember={(member) => setDrawerMember(member)}
+          onExportMembers={handleExportMembers}
           onTransferOwnership={(id, name) => setTransferTarget({ id, name })}
           onResendInvite={handleInvite}
           onManageAddresses={
@@ -218,6 +233,23 @@ export default function TeamPage() {
           activeMembers={members}
           onOffboard={handleOffboard}
           isPending={offboardMutation.isPending}
+        />
+
+        <MemberDrawer
+          open={Boolean(drawerMember)}
+          onOpenChange={(open) => !open && setDrawerMember(null)}
+          member={drawerMember}
+          onRoleChange={handleRoleChange}
+          onOffboardMember={(m) => {
+            setDrawerMember(null);
+            setOffboardTarget(m);
+          }}
+          onManageAddresses={
+            canUpdateMembers ? (id, name) => setAddressMember({ id, name }) : undefined
+          }
+          canManageRoles={canManageRoles}
+          canRemoveMembers={canRemoveMembers}
+          roles={tenantRoles}
         />
 
         <Dialog

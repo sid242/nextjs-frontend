@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import {
   Clock,
+  Download,
+  Eye,
   MailIcon,
   MapPin,
   MoreVerticalIcon,
@@ -53,6 +55,8 @@ interface TeamMembersListProps {
   onTransferOwnership?: (memberId: string, memberName: string) => void;
   onResendInvite?: (email: string, role: string) => void;
   onManageAddresses?: (memberId: string, memberName: string) => void;
+  onSelectMember?: (member: TenantMember) => void;
+  onExportMembers?: () => void;
   isCurrentUserOwner?: boolean;
   canManageRoles?: boolean;
   canRemoveMembers?: boolean;
@@ -73,6 +77,8 @@ export function TeamMembersList({
   canManageRoles = true,
   canRemoveMembers = true,
   onManageAddresses,
+  onSelectMember,
+  onExportMembers,
   roles,
 }: TeamMembersListProps) {
   const [statusFilter, setStatusFilter] = useState<MemberStatusFilter>("ALL");
@@ -210,6 +216,18 @@ export function TeamMembersList({
               </Badge>
             </Button>
           ) : null}
+
+          {onExportMembers && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="ml-auto h-7 gap-1.5 px-2.5 text-xs font-medium"
+              onClick={onExportMembers}
+            >
+              <Download className="text-primary size-3.5" /> Export CSV
+            </Button>
+          )}
         </div>
       </CardHeader>
 
@@ -240,15 +258,20 @@ export function TeamMembersList({
                 key={member.id}
                 className="hover:bg-accent/30 flex flex-col gap-3 px-4 py-3.5 transition-colors sm:flex-row sm:items-center sm:justify-between sm:px-6"
               >
-                <div className="flex items-center gap-3">
-                  <Avatar className="size-9 shrink-0">
+                <div
+                  className="group flex cursor-pointer items-center gap-3"
+                  onClick={() => onSelectMember?.(member)}
+                >
+                  <Avatar className="ring-primary/40 size-9 shrink-0 transition-all group-hover:ring-2">
                     <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
                       {initials(member?.name)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="grid leading-tight">
                     <div className="flex items-center gap-2">
-                      <span className="text-foreground text-sm font-semibold">{member?.name}</span>
+                      <span className="text-foreground group-hover:text-primary text-sm font-semibold transition-colors">
+                        {member?.name}
+                      </span>
                       {member?.memberCode ? (
                         <Badge variant="outline" className="font-mono text-[10px]">
                           {member.memberCode}
@@ -337,6 +360,14 @@ export function TeamMembersList({
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel className="text-xs">Member Actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
+                        {onSelectMember && (
+                          <DropdownMenuItem
+                            className="gap-2 text-xs"
+                            onClick={() => onSelectMember(member)}
+                          >
+                            <Eye className="size-3.5" /> View Profile & Details
+                          </DropdownMenuItem>
+                        )}
                         {onManageAddresses ? (
                           <DropdownMenuItem
                             className="gap-2 text-xs"
