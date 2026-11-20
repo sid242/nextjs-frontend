@@ -6,5 +6,5 @@ export default async function TenantRootPage({
   params: Promise<{ tenantSlug: string }>;
 }) {
   const { tenantSlug } = await params;
-  redirect(`/w/${encodeURIComponent(tenantSlug)}/dashboard`);
+  redirect(`/w/${tenantSlug}/dashboard`);
 }

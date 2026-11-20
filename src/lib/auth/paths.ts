@@ -7,6 +7,7 @@ export function safeNextPath(next: string | null | undefined, fallback = "/dashb
   if (!next.startsWith("/") || next.startsWith("//") || next.startsWith("/\\")) return fallback;
   if (/[\u0000-\u001f]/.test(next)) return fallback;
   if (next.startsWith("/api/")) return fallback; // never bounce back into the BFF
+  if (/^\/w\/[^/]+$/.test(next)) return `${next}/dashboard`;
   return next;
 }
 

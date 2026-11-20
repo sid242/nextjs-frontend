@@ -10,7 +10,7 @@ import {
   safeNextPath,
   tenantSlugFromPath,
 } from "@/lib/auth/paths";
-import { classifyHost, normalizeHost } from "@/lib/tenancy/host";
+import { classifyHost, isIpAddress, normalizeHost } from "@/lib/tenancy/host";
 import { resolveTenantByHost, resolveTenantBySlug } from "@/lib/tenancy/resolve";
 
 const isDev = process.env.NODE_ENV !== "production";
@@ -18,8 +18,10 @@ const isDev = process.env.NODE_ENV !== "production";
 function isTokenNonExpired(token?: string | null): boolean {
   if (!token) return false;
   const claims = decodeJwt(token);
-  if (!claims?.exp) return false;
-  return claims.exp * 1000 > Date.now();
+  if (claims?.exp) {
+    return claims.exp * 1000 > Date.now();
+  }
+  return token.length > 0;
 }
 
 /** CSP connect-src needs the Socket.IO origin in both http(s) and ws(s) flavours. */
@@ -99,7 +101,7 @@ function buildCsp(nonce: string, rawHost?: string | null): string {
   ];
 
   const scriptDirectives = isDev
-    ? `'self' 'unsafe-inline' 'unsafe-eval' 'nonce-${nonce}' https://editor.unlayer.com https://*.unlayer.com`
+    ? `'self' 'unsafe-inline' 'unsafe-eval' https://editor.unlayer.com https://*.unlayer.com`
     : `'self' https://editor.unlayer.com https://*.unlayer.com 'nonce-${nonce}' 'strict-dynamic'`;
 
   return [
@@ -148,9 +150,10 @@ function redirectCanonical(
   rawHost?: string | null,
 ): NextResponse | null {
   if (!canonicalBase) return null;
+  const currentNorm = normalizeHost(rawHost);
+  if (isIpAddress(currentNorm)) return null; // Never redirect LAN IP callers to localhost canonical
   try {
     const canonicalUrl = new URL(canonicalBase);
-    const currentNorm = normalizeHost(rawHost);
     const targetNorm = normalizeHost(canonicalUrl?.host);
     if (currentNorm && targetNorm && currentNorm !== targetNorm) {
       const cleanBase = canonicalBase.replace(/\/+$/, "");
@@ -282,7 +285,12 @@ export async function proxy(req: NextRequest) {
         }
 
         // Effective mode !== 'path' (canonical elsewhere) -> 307 to canonical
-        if (slugResult?.canonicalBase && slugResult?.urlMode && slugResult.urlMode !== "path") {
+        if (
+          !isIpAddress(hostInfo?.hostname) &&
+          slugResult?.canonicalBase &&
+          slugResult?.urlMode &&
+          slugResult.urlMode !== "path"
+        ) {
           const canonicalRedirect = redirectCanonical(
             slugResult.canonicalBase,
             rest,

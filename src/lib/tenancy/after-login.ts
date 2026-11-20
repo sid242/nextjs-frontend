@@ -1,7 +1,7 @@
 import { safeNextPath } from "@/lib/auth/paths";
 
 import { initiateSessionHandoff } from "./handoff";
-import { classifyHost, normalizeHost } from "./host";
+import { classifyHost, isIpAddress, normalizeHost } from "./host";
 
 export interface UserMembershipSummary {
   tenantId: string;
@@ -38,7 +38,10 @@ function resolveMembershipDestination(
   requestedNext?: string | null,
 ): AfterLoginResult {
   const targetHost = getHostFromBase(membership?.canonicalBase);
-  const isSameHost = !targetHost || targetHost === cleanHost;
+  const isPathMode =
+    !membership?.canonicalBase || membership?.canonicalBase?.includes?.(`/w/${membership?.slug}`);
+  const isSameHost =
+    !targetHost || targetHost === cleanHost || isIpAddress(cleanHost) || isPathMode;
 
   if (isSameHost) {
     if (requestedNext && requestedNext.startsWith(`/w/${membership?.slug}`)) {
@@ -83,7 +86,7 @@ export function routeAfterLogin(
 
   // Case 3: >= 2 memberships
   // If on a domain host (subdomain / custom), check if this domain corresponds to one of the user's memberships
-  if (!isPlatform) {
+  if (!isPlatform && !isIpAddress(cleanHost)) {
     const matchingTenant = activeMemberships?.find(
       (m) => getHostFromBase(m?.canonicalBase) === cleanHost,
     );

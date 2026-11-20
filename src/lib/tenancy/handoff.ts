@@ -1,4 +1,4 @@
-import { normalizeHost } from "./host";
+import { isIpAddress, normalizeHost } from "./host";
 
 export interface InitiateHandoffParams {
   tenantId: string;
@@ -61,6 +61,11 @@ export async function switchWorkspaceOrHandoff({
 
   if (tenant?.slug) {
     setWorkspaceContextCookie(tenant.slug);
+  }
+
+  if (isIpAddress(host)) {
+    onLocalNavigate?.(destination);
+    return;
   }
 
   const handoffUrl = await initiateSessionHandoff({
