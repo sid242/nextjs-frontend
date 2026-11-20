@@ -28,8 +28,8 @@ export function FormWrapper<T extends FieldValues>({
   onSubmit,
   className,
   children,
-  method = "POST",
-  action = "#",
+  method,
+  action,
   ...props
 }: FormWrapperProps<T>) {
   return (
@@ -38,6 +38,7 @@ export function FormWrapper<T extends FieldValues>({
         className={cn("space-y-4", className)}
         onSubmit={(e) => {
           e.preventDefault();
+          e.stopPropagation();
           void methods.handleSubmit(onSubmit)(e);
         }}
         method={method}

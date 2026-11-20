@@ -12,7 +12,24 @@ export function assertSameOrigin(req: Request): Response | null {
 
   if (origin) {
     try {
-      if (new URL(origin).host === host) return null;
+      const originHost = new URL(origin).host;
+      if (originHost === host) return null;
+
+      // In development, also accept localhost, loopback, or origins listed in ALLOWED_DEV_ORIGINS
+      if (process.env.NODE_ENV !== "production") {
+        const originHostname = new URL(origin).hostname.toLowerCase();
+        const allowed = (process.env.ALLOWED_DEV_ORIGINS ?? "")
+          .split(",")
+          .map((s) => s.trim().toLowerCase())
+          .filter(Boolean);
+        if (
+          allowed.includes(originHostname) ||
+          originHostname === "localhost" ||
+          originHostname === "127.0.0.1"
+        ) {
+          return null;
+        }
+      }
     } catch {
       /* fall through */
     }

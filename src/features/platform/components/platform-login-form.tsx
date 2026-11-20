@@ -239,10 +239,10 @@ export function PlatformLoginForm({ next }: { next?: string }) {
 
             <ControlledInput
               name="email"
-              label="Staff Email"
+              label="Email"
               type="email"
               autoComplete="email"
-              placeholder="operator@platform.local"
+              placeholder="operator@platform.com"
               prefix={<Mail className="h-4 w-4" />}
               disabled={isLoggingIn}
               required
@@ -251,7 +251,7 @@ export function PlatformLoginForm({ next }: { next?: string }) {
 
             <ControlledInput
               name="password"
-              label="Master Password"
+              label="Password"
               type="password"
               autoComplete="current-password"
               placeholder="••••••••••••"

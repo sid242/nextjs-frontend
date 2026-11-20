@@ -72,7 +72,14 @@ function buildCsp(nonce: string, rawHost?: string | null): string {
     "https://cdn.tools.unlayer.com",
   ];
 
-  const connect = ["'self'", ...socketOrigins(rawHost), ...unlayerDomains, ...extraOrigins];
+  const devConnect = isDev ? ["ws:", "wss:", "http:"] : [];
+  const connect = [
+    "'self'",
+    ...devConnect,
+    ...socketOrigins(rawHost),
+    ...unlayerDomains,
+    ...extraOrigins,
+  ];
 
   const storageMedia = [
     "'self'",
@@ -83,9 +90,13 @@ function buildCsp(nonce: string, rawHost?: string | null): string {
     ...extraOrigins,
   ];
 
+  const scriptDirectives = isDev
+    ? `'self' 'unsafe-inline' 'unsafe-eval' https://editor.unlayer.com https://*.unlayer.com`
+    : `'self' https://editor.unlayer.com https://*.unlayer.com 'nonce-${nonce}' 'strict-dynamic'`;
+
   return [
     "default-src 'self'",
-    `script-src 'self' https://editor.unlayer.com https://*.unlayer.com 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
+    `script-src ${scriptDirectives}`,
     "style-src 'self' 'unsafe-inline' https://editor.unlayer.com https://*.unlayer.com",
     `img-src ${storageMedia.join(" ")}`,
     "font-src 'self' data: https://editor.unlayer.com https://*.unlayer.com https://fonts.gstatic.com",
