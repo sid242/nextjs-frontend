@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AddressBook } from "@/features/addresses";
+import { DataPrivacyCard } from "@/features/privacy";
 import { ProfileForm } from "@/features/users";
 import { requireUser } from "@/lib/auth/session";
 
@@ -31,6 +32,8 @@ export default async function ProfileSettingsPage() {
         title="Personal Addresses"
         description="Manage your personal residential and delivery addresses."
       />
+
+      <DataPrivacyCard />
     </div>
   );
 }

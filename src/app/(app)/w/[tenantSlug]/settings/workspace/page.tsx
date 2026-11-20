@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { AddressBook } from "@/features/addresses";
+import { WorkspaceDataCard } from "@/features/privacy";
 import { TENANT_PERMISSIONS, TenantPermissionGate, TenantSettingsCard } from "@/features/tenants";
 
 export const metadata: Metadata = {
@@ -19,6 +20,7 @@ export default function WorkspaceSettingsPage() {
             description="Physical office locations, branches, and registered business addresses."
           />
         </TenantPermissionGate>
+        <WorkspaceDataCard />
       </div>
     </TenantPermissionGate>
   );

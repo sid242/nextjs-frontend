@@ -6,6 +6,7 @@ import { AnnouncementBanner } from "@/features/announcements";
 import { ImpersonationBanner, UserMenu, UserProfileFooter } from "@/features/auth";
 import { NotificationBell } from "@/features/notifications";
 import { SupportSessionBanner } from "@/features/platform";
+import { CookieBanner } from "@/features/privacy";
 import { ConnectionStatus, SocketProvider } from "@/features/realtime";
 import { TenantSidebarNav, TenantSwitcher, TenantThemeProvider } from "@/features/tenants";
 import { SUPPORT_SESSION_COOKIE } from "@/lib/auth/constants";
@@ -41,6 +42,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           navigationSlot={<TenantSidebarNav />}
         >
           {children}
+          <CookieBanner />
         </AppShell>
       </TenantThemeProvider>
     </SocketProvider>
