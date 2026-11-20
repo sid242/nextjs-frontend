@@ -53,37 +53,43 @@ export interface DynamicIconProps extends LucideProps {
   name: string;
   fallback?: LucideIcon | null;
   className?: string;
+  ref?: React.Ref<SVGSVGElement>;
 }
 
 /**
- * Production-grade dynamic icon component that renders Lucide icons (or custom SVGs) by name string.
- * Zero react-icons dependency; ultra-fast lookup with Lucide tree-shaking support.
+ * Modern React 19 dynamic icon component that renders Lucide icons (or custom SVGs) by name string.
+ * React 19 receives ref directly as a prop, eliminating legacy forwardRef wrappers.
  */
-export const DynamicIcon = React.forwardRef<SVGSVGElement, DynamicIconProps>(
-  ({ name, fallback = HelpCircleIcon, className, size = 18, ...props }, ref) => {
-    const Component = getIconComponent(name);
+export function DynamicIcon({
+  name,
+  fallback = HelpCircleIcon,
+  className,
+  size = 18,
+  ref,
+  ...props
+}: DynamicIconProps) {
+  const Component = getIconComponent(name);
 
-    if (!Component) {
-      if (fallback) {
-        const FallbackComponent = fallback;
-        return (
-          <FallbackComponent
-            ref={ref}
-            size={size}
-            className={cn("text-muted-foreground", className)}
-            {...props}
-          />
-        );
-      }
-      return null;
+  if (!Component) {
+    if (fallback) {
+      const FallbackComponent = fallback;
+      return (
+        <FallbackComponent
+          ref={ref}
+          size={size}
+          className={cn("text-muted-foreground", className)}
+          {...props}
+        />
+      );
     }
+    return null;
+  }
 
-    const Element = Component as React.ComponentType<DynamicIconProps>;
-    return <Element ref={ref} size={size} className={className} {...props} />;
-  },
-);
-
-DynamicIcon.displayName = "DynamicIcon";
+  const Element = Component as React.ComponentType<
+    LucideProps & { ref?: React.Ref<SVGSVGElement> }
+  >;
+  return <Element ref={ref} size={size} className={className} {...props} />;
+}
 
 export const Icon = DynamicIcon;
 export default DynamicIcon;
