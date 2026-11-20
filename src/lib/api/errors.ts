@@ -84,6 +84,9 @@ export function getErrorMessage(
         ? `Too many requests. Please try again in ${err.retryAfter}s.`
         : "Too many attempts. Please wait a moment and try again.";
     }
+    if (err.status === 503 && (err.code === "MAINTENANCE" || err.code === "READ_ONLY_MODE")) {
+      return err.message;
+    }
     if (err.status === 0) return err.message;
     if (err.status >= 500)
       return err.requestId ? `${fallback} (ref ${err.requestId.slice(0, 8)})` : fallback;

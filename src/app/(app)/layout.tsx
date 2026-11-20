@@ -2,6 +2,7 @@ import { type ReactNode } from "react";
 import { cookies } from "next/headers";
 
 import { AppShell } from "@/components/organisms/app-shell";
+import { AnnouncementBanner } from "@/features/announcements";
 import { ImpersonationBanner, UserMenu, UserProfileFooter } from "@/features/auth";
 import { NotificationBell } from "@/features/notifications";
 import { SupportSessionBanner } from "@/features/platform";
@@ -16,11 +17,16 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies();
   const supportSessionId = cookieStore.get(SUPPORT_SESSION_COOKIE)?.value;
 
-  const topBanner = supportSessionId ? (
-    <SupportSessionBanner sessionId={supportSessionId} />
-  ) : impersonating ? (
-    <ImpersonationBanner userName={`${user.firstName} ${user.lastName}`.trim()} />
-  ) : null;
+  const topBanner = (
+    <>
+      <AnnouncementBanner />
+      {supportSessionId ? (
+        <SupportSessionBanner sessionId={supportSessionId} />
+      ) : impersonating ? (
+        <ImpersonationBanner userName={`${user.firstName} ${user.lastName}`.trim()} />
+      ) : null}
+    </>
+  );
 
   return (
     <SocketProvider>
