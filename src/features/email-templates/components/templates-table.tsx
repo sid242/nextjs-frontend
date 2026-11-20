@@ -9,6 +9,7 @@ import {
   ClockIcon,
   EditIcon,
   EyeIcon,
+  HistoryIcon,
   MailIcon,
   MoreVerticalIcon,
   PlusIcon,
@@ -65,6 +66,7 @@ import {
 import { useDeleteEmailTemplate, useEmailTemplates } from "../queries";
 import type { EmailTemplate, EmailTemplateCategory, EmailTemplateStatus } from "../types";
 import { TestSendDialog } from "./test-send-dialog";
+import { VersionHistoryDrawer } from "./version-history-drawer";
 
 type TemplateColumnId =
   "name" | "subject" | "category" | "status" | "variables" | "updatedAt" | "actions";
@@ -94,6 +96,7 @@ export function TemplatesTable() {
   const tenantHref = useTenantHref();
   const { get, getNumber, setParam, setParams } = useSearchQueryParams();
   const [searchInput, setSearchInput] = useState<string>(() => get("q") ?? "");
+  const [versionDrawerTemplate, setVersionDrawerTemplate] = useState<EmailTemplate | null>(null);
 
   const syncSearchParam = useDebouncedCallback((val: string) => {
     setParams({ q: val.trim() || null, page: null }, { mode: "replace", scroll: false });
@@ -214,9 +217,21 @@ export function TemplatesTable() {
               href={tenantHref(`/email-templates/${tpl?.id}`)}
               className="group flex flex-col focus:outline-none"
             >
-              <span className="text-foreground group-hover:text-primary text-sm font-semibold transition-colors">
-                {tpl?.name}
-              </span>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-foreground group-hover:text-primary text-sm font-semibold transition-colors">
+                  {tpl?.name}
+                </span>
+                {tpl?.currentVersion && (
+                  <Badge variant="outline" className="h-4 px-1 py-0 font-mono text-[10px]">
+                    v{tpl.currentVersion}
+                  </Badge>
+                )}
+                {tpl?.isSystemOverride && (
+                  <Badge variant="secondary" className="h-4 px-1 py-0 text-[10px]">
+                    System
+                  </Badge>
+                )}
+              </div>
               <span className="text-muted-foreground font-mono text-[11px]">/{tpl?.slug}</span>
             </Link>
           </TableCell>
@@ -310,6 +325,10 @@ export function TemplatesTable() {
                 <DropdownMenuItem onClick={() => handleTestSend(tpl)} className="gap-2">
                   <SendIcon className="text-primary size-3.5" />
                   <span>Test Send</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setVersionDrawerTemplate(tpl)} className="gap-2">
+                  <HistoryIcon className="text-muted-foreground size-3.5" />
+                  <span>Version History</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => router.push(tenantHref(`/email-templates/${tpl?.id}/edit`))}
@@ -526,6 +545,13 @@ export function TemplatesTable() {
         template={testSendModal.template}
         open={testSendModal.isOpen}
         onOpenChange={(open) => setTestSendModal((prev) => ({ ...prev, isOpen: open }))}
+      />
+
+      {/* Version History Drawer */}
+      <VersionHistoryDrawer
+        template={versionDrawerTemplate}
+        open={!!versionDrawerTemplate}
+        onOpenChange={(open) => !open && setVersionDrawerTemplate(null)}
       />
     </div>
   );
