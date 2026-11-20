@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { ACCESS_COOKIE, PLATFORM_STAFF_COOKIE, REFRESH_COOKIE } from "@/lib/auth/constants";
+import { decodeJwt } from "@/lib/auth/jwt";
 import {
   isAuthPage,
   isPlatformLogin,
@@ -13,6 +14,13 @@ import { classifyHost, normalizeHost } from "@/lib/tenancy/host";
 import { resolveTenantByHost, resolveTenantBySlug } from "@/lib/tenancy/resolve";
 
 const isDev = process.env.NODE_ENV !== "production";
+
+function isTokenNonExpired(token?: string | null): boolean {
+  if (!token) return false;
+  const claims = decodeJwt(token);
+  if (!claims?.exp) return false;
+  return claims.exp * 1000 > Date.now();
+}
 
 /** CSP connect-src needs the Socket.IO origin in both http(s) and ws(s) flavours. */
 function socketOrigins(rawHost?: string | null): string[] {
@@ -162,9 +170,13 @@ function redirectCanonical(
 export async function proxy(req: NextRequest) {
   const pathname = req?.nextUrl?.pathname ?? "";
   const search = req?.nextUrl?.search ?? "";
-  const hasAccess = req?.cookies?.has?.(ACCESS_COOKIE);
-  const hasRefresh = req?.cookies?.has?.(REFRESH_COOKIE);
-  const hasPlatformStaff = req?.cookies?.has?.(PLATFORM_STAFF_COOKIE);
+  const accessCookie = req?.cookies?.get?.(ACCESS_COOKIE)?.value;
+  const refreshCookie = req?.cookies?.get?.(REFRESH_COOKIE)?.value;
+  const staffCookie = req?.cookies?.get?.(PLATFORM_STAFF_COOKIE)?.value;
+
+  const hasAccess = Boolean(accessCookie && isTokenNonExpired(accessCookie));
+  const hasRefresh = Boolean(refreshCookie && isTokenNonExpired(refreshCookie));
+  const hasPlatformStaff = Boolean(staffCookie && isTokenNonExpired(staffCookie));
 
   const rawHost =
     (process.env.TRUST_PROXY === "true" ? req?.headers?.get?.("x-forwarded-host") : null) ??
@@ -289,12 +301,21 @@ export async function proxy(req: NextRequest) {
           const next = req?.nextUrl?.searchParams?.get?.("next");
           const destination = safeNextPath(next, "/platform/dashboard");
           return NextResponse.redirect(new URL(destination, req?.url));
+        } else if (staffCookie) {
+          // Stale or expired platform staff cookie detected on login page -> delete it
+          const res = NextResponse.next();
+          res.cookies.delete(PLATFORM_STAFF_COOKIE);
+          return res;
         }
       } else {
         if (!hasPlatformStaff) {
-          return NextResponse.redirect(
+          const res = NextResponse.redirect(
             new URL(`/platform/login?next=${encodeURIComponent(pathname + search)}`, req?.url),
           );
+          if (staffCookie) {
+            res.cookies.delete(PLATFORM_STAFF_COOKIE);
+          }
+          return res;
         }
       }
     }

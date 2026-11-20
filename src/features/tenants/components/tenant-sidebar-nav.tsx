@@ -18,15 +18,18 @@ export function TenantSidebarNav({
 }: TenantSidebarNavProps) {
   const sidebar = useSidebar();
   const collapsed = collapsedProp ?? sidebar?.collapsed ?? false;
-  const { activeTenant } = useActiveTenant();
-  const { data: context } = useTenantContext(activeTenant?.id);
+  const { activeTenant, activeSlug } = useActiveTenant();
+  const tenantIdentifier = activeTenant?.id ?? activeSlug;
+  const { data: context, isLoading: isContextLoading } = useTenantContext(tenantIdentifier);
+
+  const permissions = isContextLoading && !context ? undefined : context?.permissions;
 
   return (
     <SidebarNav
       collapsed={collapsed}
       orientation={orientation}
       onNavigate={onNavigate}
-      permissions={context?.permissions ?? []}
+      permissions={permissions}
     />
   );
 }

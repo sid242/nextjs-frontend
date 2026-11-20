@@ -72,6 +72,11 @@ http.interceptors.response.use(
 
       // Platform staff sessions do not use tenant /api/auth/refresh tokens
       if (isPlatformReq) {
+        try {
+          await platformAuthHttp.post("/logout");
+        } catch {
+          /* ignore logout failure */
+        }
         redirectToLogin();
         throw toApiError(error);
       }

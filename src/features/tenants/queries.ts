@@ -241,6 +241,7 @@ export function useActiveTenant(options?: QueryOverrides<Tenant[]>) {
 
   return {
     activeTenant,
+    activeSlug,
     tenants,
     activeTenantId: activeTenant?.id ?? null,
     setActiveTenantId,
