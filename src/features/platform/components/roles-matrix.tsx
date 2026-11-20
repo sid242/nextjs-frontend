@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PLATFORM_ROUTES } from "@/config/routes";
 import { cn } from "@/lib/utils";
 
 import { PLATFORM_PERMISSION_KEYS } from "../permissions";
@@ -150,7 +151,7 @@ export function RolesMatrix() {
           hideInsteadOfBanner
         >
           <Button asChild size="sm" className="h-9 gap-2 rounded-xl text-xs shadow-xs">
-            <Link href="/platform/roles/new">
+            <Link href={PLATFORM_ROUTES.ROLE_NEW}>
               <Plus className="size-3.5" />
               Create Custom Platform Role
             </Link>

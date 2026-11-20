@@ -30,6 +30,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PLATFORM_ROUTES } from "@/config/routes";
 import { getErrorMessage } from "@/lib/api/errors";
 import { cn } from "@/lib/utils";
 
@@ -197,7 +198,7 @@ export function PlanFormPage({ planId: propPlanId }: PlanFormPageProps) {
         });
         toast.success(`Commercial tier "${values.name}" provisioned successfully!`);
       }
-      router.push("/platform/plans");
+      router.push(PLATFORM_ROUTES.PLANS);
     } catch (err: unknown) {
       setFormError(getErrorMessage(err, "Failed to persist commercial tier."));
     }
@@ -221,7 +222,7 @@ export function PlanFormPage({ planId: propPlanId }: PlanFormPageProps) {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Button asChild variant="outline" size="sm" className="h-8 gap-1.5 rounded-lg text-xs">
-            <Link href="/platform/plans">
+            <Link href={PLATFORM_ROUTES.PLANS}>
               <ArrowLeft className="size-3.5" />
               Back to Plans
             </Link>
@@ -274,7 +275,7 @@ export function PlanFormPage({ planId: propPlanId }: PlanFormPageProps) {
             type="button"
             variant="ghost"
             size="sm"
-            onClick={() => router.push("/platform/plans")}
+            onClick={() => router.push(PLATFORM_ROUTES.PLANS)}
             className="h-8 text-xs"
           >
             Cancel
@@ -721,7 +722,7 @@ export function PlanFormPage({ planId: propPlanId }: PlanFormPageProps) {
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => router.push("/platform/plans")}
+                      onClick={() => router.push(PLATFORM_ROUTES.PLANS)}
                       className="w-full rounded-xl text-xs"
                     >
                       Cancel &amp; Discard

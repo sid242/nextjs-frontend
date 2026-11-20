@@ -1,7 +1,15 @@
 "use client";
 
 import { useMemo, useState, type ChangeEvent } from "react";
-import { DownloadIcon, EyeIcon, FileIcon, SearchIcon, Trash2Icon, XIcon } from "lucide-react";
+import {
+  DownloadIcon,
+  EyeIcon,
+  FileIcon,
+  FolderInput,
+  SearchIcon,
+  Trash2Icon,
+  XIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { ColumnConfigDropdown } from "@/components/molecules/column-config-dropdown";
@@ -10,7 +18,22 @@ import { EmptyState } from "@/components/molecules/empty-state";
 import { TablePagination } from "@/components/molecules/table-pagination";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -33,7 +56,7 @@ import {
 
 import { getDownloadUrl } from "../api";
 import { triggerFileDownload } from "../download";
-import { useDeleteFile, useFiles } from "../queries";
+import { useDeleteFile, useFiles, useFolders, useUpdateFile } from "../queries";
 import { useFileRealtime } from "../use-file-realtime";
 import { FilePreviewDialog } from "./file-preview-dialog";
 import { FileStatusBadge } from "./file-status-badge";
@@ -57,18 +80,36 @@ const COLUMN_CONFIG: Record<FileColumnId, { label: string; className?: string }>
 };
 
 interface FileModalState {
-  type: "preview" | "delete" | null;
+  type: "preview" | "delete" | "move" | null;
   file: FileRecord | null;
 }
 
-export function FilesTable() {
+interface FilesTableProps {
+  folderId?: string | null;
+}
+
+export function FilesTable({ folderId }: FilesTableProps = {}) {
   useFileRealtime();
   const { data: tenantContext } = useTenantContext();
   const canDelete = hasTenantPermission(
     tenantContext?.permissions,
     TENANT_PERMISSIONS.FILES_DELETE,
   );
-  const { data, isPending, isError, error, refetch } = useFiles();
+
+  const { get, getNumber, setParam, setParams } = useSearchQueryParams();
+  const [searchInput, setSearchInput] = useState<string>(() => get("q") ?? "");
+
+  const queryParams = useMemo(() => {
+    return {
+      folderId: folderId ?? undefined,
+      search: searchInput ? searchInput.trim() : undefined,
+    };
+  }, [folderId, searchInput]);
+
+  const { data, isPending, isError, error, refetch } = useFiles(queryParams);
+  const { data: folders = [] } = useFolders();
+  const updateFileMutation = useUpdateFile();
+
   const fileList = useMemo(() => {
     if (!data) return [];
     if (Array.isArray(data)) return data;
@@ -78,9 +119,7 @@ export function FilesTable() {
   const remove = useDeleteFile();
 
   const [modalState, setModalState] = useState<FileModalState>({ type: null, file: null });
-
-  const { get, getNumber, setParam, setParams } = useSearchQueryParams();
-  const [searchInput, setSearchInput] = useState<string>(() => get("q") ?? "");
+  const [selectedFolderId, setSelectedFolderId] = useState<string>("root");
 
   const syncSearchParam = useDebouncedCallback((val: string) => {
     setParams({ q: val.trim() || null, page: null }, { mode: "replace", scroll: false });
@@ -188,6 +227,19 @@ export function FilesTable() {
               className="size-8 rounded-lg"
             >
               <DownloadIcon className="size-4" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              aria-label={`Move ${file?.filename} to folder`}
+              onClick={() => {
+                setSelectedFolderId(file?.folderId ?? "root");
+                setModalState({ type: "move", file });
+              }}
+              title="Move to folder"
+              className="size-8 rounded-lg"
+            >
+              <FolderInput className="size-4" />
             </Button>
             {canDelete ? (
               <Button
@@ -352,6 +404,116 @@ export function FilesTable() {
         open={modalState.type === "preview"}
         onOpenChange={(open) => !open && setModalState({ type: null, file: null })}
       />
+
+      {/* Move to Folder Modal */}
+      <Dialog
+        open={modalState.type === "move"}
+        onOpenChange={(open) => !open && setModalState({ type: null, file: null })}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Move File to Folder</DialogTitle>
+            <DialogDescription>
+              Select a destination folder for &quot;{modalState.file?.filename}&quot;.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4">
+            <Select value={selectedFolderId} onValueChange={setSelectedFolderId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select destination folder" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="root">Root (No Folder)</SelectItem>
+                {folders.map((folder) => (
+                  <SelectItem key={folder.id} value={folder.id}>
+                    {folder.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setModalState({ type: null, file: null })}>
+              Cancel
+            </Button>
+            <Button
+              disabled={updateFileMutation.isPending}
+              onClick={async () => {
+                if (!modalState.file) return;
+                try {
+                  await updateFileMutation.mutateAsync({
+                    id: modalState.file.id,
+                    folderId: selectedFolderId === "root" ? null : selectedFolderId,
+                  });
+                  toast.success("File moved successfully");
+                  setModalState({ type: null, file: null });
+                } catch {
+                  toast.error("Failed to move file.");
+                }
+              }}
+            >
+              Move File
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Move to Folder Modal */}
+      <Dialog
+        open={modalState.type === "move"}
+        onOpenChange={(open) => !open && setModalState({ type: null, file: null })}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Move File to Folder</DialogTitle>
+            <DialogDescription>
+              Select a destination folder for &quot;{modalState.file?.filename}&quot;.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4">
+            <Select value={selectedFolderId} onValueChange={setSelectedFolderId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select destination folder" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="root">Root (No Folder)</SelectItem>
+                {folders.map((folder) => (
+                  <SelectItem key={folder.id} value={folder.id}>
+                    {folder.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setModalState({ type: null, file: null })}>
+              Cancel
+            </Button>
+            <Button
+              disabled={updateFileMutation.isPending}
+              onClick={async () => {
+                if (!modalState.file) return;
+                try {
+                  await updateFileMutation.mutateAsync({
+                    id: modalState.file.id,
+                    folderId: selectedFolderId === "root" ? null : selectedFolderId,
+                  });
+                  toast.success("File moved successfully");
+                  setModalState({ type: null, file: null });
+                } catch {
+                  toast.error("Failed to move file.");
+                }
+              }}
+            >
+              Move File
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,3 +1,5 @@
+import { PLATFORM_ROUTES } from "@/config/routes";
+
 /**
  * Only allow same-site relative paths as post-login redirect targets.
  * Blocks open redirects such as //evil.com, /\evil.com or https://evil.com.
@@ -23,10 +25,12 @@ export const PROTECTED_PREFIXES = [
   "/audit-logs",
   "/w",
 ] as const;
-export const AUTH_PAGES = ["/login", "/register", "/forgot-password"] as const;
+export const AUTH_PAGES = ["/login", "/register", "/forgot-password", "/accept-invite"] as const;
 
 export function isTenantAuthPath(pathname: string): boolean {
-  return /^\/w\/[^/]+\/(login|register|forgot-password|reset-password)$/.test(pathname);
+  return /^\/w\/[^/]+\/(login|register|forgot-password|reset-password|accept-invite)$/.test(
+    pathname,
+  );
 }
 
 export function tenantSlugFromPath(pathname: string): string | null {
@@ -60,8 +64,8 @@ export const RESERVED_ROOT_SEGMENTS = new Set([
   "sitemap.xml",
 ]);
 
-export const PLATFORM_PREFIX = "/platform";
-export const PLATFORM_LOGIN_PATH = "/platform/login";
+export const PLATFORM_PREFIX = PLATFORM_ROUTES.ROOT;
+export const PLATFORM_LOGIN_PATH = PLATFORM_ROUTES.LOGIN;
 
 export const isProtectedPath = (pathname: string): boolean => {
   if (isTenantAuthPath(pathname)) return false;

@@ -43,6 +43,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { PLATFORM_ROUTES } from "@/config/routes";
 import { TenantLogo } from "@/features/tenants";
 import { getErrorMessage } from "@/lib/api/errors";
 import { formatDate, initials } from "@/lib/format";
@@ -121,7 +122,7 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
           The requested organization ID does not exist or has been removed.
         </p>
         <Button asChild variant="outline">
-          <Link href="/platform/tenants">
+          <Link href={PLATFORM_ROUTES.TENANTS}>
             <ArrowLeft className="mr-2 size-4" /> Back to Workspaces
           </Link>
         </Button>
@@ -265,7 +266,7 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Button asChild variant="outline" size="icon" className="size-9 shrink-0">
-            <Link href="/platform/tenants">
+            <Link href={PLATFORM_ROUTES.TENANTS}>
               <ArrowLeft className="size-4" />
             </Link>
           </Button>

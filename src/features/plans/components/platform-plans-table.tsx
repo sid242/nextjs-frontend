@@ -36,6 +36,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { PLATFORM_ROUTES } from "@/config/routes";
 import { PLATFORM_PERMISSION_KEYS, PlatformPermissionGate } from "@/features/platform";
 import { getErrorMessage } from "@/lib/api/errors";
 import { useSearchQueryParams, useTableColumns, type TableColumnDef } from "@/lib/hooks";
@@ -348,7 +349,7 @@ export function PlatformPlansTable() {
                   Assign Workspace Tier
                 </Button>
                 <Button asChild size="sm" className="h-9 gap-1.5 rounded-xl text-xs shadow-xs">
-                  <Link href="/platform/plans/new">
+                  <Link href={PLATFORM_ROUTES.PLAN_NEW}>
                     <Plus className="size-3.5" />
                     Provision New Tier
                   </Link>

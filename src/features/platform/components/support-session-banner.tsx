@@ -4,6 +4,7 @@ import { useState } from "react";
 import { LogOut, ShieldAlert } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { PLATFORM_ROUTES } from "@/config/routes";
 
 interface SupportSessionBannerProps {
   sessionId?: string;
@@ -31,7 +32,7 @@ export function SupportSessionBanner({
         body: JSON.stringify({ sessionId }),
       });
       const data = await res.json().catch(() => null);
-      const destination = data?.redirectUrl ?? "/platform/tenants";
+      const destination = data?.redirectUrl ?? PLATFORM_ROUTES.TENANTS;
 
       window.location.assign(destination);
     } catch {

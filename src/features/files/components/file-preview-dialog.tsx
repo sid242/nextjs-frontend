@@ -100,6 +100,15 @@ export function FilePreviewDialog({ file, open, onOpenChange }: FilePreviewDialo
 
     async function loadPreview() {
       if (!file) return;
+
+      if (file.status !== "UPLOADED") {
+        setLoading(false);
+        setError(
+          "This file has not completed uploading or is still processing. Previews are available once the upload is confirmed.",
+        );
+        return;
+      }
+
       setLoading(true);
       setError(null);
       setTextContent(null);

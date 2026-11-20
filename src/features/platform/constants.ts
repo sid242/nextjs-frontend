@@ -13,6 +13,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { PLATFORM_ROUTES } from "@/config/routes";
+
 import { PLATFORM_PERMISSION_KEYS } from "./permissions";
 
 export interface NavItemConfig {
@@ -33,28 +35,28 @@ export const PLATFORM_NAV_GROUPS: NavGroup[] = [
     title: "Core & Telemetry",
     items: [
       {
-        href: "/platform/dashboard",
+        href: PLATFORM_ROUTES.DASHBOARD,
         label: "Overview",
         description: "System KPIs, telemetry & operations control",
         icon: LayoutDashboard,
         permission: PLATFORM_PERMISSION_KEYS.TENANTS_READ,
       },
       {
-        href: "/platform/tenants",
+        href: PLATFORM_ROUTES.TENANTS,
         label: "Workspaces",
         description: "Customer organizations, databases & status",
         icon: Building2,
         permission: PLATFORM_PERMISSION_KEYS.TENANTS_READ,
       },
       {
-        href: "/platform/database-operations",
+        href: PLATFORM_ROUTES.DATABASE_OPERATIONS,
         label: "Database Operations",
         description: "Provisioning, dedicated migration & schema health",
         icon: Database,
         permission: PLATFORM_PERMISSION_KEYS.HEALTH_READ,
       },
       {
-        href: "/platform/plans",
+        href: PLATFORM_ROUTES.PLANS,
         label: "Plans & Tiers",
         description: "Multi-tenant tiers, seat limits & quotas",
         icon: Layers,
@@ -66,42 +68,42 @@ export const PLATFORM_NAV_GROUPS: NavGroup[] = [
     title: "Governance & Access",
     items: [
       {
-        href: "/platform/staff",
+        href: PLATFORM_ROUTES.STAFF,
         label: "Staff Directory",
         description: "Manage internal operator accounts & status",
         icon: Users,
         permission: PLATFORM_PERMISSION_KEYS.STAFF_READ,
       },
       {
-        href: "/platform/groups",
+        href: PLATFORM_ROUTES.GROUPS,
         label: "Staff Groups",
         description: "Staff user groups and operator teams",
         icon: FolderTree,
         permission: PLATFORM_PERMISSION_KEYS.GROUPS_READ,
       },
       {
-        href: "/platform/users",
+        href: PLATFORM_ROUTES.USERS,
         label: "User Accounts",
         description: "Customer accounts, status & suspension",
         icon: UserCheck,
         permission: PLATFORM_PERMISSION_KEYS.USERS_READ,
       },
       {
-        href: "/platform/roles",
+        href: PLATFORM_ROUTES.ROLES,
         label: "Roles & Matrix",
         description: "System & custom resource:action catalogue",
         icon: ShieldCheck,
         permission: PLATFORM_PERMISSION_KEYS.ROLES_READ,
       },
       {
-        href: "/platform/policies",
+        href: PLATFORM_ROUTES.POLICIES,
         label: "Access Policies",
         description: "Dynamic PBAC attribute policies for operators",
         icon: Shield,
         permission: PLATFORM_PERMISSION_KEYS.ROLES_READ,
       },
       {
-        href: "/platform/support-sessions",
+        href: PLATFORM_ROUTES.SUPPORT_SESSIONS,
         label: "Support Sessions",
         description: "Time-bound, audited tenant delegation",
         icon: LifeBuoy,
@@ -113,7 +115,7 @@ export const PLATFORM_NAV_GROUPS: NavGroup[] = [
     title: "Security & Auditing",
     items: [
       {
-        href: "/platform/audit-logs",
+        href: PLATFORM_ROUTES.AUDIT_LOGS,
         label: "Audit Trail",
         description: "Immutable compliance & security logs",
         icon: FileText,

@@ -20,6 +20,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PLATFORM_ROUTES } from "@/config/routes";
 import { createPolicySchema, type CreatePolicyFormValues } from "@/features/policies";
 import { getErrorMessage } from "@/lib/api/errors";
 
@@ -163,7 +164,7 @@ export function PlatformPolicyFormPage({ policyId }: PlatformPolicyFormPageProps
         });
         toast.success(`Platform policy "${values.name}" created successfully!`);
       }
-      router.push("/platform/policies");
+      router.push(PLATFORM_ROUTES.POLICIES);
     } catch (err: unknown) {
       setFormError(
         getErrorMessage(
@@ -197,7 +198,7 @@ export function PlatformPolicyFormPage({ policyId }: PlatformPolicyFormPageProps
             asChild
             className="text-muted-foreground hover:text-foreground -ml-2 gap-1.5"
           >
-            <Link href="/platform/policies">
+            <Link href={PLATFORM_ROUTES.POLICIES}>
               <ArrowLeft className="h-4 w-4" />
               Back to Platform Policies
             </Link>
@@ -361,7 +362,7 @@ export function PlatformPolicyFormPage({ policyId }: PlatformPolicyFormPageProps
         {/* Actions Footer */}
         <div className="flex items-center justify-end gap-3 pt-2">
           <Button variant="outline" asChild disabled={isPending}>
-            <Link href="/platform/policies">Cancel</Link>
+            <Link href={PLATFORM_ROUTES.POLICIES}>Cancel</Link>
           </Button>
           <SubmitButton
             pending={isPending}

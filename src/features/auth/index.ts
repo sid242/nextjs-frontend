@@ -8,6 +8,7 @@ export { LoginForm } from "./components/login-form";
 export { RegisterForm } from "./components/register-form";
 export { ForgotPasswordForm } from "./components/forgot-password-form";
 export { ResetPasswordForm } from "./components/reset-password-form";
+export { AcceptInviteForm } from "./components/accept-invite-form";
 export { UserMenu } from "./components/user-menu";
 export { UserProfileFooter } from "./components/user-profile-footer";
 export { ActiveSessionsCard } from "./components/active-sessions-card";
@@ -32,6 +33,7 @@ export {
   useRequestMagicLink,
   useVerifyMagicLink,
   useAcceptWorkspaceInvite,
+  usePreviewWorkspaceInvite,
   useTwoFactorStatus,
   useSetupTwoFactor,
   useEnableTwoFactor,

@@ -31,6 +31,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { PLATFORM_ROUTES } from "@/config/routes";
 import { cn } from "@/lib/utils";
 
 import { PLATFORM_NAV_GROUPS } from "../constants";
@@ -225,11 +226,12 @@ export function PlatformShell({ children }: PlatformShellProps) {
                   {visibleItems.map((item) => {
                     const isActive =
                       pathname === item.href ||
-                      (item.href !== "/platform/dashboard" &&
+                      (item.href !== PLATFORM_ROUTES.DASHBOARD &&
                         pathname?.startsWith(`${item.href}/`)) ||
-                      (item.href === "/platform/dashboard" && pathname === "/platform");
+                      (item.href === PLATFORM_ROUTES.DASHBOARD &&
+                        pathname === PLATFORM_ROUTES.ROOT);
                     const Icon = item.icon;
-                    const isSupportItem = item.href === "/platform/support-sessions";
+                    const isSupportItem = item.href === PLATFORM_ROUTES.SUPPORT_SESSIONS;
 
                     const linkContent = (
                       <Link

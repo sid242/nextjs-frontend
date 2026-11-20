@@ -17,6 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PLATFORM_ROUTES } from "@/config/routes";
 import { getErrorMessage } from "@/lib/api/errors";
 import { cn } from "@/lib/utils";
 
@@ -154,7 +155,7 @@ export function RoleFormPage({ roleId }: RoleFormPageProps) {
         });
         toast.success(`Role ${values.name} created successfully!`);
       }
-      router.push("/platform/roles");
+      router.push(PLATFORM_ROUTES.ROLES);
     } catch (err: unknown) {
       setFormError(getErrorMessage(err, "Failed to save platform role"));
     }
@@ -181,7 +182,7 @@ export function RoleFormPage({ roleId }: RoleFormPageProps) {
           The requested platform role ID does not exist or has been removed.
         </p>
         <Button asChild variant="outline">
-          <Link href="/platform/roles">
+          <Link href={PLATFORM_ROUTES.ROLES}>
             <ArrowLeft className="mr-2 size-4" /> Back to Roles & Permissions
           </Link>
         </Button>
@@ -197,7 +198,7 @@ export function RoleFormPage({ roleId }: RoleFormPageProps) {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Button asChild variant="outline" size="icon" className="size-9 shrink-0">
-            <Link href="/platform/roles">
+            <Link href={PLATFORM_ROUTES.ROLES}>
               <ArrowLeft className="size-4" />
             </Link>
           </Button>
@@ -222,7 +223,7 @@ export function RoleFormPage({ roleId }: RoleFormPageProps) {
         </div>
 
         <Button asChild variant="ghost" size="sm" className="gap-1.5 self-start sm:self-auto">
-          <Link href="/platform/roles">
+          <Link href={PLATFORM_ROUTES.ROLES}>
             <ArrowLeft className="size-3.5" /> Back to Matrix
           </Link>
         </Button>
@@ -405,7 +406,7 @@ export function RoleFormPage({ roleId }: RoleFormPageProps) {
         {/* Action Bar */}
         <div className="flex items-center justify-between pt-2">
           <Button asChild variant="outline">
-            <Link href="/platform/roles">Cancel</Link>
+            <Link href={PLATFORM_ROUTES.ROLES}>Cancel</Link>
           </Button>
 
           {!existingRole?.isSystem && (

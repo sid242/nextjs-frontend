@@ -30,6 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { PLATFORM_ROUTES } from "@/config/routes";
 import { useCheckTenantSlug } from "@/features/tenants";
 import { getErrorMessage } from "@/lib/api/errors";
 import { useDebouncedValue } from "@/lib/hooks";
@@ -156,7 +157,7 @@ export function ProvisionTenantPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Button asChild variant="outline" size="icon" className="size-9 shrink-0">
-            <Link href="/platform/tenants">
+            <Link href={PLATFORM_ROUTES.TENANTS}>
               <ArrowLeft className="size-4" />
             </Link>
           </Button>
@@ -175,7 +176,7 @@ export function ProvisionTenantPage() {
         </div>
 
         <Button asChild variant="ghost" size="sm" className="gap-1.5 self-start sm:self-auto">
-          <Link href="/platform/tenants">
+          <Link href={PLATFORM_ROUTES.TENANTS}>
             <ArrowLeft className="size-3.5" /> Back to Workspaces
           </Link>
         </Button>
@@ -301,10 +302,10 @@ export function ProvisionTenantPage() {
 
             <div className="flex items-center gap-2">
               <Button asChild variant="outline">
-                <Link href="/platform/tenants">Return to Workspaces</Link>
+                <Link href={PLATFORM_ROUTES.TENANTS}>Return to Workspaces</Link>
               </Button>
               <Button asChild className="gap-1.5 shadow-xs">
-                <Link href={`/platform/tenants/${provisionResult.tenantId}`}>
+                <Link href={PLATFORM_ROUTES.TENANT_DETAIL(provisionResult.tenantId)}>
                   Open Workspace Inspector <ArrowLeft className="size-3.5 rotate-180" />
                 </Link>
               </Button>
@@ -570,7 +571,7 @@ export function ProvisionTenantPage() {
           {/* Form Actions Footer */}
           <div className="flex items-center justify-between pt-2">
             <Button asChild variant="outline">
-              <Link href="/platform/tenants">Cancel</Link>
+              <Link href={PLATFORM_ROUTES.TENANTS}>Cancel</Link>
             </Button>
             <SubmitButton pending={isPending} pendingText="Deploying Workspace Organization…">
               <Sparkles className="mr-2 size-4" /> Provision Customer Workspace

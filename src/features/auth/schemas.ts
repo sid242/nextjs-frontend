@@ -13,6 +13,23 @@ export const registerSchema = z.object({
   password: z.string().min(8, "Use at least 8 characters").max(128, "Password is too long"),
 });
 
+export const acceptInviteNewUserSchema = z
+  .object({
+    firstName: z.string().trim().min(1, "First name is required").max(50),
+    lastName: z.string().trim().min(1, "Last name is required").max(50),
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .max(128, "Password is too long"),
+    confirmPassword: z.string().min(1, "Please confirm your password"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
+export type AcceptInviteNewUserValues = z.infer<typeof acceptInviteNewUserSchema>;
+
 export const forgotPasswordSchema = z.object({
   email: z.string().trim().min(1, "Email is required").email("Enter a valid email").max(254),
 });

@@ -25,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PLATFORM_ROUTES } from "@/config/routes";
 import { getErrorMessage } from "@/lib/api/errors";
 import { useDebouncedValue } from "@/lib/hooks";
 
@@ -67,7 +68,7 @@ export function StaffFormPage() {
         roleId: values.roleId,
       });
       toast.success(`Platform staff operator ${values.displayName} provisioned successfully!`);
-      router.push("/platform/staff");
+      router.push(PLATFORM_ROUTES.STAFF);
     } catch (err: unknown) {
       setFormError(getErrorMessage(err, "Failed to provision platform staff member"));
     }
@@ -92,7 +93,7 @@ export function StaffFormPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Button asChild variant="outline" size="icon" className="size-9 shrink-0">
-            <Link href="/platform/staff">
+            <Link href={PLATFORM_ROUTES.STAFF}>
               <ArrowLeft className="size-4" />
             </Link>
           </Button>
@@ -111,7 +112,7 @@ export function StaffFormPage() {
         </div>
 
         <Button asChild variant="ghost" size="sm" className="gap-1.5 self-start sm:self-auto">
-          <Link href="/platform/staff">
+          <Link href={PLATFORM_ROUTES.STAFF}>
             <ArrowLeft className="size-3.5" /> Back to Directory
           </Link>
         </Button>
@@ -228,7 +229,7 @@ export function StaffFormPage() {
         {/* Action Buttons */}
         <div className="flex items-center justify-between pt-2">
           <Button asChild variant="outline">
-            <Link href="/platform/staff">Cancel</Link>
+            <Link href={PLATFORM_ROUTES.STAFF}>Cancel</Link>
           </Button>
           <SubmitButton pending={isPending} pendingText="Provisioning Staff Member…">
             <UserPlus className="mr-2 size-4" /> Provision Staff Operator

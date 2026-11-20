@@ -10,6 +10,7 @@ import {
   getLoginHistory,
   getTwoFactorStatus,
   getUserSessions,
+  previewWorkspaceInvite,
   regenerateRecoveryCodes,
   requestEmailVerification,
   requestMagicLink,
@@ -20,6 +21,7 @@ import {
   verifyEmail,
   verifyMagicLink,
   verifyTwoFactorChallenge,
+  type AcceptWorkspaceInviteValues,
 } from "./api";
 import { authKeys } from "./keys";
 import type {
@@ -183,8 +185,17 @@ export function useVerifyMagicLink() {
   });
 }
 
+export function usePreviewWorkspaceInvite(token: string) {
+  return useQuery({
+    queryKey: ["auth", "invitation-preview", token],
+    queryFn: () => previewWorkspaceInvite(token),
+    enabled: Boolean(token),
+    retry: false,
+  });
+}
+
 export function useAcceptWorkspaceInvite() {
   return useMutation({
-    mutationFn: (values: { token: string; tenantId?: string }) => acceptWorkspaceInvite(values),
+    mutationFn: (values: AcceptWorkspaceInviteValues) => acceptWorkspaceInvite(values),
   });
 }

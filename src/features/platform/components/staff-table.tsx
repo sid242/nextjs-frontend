@@ -58,6 +58,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { PLATFORM_ROUTES } from "@/config/routes";
 import { getErrorMessage } from "@/lib/api/errors";
 import { formatDate } from "@/lib/format";
 import {
@@ -339,7 +340,7 @@ export function StaffTable() {
           hideInsteadOfBanner
         >
           <Button asChild className="h-10 gap-2 rounded-xl shadow-xs">
-            <Link href="/platform/staff/new">
+            <Link href={PLATFORM_ROUTES.STAFF_NEW}>
               <UserPlus className="size-4" />
               Provision Staff Member
             </Link>

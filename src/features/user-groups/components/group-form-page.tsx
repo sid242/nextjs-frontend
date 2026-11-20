@@ -16,6 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PLATFORM_ROUTES } from "@/config/routes";
 import { usePlatformRoles, useStaffList } from "@/features/platform";
 import { DEFAULT_ROLES, useTenantRoles } from "@/features/rbac";
 import { useActiveTenant, useTenantMembers, useTenants } from "@/features/tenants";
@@ -202,7 +203,7 @@ export function GroupFormPage({ scope, groupId, backHref }: GroupFormPageProps) 
       ? activeTenant?.slug
         ? `/w/${activeTenant.slug}/groups`
         : "/groups"
-      : "/platform/groups");
+      : PLATFORM_ROUTES.GROUPS);
 
   const onSubmit = async (values: CreateGroupValues) => {
     try {

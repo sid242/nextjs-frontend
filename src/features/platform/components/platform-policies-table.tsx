@@ -31,6 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { PLATFORM_ROUTES } from "@/config/routes";
 import type { Policy } from "@/features/policies";
 
 import { useDeletePlatformPolicy, usePlatformPolicies } from "../queries";
@@ -73,7 +74,7 @@ export function PlatformPoliciesTable() {
           asChild
           className="gap-2 bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:from-indigo-700 hover:to-violet-700"
         >
-          <Link href="/platform/policies/new">
+          <Link href={PLATFORM_ROUTES.POLICY_NEW}>
             <PlusIcon className="h-4 w-4" />
             Create Platform Policy
           </Link>

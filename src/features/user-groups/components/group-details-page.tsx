@@ -40,6 +40,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PLATFORM_ROUTES } from "@/config/routes";
 import {
   hasPlatformPermission,
   PLATFORM_PERMISSION_KEYS,
@@ -198,14 +199,14 @@ export function GroupDetailsPage({ scope, groupId, backHref }: GroupDetailsPageP
       ? activeTenant?.slug
         ? `/w/${activeTenant.slug}/groups`
         : "/groups"
-      : "/platform/groups");
+      : PLATFORM_ROUTES.GROUPS);
 
   const editHref =
     scope === "TENANT"
       ? activeTenant?.slug
         ? `/w/${activeTenant.slug}/groups/${groupId}/edit`
         : `/groups/${groupId}/edit`
-      : `/platform/groups/${groupId}/edit`;
+      : PLATFORM_ROUTES.GROUP_EDIT(groupId);
 
   const filteredMembers = useMemo(() => {
     if (!memberSearch.trim()) return members;

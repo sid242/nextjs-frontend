@@ -6,6 +6,7 @@ import { ShieldAlert } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PLATFORM_ROUTES } from "@/config/routes";
 
 import { hasPlatformPermission } from "../permissions";
 import { usePlatformMe } from "../queries";
@@ -67,7 +68,7 @@ export function PlatformPermissionGate({
       </p>
       <div className="mt-6 flex items-center gap-3">
         <Button asChild variant="outline">
-          <Link href="/platform/tenants">Go to Workspaces</Link>
+          <Link href={PLATFORM_ROUTES.TENANTS}>Go to Workspaces</Link>
         </Button>
       </div>
     </div>

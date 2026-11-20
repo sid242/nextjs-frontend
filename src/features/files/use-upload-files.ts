@@ -23,7 +23,12 @@ export function cancelUpload(id: string): void {
 }
 
 /** 3 steps: ask the API for a presigned POST -> send to S3 with progress -> confirm so the backend processes it. */
-async function uploadOne(id: string, file: File, onUploaded: () => void): Promise<void> {
+async function uploadOne(
+  id: string,
+  file: File,
+  onUploaded: () => void,
+  folderId?: string | null,
+): Promise<void> {
   const { patch, items } = useUploadStore.getState();
   const current = items.find((item) => item.id === id);
   if (!current || current.status === "cancelled") return; // cancelled while waiting in the queue, or store was reset
@@ -35,7 +40,7 @@ async function uploadOne(id: string, file: File, onUploaded: () => void): Promis
   try {
     patch(id, { status: "uploading" });
     const { fileId, upload } = await requestUpload(
-      { filename: file.name, contentType: file.type },
+      { filename: file.name, contentType: file.type, folderId: folderId ?? undefined },
       signal,
     );
 
@@ -68,7 +73,7 @@ async function uploadOne(id: string, file: File, onUploaded: () => void): Promis
 }
 
 /** Queue files for upload (validated, at most UPLOAD_CONCURRENCY at a time). Progress lives in the upload store. */
-export function useUploadFiles() {
+export function useUploadFiles(folderId?: string | null) {
   const queryClient = useQueryClient();
 
   return useCallback(
@@ -94,7 +99,7 @@ export function useUploadFiles() {
 
       const refreshList = () => void queryClient.invalidateQueries({ queryKey: filesKeys.all });
       await runWithConcurrency(accepted, UPLOAD_CONCURRENCY, ({ id, file }) =>
-        uploadOne(id, file, refreshList),
+        uploadOne(id, file, refreshList, folderId),
       );
 
       const done = accepted.filter(

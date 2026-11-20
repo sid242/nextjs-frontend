@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PLATFORM_ROUTES } from "@/config/routes";
 import { getErrorMessage } from "@/lib/api/errors";
 import { safeNextPath } from "@/lib/auth/paths";
 
@@ -60,7 +61,7 @@ export function PlatformLoginForm({ next }: { next?: string }) {
         return;
       }
 
-      const target = safeNextPath(next, "/platform/dashboard");
+      const target = safeNextPath(next, PLATFORM_ROUTES.DASHBOARD);
       if (typeof window !== "undefined") {
         window.location.assign(target);
       } else {
@@ -81,7 +82,7 @@ export function PlatformLoginForm({ next }: { next?: string }) {
         challengeToken,
         code: code.trim(),
       });
-      const target = safeNextPath(next, "/platform/dashboard");
+      const target = safeNextPath(next, PLATFORM_ROUTES.DASHBOARD);
       if (typeof window !== "undefined") {
         window.location.assign(target);
       } else {

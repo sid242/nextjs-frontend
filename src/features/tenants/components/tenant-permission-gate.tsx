@@ -7,6 +7,7 @@ import { ShieldAlert } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PLATFORM_ROUTES } from "@/config/routes";
 import { usePlatformMe } from "@/features/platform";
 import { useTenantHref } from "@/lib/tenancy";
 
@@ -92,7 +93,7 @@ export function TenantPermissionGate({
             </Link>
           </Button>
           <Button asChild variant="outline">
-            <Link href="/platform/tenants">Return to Platform Console</Link>
+            <Link href={PLATFORM_ROUTES.TENANTS}>Return to Platform Console</Link>
           </Button>
         </div>
       </div>

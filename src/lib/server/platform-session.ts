@@ -4,6 +4,7 @@ import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { PLATFORM_ROUTES } from "@/config/routes";
 import { PLATFORM_STAFF_COOKIE } from "@/lib/auth/constants";
 import { backendFetch } from "@/lib/server/backend";
 
@@ -20,7 +21,7 @@ export const getPlatformStaff = cache(async () => {
 export async function requirePlatformStaff() {
   const staff = await getPlatformStaff();
   if (!staff) {
-    redirect("/platform/login");
+    redirect(PLATFORM_ROUTES.LOGIN);
   }
   return staff;
 }

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { PLATFORM_ROUTES } from "@/config/routes";
 import { ACCESS_COOKIE, PLATFORM_STAFF_COOKIE, REFRESH_COOKIE } from "@/lib/auth/constants";
 import { decodeJwt } from "@/lib/auth/jwt";
 import {
@@ -307,7 +308,7 @@ export async function proxy(req: NextRequest) {
       if (isPlatformLogin(pathname)) {
         if (hasPlatformStaff) {
           const next = req?.nextUrl?.searchParams?.get?.("next");
-          const destination = safeNextPath(next, "/platform/dashboard");
+          const destination = safeNextPath(next, PLATFORM_ROUTES.DASHBOARD);
           return NextResponse.redirect(new URL(destination, req?.url));
         } else if (staffCookie) {
           // Stale or expired platform staff cookie detected on login page -> delete it

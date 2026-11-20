@@ -10,10 +10,14 @@ import { FILE_INPUT_ACCEPT, MAX_UPLOAD_MB } from "../constants";
 import { useUploadFiles } from "../use-upload-files";
 import { UploadList } from "./upload-list";
 
-export function FileUploader() {
+interface FileUploaderProps {
+  folderId?: string | null;
+}
+
+export function FileUploader({ folderId }: FileUploaderProps = {}) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
-  const uploadFiles = useUploadFiles();
+  const uploadFiles = useUploadFiles(folderId);
 
   function handle(files: FileList | null) {
     if (files && files.length > 0) void uploadFiles(Array.from(files));

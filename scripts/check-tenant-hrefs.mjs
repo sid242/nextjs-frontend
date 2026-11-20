@@ -17,6 +17,7 @@ const ALLOWLIST = [
   "urls.ts",
   "urls.test.ts",
   "host.test.ts",
+  "routes.ts",
   ".test.ts",
   ".test.tsx",
 ];

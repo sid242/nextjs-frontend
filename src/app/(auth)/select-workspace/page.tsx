@@ -14,6 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PLATFORM_ROUTES } from "@/config/routes";
 import { useTenants, type Tenant } from "@/features/tenants";
 import { switchWorkspaceOrHandoff } from "@/lib/tenancy/handoff";
 
@@ -106,7 +107,7 @@ export default function SelectWorkspacePage() {
                   tenant support sessions through the dedicated Platform Console.
                 </p>
                 <Button variant="default" size="sm" className="mt-3 w-full gap-2" asChild>
-                  <Link href="/platform">
+                  <Link href={PLATFORM_ROUTES.ROOT}>
                     <ShieldCheckIcon className="size-3.5" />
                     Go to Platform Console
                   </Link>

@@ -64,7 +64,27 @@ export const requestMagicLink = (values: RequestMagicLinkValues) =>
 export const verifyMagicLink = (values: VerifyMagicLinkValues) =>
   authApi.post<{ user: User }>("/magic-link/verify", values);
 
-export const acceptWorkspaceInvite = (values: { token: string; tenantId?: string }) =>
+export interface InvitationPreview {
+  email: string;
+  tenantName: string;
+  tenantSlug?: string;
+  roleName: string;
+  expiresAt: string;
+  hasAccount: boolean;
+}
+
+export interface AcceptWorkspaceInviteValues {
+  token: string;
+  tenantId?: string;
+  firstName?: string;
+  lastName?: string;
+  password?: string;
+}
+
+export const previewWorkspaceInvite = (token: string) =>
+  authApi.get<InvitationPreview>(`/invitation/preview?token=${encodeURIComponent(token)}`);
+
+export const acceptWorkspaceInvite = (values: AcceptWorkspaceInviteValues) =>
   authApi.post<{ user: User; activeTenantId?: string }>("/invitation/accept", values);
 
 export const forgotPassword = (values: ForgotPasswordValues) =>

@@ -57,6 +57,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { PLATFORM_ROUTES } from "@/config/routes";
 import { formatDate } from "@/lib/format";
 import {
   useDebouncedCallback,
@@ -549,7 +550,7 @@ export function TenantsTable() {
               hideInsteadOfBanner
             >
               <Button asChild className="h-10 gap-2 rounded-xl shadow-xs">
-                <Link href="/platform/tenants/new">
+                <Link href={PLATFORM_ROUTES.TENANT_NEW}>
                   <Plus className="size-4" />
                   Provision Organization
                 </Link>

@@ -48,6 +48,7 @@ describe("route matching", () => {
   });
   it("detects tenant auth paths and extracts slug", () => {
     expect(isTenantAuthPath("/w/acme/login")).toBe(true);
+    expect(isTenantAuthPath("/w/acme/accept-invite")).toBe(true);
     expect(isTenantAuthPath("/w/acme/dashboard")).toBe(false);
     expect(tenantSlugFromPath("/w/acme/login")).toBe("acme");
     expect(tenantSlugFromPath("/dashboard")).toBeNull();

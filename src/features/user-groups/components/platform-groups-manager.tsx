@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/molecules/confirm-dialog";
 import { PageHeader } from "@/components/molecules/page-header";
 import { Button } from "@/components/ui/button";
+import { PLATFORM_ROUTES } from "@/config/routes";
 import {
   hasPlatformPermission,
   PLATFORM_PERMISSION_KEYS,
@@ -59,9 +60,9 @@ export function PlatformGroupsManager() {
     PLATFORM_PERMISSION_KEYS.GROUPS_MANAGE_MEMBERS,
   );
 
-  const createHref = "/platform/groups/new";
-  const getDetailHref = (group: UserGroup) => `/platform/groups/${group.id}`;
-  const getEditHref = (group: UserGroup) => `/platform/groups/${group.id}/edit`;
+  const createHref = PLATFORM_ROUTES.GROUP_NEW;
+  const getDetailHref = (group: UserGroup) => PLATFORM_ROUTES.GROUP_DETAIL(group.id);
+  const getEditHref = (group: UserGroup) => PLATFORM_ROUTES.GROUP_EDIT(group.id);
 
   const activeGroupsCount = useMemo(
     () => groups.filter((g) => g.status === "ACTIVE").length,

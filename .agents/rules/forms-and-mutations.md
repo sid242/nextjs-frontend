@@ -69,6 +69,18 @@ Always import and use the canonical controlled components:
 - `ControlledRadioGroup`: Mutually exclusive option groups.
 - `ControlledRichTextEditor`: Rich WYSIWYG editor integration.
 
+### 1.4 Strictly Forbid Arbitrary `setTimeout` in Form Submissions & Async Redirections
+
+- **FORBIDDEN**: Wrapping post-mutation navigation, state updates, or store resets in arbitrary delays (e.g., `setTimeout(() => { router.replace(...) }, 1000)`).
+- **MANDATORY**: Execute routing, cache invalidation, and state transitions deterministically using async/await promises:
+  ```tsx
+  await mutation.mutateAsync(values);
+  resetAllStores();
+  router.replace(destination);
+  router.refresh();
+  ```
+- Arbitrary timeouts degrade user-perceived performance, cause memory leaks on unmounted components, introduce race conditions, and break automated testing.
+
 ---
 
 ## 2. Page vs Dialog Invariant: The 4-5 Field Threshold
