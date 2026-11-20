@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Building2Icon,
+  Code2Icon,
   CreditCardIcon,
   FileTextIcon,
   GlobeIcon,
@@ -104,6 +105,16 @@ export function SettingsNav() {
       visible:
         hasTenantPermission(permissions, TENANT_PERMISSIONS.ROLES_READ) ||
         hasTenantPermission(permissions, TENANT_PERMISSIONS.ACCESS_READ),
+    },
+    {
+      href: "/settings/developer",
+      label: "Developers & API",
+      icon: Code2Icon,
+      active: normalizedPathname === "/settings/developer",
+      visible:
+        hasTenantPermission(permissions, TENANT_PERMISSIONS.TENANTS_UPDATE) ||
+        hasTenantPermission(permissions, TENANT_PERMISSIONS.API_KEYS_READ) ||
+        hasTenantPermission(permissions, TENANT_PERMISSIONS.WEBHOOKS_READ),
     },
   ];
 

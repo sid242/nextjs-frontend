@@ -60,6 +60,12 @@ export const TENANT_PERMISSIONS = {
   ADDRESSES_READ: "addresses:read",
   ADDRESSES_WRITE: "addresses:write",
   ADDRESSES_DELETE: "addresses:delete",
+
+  // Developers, API Keys & Webhooks
+  API_KEYS_READ: "api-keys:read",
+  API_KEYS_WRITE: "api-keys:write",
+  WEBHOOKS_READ: "webhooks:read",
+  WEBHOOKS_WRITE: "webhooks:write",
 } as const;
 
 export type TenantPermissionKey = (typeof TENANT_PERMISSIONS)[keyof typeof TENANT_PERMISSIONS];
