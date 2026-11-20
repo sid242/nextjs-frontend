@@ -3,6 +3,7 @@ import { z } from "zod";
 export const profileSchema = z.object({
   firstName: z.string().trim().min(1, "First name must be at least 1 character"),
   lastName: z.string().trim().min(1, "Last name must be at least 1 character"),
+  avatarUrl: z.string().url().nullable().optional(),
   locale: z.string().optional(),
   timezone: z.string().optional(),
   dateFormat: z.string().optional(),

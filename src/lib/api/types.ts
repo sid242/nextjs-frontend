@@ -3,6 +3,7 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
+  avatarUrl?: string | null;
   locale?: string | null;
   timezone?: string | null;
   dateFormat?: string | null;

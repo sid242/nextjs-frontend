@@ -5,6 +5,10 @@ export { FilesSummary } from "./components/files-summary";
 export { RecentFilesCard } from "./components/recent-files-card";
 export { FilePreviewDialog } from "./components/file-preview-dialog";
 export { FileStatusBadge } from "./components/file-status-badge";
+export { CreateFolderDialog } from "./components/create-folder-dialog";
+export { RenameFolderDialog } from "./components/rename-folder-dialog";
+
+export * from "./schemas";
 
 export {
   useFiles,

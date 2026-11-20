@@ -20,51 +20,38 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
+  CreateFolderDialog,
   FilesSummary,
   FilesTable,
   FileUploader,
-  useCreateFolder,
+  RenameFolderDialog,
   useDeleteFolder,
   useFolders,
-  useUpdateFolder,
 } from "@/features/files";
 import { useActiveTenant } from "@/features/tenants";
 import type { FileFolderRecord } from "@/lib/api/types";
 
+interface FolderModalState {
+  mode: "create" | "rename" | "delete" | null;
+  folder?: FileFolderRecord | null;
+}
+
 export default function FilesPage() {
   const { activeTenant } = useActiveTenant();
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
-  const [createFolderOpen, setCreateFolderOpen] = useState(false);
-  const [folderName, setFolderName] = useState("");
   const [showUploader, setShowUploader] = useState(false);
 
-  // Rename folder state
-  const [editingFolder, setEditingFolder] = useState<FileFolderRecord | null>(null);
-  const [editFolderName, setEditFolderName] = useState("");
-
-  // Delete folder state
-  const [folderToDelete, setFolderToDelete] = useState<FileFolderRecord | null>(null);
+  // Cohesive modal state (Rule: cohesive-state.md)
+  const [folderModal, setFolderModal] = useState<FolderModalState>({ mode: null });
 
   const { data: folders = [], isLoading: foldersLoading } = useFolders();
-  const createFolderMutation = useCreateFolder();
-  const updateFolderMutation = useUpdateFolder();
   const deleteFolderMutation = useDeleteFolder();
 
   const activeFolder = useMemo(() => {
@@ -72,50 +59,17 @@ export default function FilesPage() {
     return folders.find((f) => f.id === activeFolderId) ?? null;
   }, [folders, activeFolderId]);
 
-  const handleCreateFolder = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!folderName.trim()) return;
-
-    try {
-      await createFolderMutation.mutateAsync({
-        name: folderName.trim(),
-        parentId: activeFolderId,
-      });
-      toast.success(`Folder "${folderName.trim()}" created successfully`);
-      setFolderName("");
-      setCreateFolderOpen(false);
-    } catch {
-      toast.error("Failed to create folder. Please try again.");
-    }
-  };
-
-  const handleRenameFolder = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingFolder || !editFolderName.trim()) return;
-
-    try {
-      await updateFolderMutation.mutateAsync({
-        id: editingFolder.id,
-        name: editFolderName.trim(),
-      });
-      toast.success(`Folder renamed to "${editFolderName.trim()}"`);
-      setEditingFolder(null);
-      setEditFolderName("");
-    } catch {
-      toast.error("Failed to rename folder. Please try again.");
-    }
-  };
-
   const handleDeleteFolder = async () => {
-    if (!folderToDelete) return;
+    if (!folderModal.folder) return;
+    const targetFolder = folderModal.folder;
 
     try {
-      await deleteFolderMutation.mutateAsync(folderToDelete.id);
-      toast.success(`Folder "${folderToDelete.name}" deleted. Files inside were preserved.`);
-      if (activeFolderId === folderToDelete.id) {
+      await deleteFolderMutation.mutateAsync(targetFolder.id);
+      toast.success(`Folder "${targetFolder.name}" deleted. Files inside were preserved.`);
+      if (activeFolderId === targetFolder.id) {
         setActiveFolderId(null);
       }
-      setFolderToDelete(null);
+      setFolderModal({ mode: null });
     } catch {
       toast.error("Failed to delete folder. Please try again.");
     }
@@ -131,7 +85,7 @@ export default function FilesPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setCreateFolderOpen(true)}
+              onClick={() => setFolderModal({ mode: "create" })}
               className="flex items-center gap-1.5"
             >
               <FolderPlus className="size-4" />
@@ -205,10 +159,7 @@ export default function FilesPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => {
-                setEditingFolder(activeFolder);
-                setEditFolderName(activeFolder.name);
-              }}
+              onClick={() => setFolderModal({ mode: "rename", folder: activeFolder })}
               className="h-7 gap-1 px-2 text-xs"
             >
               <Pencil className="size-3" />
@@ -218,7 +169,7 @@ export default function FilesPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setFolderToDelete(activeFolder)}
+              onClick={() => setFolderModal({ mode: "delete", folder: activeFolder })}
               className="text-destructive hover:text-destructive h-7 gap-1 px-2 text-xs"
             >
               <Trash2 className="size-3" />
@@ -276,8 +227,7 @@ export default function FilesPage() {
                       <DropdownMenuItem
                         onClick={(e) => {
                           e.stopPropagation();
-                          setEditingFolder(folder);
-                          setEditFolderName(folder.name);
+                          setFolderModal({ mode: "rename", folder });
                         }}
                       >
                         <Pencil className="mr-2 size-3.5" />
@@ -288,7 +238,7 @@ export default function FilesPage() {
                         className="text-destructive focus:text-destructive"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setFolderToDelete(folder);
+                          setFolderModal({ mode: "delete", folder });
                         }}
                       >
                         <Trash2 className="mr-2 size-3.5" />
@@ -306,106 +256,26 @@ export default function FilesPage() {
       {/* Primary Files Table (Filtered by activeFolderId) */}
       <FilesTable folderId={activeFolderId} />
 
-      {/* Create Folder Dialog */}
-      <Dialog open={createFolderOpen} onOpenChange={setCreateFolderOpen}>
-        <DialogContent className="sm:max-w-md">
-          <form onSubmit={handleCreateFolder}>
-            <DialogHeader>
-              <DialogTitle>Create New Folder</DialogTitle>
-              <DialogDescription>
-                Create a folder to group related documents and workspace assets.
-              </DialogDescription>
-            </DialogHeader>
+      {/* Create Folder Dialog (Controlled FormWrapper) */}
+      <CreateFolderDialog
+        open={folderModal.mode === "create"}
+        onOpenChange={(open) => !open && setFolderModal({ mode: null })}
+        parentFolderId={activeFolderId}
+        parentFolderName={activeFolder?.name}
+      />
 
-            <div className="py-4">
-              <Label htmlFor="folder-name" className="text-xs">
-                Folder Name
-              </Label>
-              <Input
-                id="folder-name"
-                value={folderName}
-                onChange={(e) => setFolderName(e.target.value)}
-                placeholder="e.g. Legal Contracts, Invoices 2026"
-                className="mt-1.5"
-                autoFocus
-              />
-            </div>
-
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setCreateFolderOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                size="sm"
-                disabled={!folderName.trim() || createFolderMutation.isPending}
-              >
-                {createFolderMutation.isPending ? "Creating..." : "Create Folder"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Rename Folder Dialog */}
-      <Dialog
-        open={Boolean(editingFolder)}
-        onOpenChange={(open) => !open && setEditingFolder(null)}
-      >
-        <DialogContent className="sm:max-w-md">
-          <form onSubmit={handleRenameFolder}>
-            <DialogHeader>
-              <DialogTitle>Rename Folder</DialogTitle>
-              <DialogDescription>
-                Enter a new name for folder &quot;{editingFolder?.name}&quot;.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="py-4">
-              <Label htmlFor="edit-folder-name" className="text-xs">
-                New Folder Name
-              </Label>
-              <Input
-                id="edit-folder-name"
-                value={editFolderName}
-                onChange={(e) => setEditFolderName(e.target.value)}
-                placeholder="e.g. Archived Documents"
-                className="mt-1.5"
-                autoFocus
-              />
-            </div>
-
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setEditingFolder(null)}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                size="sm"
-                disabled={!editFolderName.trim() || updateFolderMutation.isPending}
-              >
-                {updateFolderMutation.isPending ? "Renaming..." : "Save Name"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      {/* Rename Folder Dialog (Controlled FormWrapper) */}
+      <RenameFolderDialog
+        folder={folderModal.folder ?? null}
+        open={folderModal.mode === "rename"}
+        onOpenChange={(open) => !open && setFolderModal({ mode: null })}
+      />
 
       {/* Delete Folder Confirmation Dialog */}
       <ConfirmDialog
-        open={Boolean(folderToDelete)}
-        onOpenChange={(open) => !open && setFolderToDelete(null)}
-        title={`Delete folder "${folderToDelete?.name}"?`}
+        open={folderModal.mode === "delete"}
+        onOpenChange={(open) => !open && setFolderModal({ mode: null })}
+        title={`Delete folder "${folderModal.folder?.name}"?`}
         description="This will permanently delete the folder. Files inside will NOT be deleted; they will be moved to Root (All Files)."
         confirmLabel="Delete Folder"
         destructive
