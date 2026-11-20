@@ -70,10 +70,9 @@ export function FilesTable() {
   );
   const { data, isPending, isError, error, refetch } = useFiles();
   const fileList = useMemo(() => {
+    if (!data) return [];
     if (Array.isArray(data)) return data;
-    if (data && typeof data === "object" && Array.isArray((data as { data?: FileRecord[] }).data)) {
-      return (data as { data: FileRecord[] }).data;
-    }
+    if ("items" in data && Array.isArray(data.items)) return data.items;
     return [];
   }, [data]);
   const remove = useDeleteFile();

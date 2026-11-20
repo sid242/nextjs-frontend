@@ -49,10 +49,9 @@ export function RecentFilesCard() {
   const tenantHref = useTenantHref();
   const { data, isPending, isError } = useFiles();
   const fileList = useMemo(() => {
+    if (!data) return [];
     if (Array.isArray(data)) return data;
-    if (data && typeof data === "object" && Array.isArray((data as { data?: FileRecord[] }).data)) {
-      return (data as { data: FileRecord[] }).data;
-    }
+    if ("items" in data && Array.isArray(data.items)) return data.items;
     return [];
   }, [data]);
   const recentFiles = fileList.slice(0, 5);

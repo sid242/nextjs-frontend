@@ -2,50 +2,222 @@
 
 import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { FileRecord } from "@/lib/api/types";
+import type {
+  FileFolderRecord,
+  FileRecord,
+  FileShareRecord,
+  FileVersionRecord,
+  StorageStats,
+} from "@/lib/api/types";
 
-import { deleteFile, listFiles } from "./api";
+import {
+  createFolder,
+  createShare,
+  deleteFile,
+  deleteFolder,
+  getStorageStats,
+  listFiles,
+  listFolders,
+  listShares,
+  listVersions,
+  restoreFile,
+  restoreVersion,
+  revokeShare,
+  updateFile,
+  updateFolder,
+  type ListFilesParams,
+} from "./api";
 import { filesKeys } from "./keys";
 
-// Layer 2 of 3: TanStack Query hooks. queryOptions() keeps key + fetcher together and is reusable
-// for useQuery, prefetchQuery and setQueryData with full type inference.
 export const filesQueryOptions = {
-  list: () =>
+  list: (params?: ListFilesParams) =>
     queryOptions({
-      queryKey: filesKeys.list(),
+      queryKey: filesKeys.list(params),
       queryFn: async ({ signal }) => {
-        const res = await listFiles(signal);
-        if (Array.isArray(res)) return res;
+        const res = await listFiles(params, signal);
+        if (Array.isArray(res)) return { items: res, total: res.length };
+        if (res && typeof res === "object" && "items" in res && Array.isArray(res.items)) {
+          return res;
+        }
         if (
           res &&
           typeof res === "object" &&
+          "data" in res &&
           Array.isArray((res as { data?: FileRecord[] }).data)
         ) {
-          return (res as { data: FileRecord[] }).data;
+          const arr = (res as { data: FileRecord[] }).data;
+          return { items: arr, total: arr.length };
         }
-        return [];
+        return { items: [] as FileRecord[], total: 0 };
       },
+    }),
+
+  folders: (parentId?: string) =>
+    queryOptions({
+      queryKey: filesKeys.folders(parentId),
+      queryFn: async ({ signal }) => {
+        const res = await listFolders(parentId, signal);
+        return Array.isArray(res) ? res : [];
+      },
+    }),
+
+  stats: () =>
+    queryOptions({
+      queryKey: filesKeys.stats(),
+      queryFn: async () => {
+        const res = await getStorageStats();
+        return res as StorageStats;
+      },
+    }),
+
+  shares: (fileId: string) =>
+    queryOptions({
+      queryKey: filesKeys.shares(fileId),
+      queryFn: async () => {
+        if (!fileId) return [];
+        const res = await listShares(fileId);
+        return Array.isArray(res) ? res : [];
+      },
+      enabled: Boolean(fileId),
+    }),
+
+  versions: (fileId: string) =>
+    queryOptions({
+      queryKey: filesKeys.versions(fileId),
+      queryFn: async () => {
+        if (!fileId) return [];
+        const res = await listVersions(fileId);
+        return Array.isArray(res) ? res : [];
+      },
+      enabled: Boolean(fileId),
     }),
 };
 
-export const useFiles = () => useQuery(filesQueryOptions.list());
+export const useFiles = (params?: ListFilesParams) => useQuery(filesQueryOptions.list(params));
+export const useFolders = (parentId?: string) => useQuery(filesQueryOptions.folders(parentId));
+export const useStorageStats = () => useQuery(filesQueryOptions.stats());
+export const useFileShares = (fileId: string) => useQuery(filesQueryOptions.shares(fileId));
+export const useFileVersions = (fileId: string) => useQuery(filesQueryOptions.versions(fileId));
 
-/** Optimistic delete: the row disappears instantly and is restored if the server rejects it. */
 export function useDeleteFile() {
   const queryClient = useQueryClient();
-  const key = filesKeys.list();
-
   return useMutation({
-    mutationFn: deleteFile,
-    onMutate: async (id: string) => {
-      await queryClient.cancelQueries({ queryKey: key }); // don't let an in-flight refetch overwrite our update
-      const previous = queryClient.getQueryData<FileRecord[]>(key);
-      queryClient.setQueryData<FileRecord[]>(key, (old) => old?.filter((file) => file.id !== id));
-      return { previous };
+    mutationFn: (arg: string | { id: string; permanent?: boolean }) => {
+      const id = typeof arg === "string" ? arg : arg.id;
+      const permanent = typeof arg === "string" ? false : (arg.permanent ?? false);
+      return deleteFile(id, permanent);
     },
-    onError: (_error, _id, context) => {
-      if (context?.previous) queryClient.setQueryData(key, context.previous);
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: filesKeys.all });
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: filesKeys.all }),
+  });
+}
+
+export function useRestoreFile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => restoreFile(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: filesKeys.all });
+    },
+  });
+}
+
+export function useUpdateFile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      ...body
+    }: {
+      id: string;
+      filename?: string;
+      description?: string | null;
+      tags?: string[];
+      folderId?: string | null;
+      visibility?: "PRIVATE" | "TENANT" | "PUBLIC_LINK";
+    }) => updateFile(id, body),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: filesKeys.all });
+    },
+  });
+}
+
+export function useCreateFolder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { name: string; parentId?: string | null; color?: string | null }) =>
+      createFolder(body),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: filesKeys.all });
+    },
+  });
+}
+
+export function useUpdateFolder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      ...body
+    }: {
+      id: string;
+      name?: string;
+      color?: string | null;
+      parentId?: string | null;
+    }) => updateFolder(id, body),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: filesKeys.all });
+    },
+  });
+}
+
+export function useDeleteFolder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteFolder(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: filesKeys.all });
+    },
+  });
+}
+
+export function useCreateFileShare() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      fileId,
+      ...body
+    }: {
+      fileId: string;
+      password?: string;
+      maxDownloads?: number;
+      expiresInHours?: number;
+    }) => createShare(fileId, body),
+    onSuccess: (_, { fileId }) => {
+      void queryClient.invalidateQueries({ queryKey: filesKeys.shares(fileId) });
+    },
+  });
+}
+
+export function useRevokeFileShare() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ fileId, shareId }: { fileId: string; shareId: string }) =>
+      revokeShare(fileId, shareId),
+    onSuccess: (_, { fileId }) => {
+      void queryClient.invalidateQueries({ queryKey: filesKeys.shares(fileId) });
+    },
+  });
+}
+
+export function useRestoreFileVersion() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ fileId, versionNumber }: { fileId: string; versionNumber: number }) =>
+      restoreVersion(fileId, versionNumber),
+    onSuccess: (_, { fileId }) => {
+      void queryClient.invalidateQueries({ queryKey: filesKeys.all });
+    },
   });
 }
