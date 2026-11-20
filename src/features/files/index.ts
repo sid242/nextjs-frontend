@@ -26,8 +26,6 @@ export {
 export { useUploadFiles } from "./use-upload-files";
 export { useFileRealtime } from "./use-file-realtime";
 
-// Server-only: import this barrel from server components (routes) only, never from client components.
-export { prefetchFiles } from "./server";
-
 export { triggerFileDownload } from "./download";
 export { useFileSse } from "./use-file-sse";
+export { filesKeys } from "./keys";

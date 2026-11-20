@@ -4,13 +4,30 @@ import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { PageHeader } from "@/components/molecules/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FilesSummary, prefetchFiles, RecentFilesCard } from "@/features/files";
-import { requireUser } from "@/lib/auth/session";
+import { filesKeys, FilesSummary, RecentFilesCard } from "@/features/files";
+import type { FileRecord } from "@/lib/api/types";
+import { getAccessToken, requireUser } from "@/lib/auth/session";
 import { getServerQueryClient } from "@/lib/query/server";
+import { backendFetch } from "@/lib/server/backend";
 
 import { DashboardQuickActions, DashboardWidgets } from "./dashboard-widgets";
 
 export const metadata: Metadata = { title: "Dashboard" };
+
+async function prefetchFiles(queryClient: ReturnType<typeof getServerQueryClient>): Promise<void> {
+  const token = await getAccessToken();
+  if (!token) return;
+
+  await queryClient.prefetchQuery({
+    queryKey: filesKeys.list(),
+    queryFn: async () => {
+      const res = await backendFetch("/files", { token });
+      if (!res.ok) throw new Error(`Prefetch /files failed (${res.status})`);
+      const body = (await res.json()) as { data?: FileRecord[] } | FileRecord[];
+      return (Array.isArray(body) ? body : (body?.data ?? [])) as FileRecord[];
+    },
+  });
+}
 
 export default async function DashboardPage() {
   const user = await requireUser(); // deduplicated with the layout's call
