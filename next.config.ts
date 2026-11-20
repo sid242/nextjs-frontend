@@ -6,7 +6,12 @@ function getAllowedDevOrigins(): string[] {
     .map((origin) => origin.trim())
     .filter(Boolean);
 
-  if (explicit.length > 0) return explicit;
+  const origins = new Set<string>(explicit);
+  for (const item of explicit) {
+    if (!item.includes(":")) {
+      origins.add(`${item}:3001`);
+    }
+  }
 
   // Fallback: extract hostname from SOCKET_URL if configured for LAN testing
   const socketUrl = process.env.SOCKET_URL ?? process.env.NEXT_PUBLIC_SOCKET_URL;
@@ -14,14 +19,15 @@ function getAllowedDevOrigins(): string[] {
     try {
       const parsed = new URL(socketUrl);
       if (parsed.hostname && parsed.hostname !== "localhost" && parsed.hostname !== "127.0.0.1") {
-        return [parsed.hostname];
+        origins.add(parsed.hostname);
+        origins.add(`${parsed.hostname}:3001`);
       }
     } catch {
       /* ignore invalid URL */
     }
   }
 
-  return [];
+  return Array.from(origins);
 }
 
 const allowedDevOrigins = getAllowedDevOrigins();
@@ -42,7 +48,9 @@ const nextConfig: NextConfig = {
           { key: "X-Frame-Options", value: "DENY" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
-          { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
+          ...(process.env.NODE_ENV === "production"
+            ? [{ key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" }]
+            : []),
         ],
       },
     ];

@@ -91,7 +91,7 @@ function buildCsp(nonce: string, rawHost?: string | null): string {
   ];
 
   const scriptDirectives = isDev
-    ? `'self' 'unsafe-inline' 'unsafe-eval' https://editor.unlayer.com https://*.unlayer.com`
+    ? `'self' 'unsafe-inline' 'unsafe-eval' 'nonce-${nonce}' https://editor.unlayer.com https://*.unlayer.com`
     : `'self' https://editor.unlayer.com https://*.unlayer.com 'nonce-${nonce}' 'strict-dynamic'`;
 
   return [
