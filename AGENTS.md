@@ -194,6 +194,26 @@ All commit messages are validated by Commitlint:
 - Allowed types: `feat`, `fix`, `chore`, `docs`, `refactor`, `perf`, `test`, `build`, `ci`, `revert`
 - Example: `feat(files): add drag-and-drop batch upload component`
 
+---
+
+## 7. Code Quality & Engineering Standards Compliance
+
+All frontend development must adhere to the engineering standards codified in:
+
+- `.agents/rules/code-quality-and-engineering-standards.md`
+- `docs/standards/FRONTEND_STANDARDS.md`
+- `docs/standards/ENGINEERING_STANDARDS.md`
+- `docs/standards/DEPENDENCY_AND_TOOLING_POLICY.md`
+- `docs/standards/REFACTOR_ROADMAP.md`
+
+Key rules:
+
+- **Zero `any`**: Never introduce `any` or `as any`. Parse boundaries with Zod schemas.
+- **Strict downward layering**: Never import deep into feature internals; lower layers never import upper layers.
+- **RSC default**: Default to React Server Components; keep client boundaries low and narrow.
+- **State segregation**: Server data stays in TanStack Query; Zustand is only for client-owned UI state.
+- **Defensive null handling**: Use `??` to preserve legitimate `0` and empty strings.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 ## This is NOT the Next.js you know
