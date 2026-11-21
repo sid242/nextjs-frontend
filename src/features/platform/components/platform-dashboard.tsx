@@ -33,8 +33,10 @@ import {
 import { usePlatformPlans, type Plan } from "@/features/plans";
 import { formatDate } from "@/lib/format";
 
+import { hasPlatformPermission, PLATFORM_PERMISSION_KEYS } from "../permissions";
 import {
   usePlatformAuditLogs,
+  usePlatformMe,
   usePlatformTenants,
   useStaffList,
   useSupportSessions,
@@ -47,11 +49,20 @@ import type {
 } from "../schemas";
 
 export function PlatformDashboard() {
+  const { data: staffMe } = usePlatformMe();
+  const canReadStaff = hasPlatformPermission(staffMe, PLATFORM_PERMISSION_KEYS.STAFF_READ);
+  const canReadPlans = hasPlatformPermission(staffMe, PLATFORM_PERMISSION_KEYS.BILLING_READ);
+  const canManageTenants = hasPlatformPermission(staffMe, PLATFORM_PERMISSION_KEYS.TENANTS_MANAGE);
+
   const { data: tenantsData, isLoading: isTenantsLoading } = usePlatformTenants({ limit: 100 });
-  const { data: staffData, isLoading: isStaffLoading } = useStaffList({ limit: 100 });
-  const { data: plans = [], isLoading: isPlansLoading } = usePlatformPlans({
-    includeInactive: true,
-  });
+  const { data: staffData, isLoading: isStaffLoading } = useStaffList(
+    { limit: 100 },
+    { enabled: canReadStaff },
+  );
+  const { data: plans = [], isLoading: isPlansLoading } = usePlatformPlans(
+    { includeInactive: true },
+    { enabled: canReadPlans },
+  );
   const { data: sessionsData, isLoading: isSessionsLoading } = useSupportSessions({ limit: 10 });
   const { data: auditData, isLoading: isAuditLoading } = usePlatformAuditLogs({ limit: 6 });
 
@@ -91,11 +102,13 @@ export function PlatformDashboard() {
               <LifeBuoy className="h-3.5 w-3.5" /> Start Support Session
             </Link>
           </Button>
-          <Button asChild size="sm" className="h-10 gap-1.5 rounded-xl text-xs shadow-xs">
-            <Link href="/platform/tenants/new">
-              <Plus className="h-3.5 w-3.5" /> Provision Workspace
-            </Link>
-          </Button>
+          {canManageTenants && (
+            <Button asChild size="sm" className="h-10 gap-1.5 rounded-xl text-xs shadow-xs">
+              <Link href="/platform/tenants/new">
+                <Plus className="h-3.5 w-3.5" /> Provision Workspace
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -145,7 +158,9 @@ export function PlatformDashboard() {
               <Users className="text-muted-foreground/60 h-4 w-4" />
             </div>
             <CardTitle className="text-2xl font-bold tracking-tight">
-              {isStaffLoading ? (
+              {!canReadStaff ? (
+                "—"
+              ) : isStaffLoading ? (
                 <Skeleton className="h-7 w-12" />
               ) : (
                 (staffData?.total ?? staffList.length)
@@ -153,15 +168,24 @@ export function PlatformDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 pt-1 text-xs">
-            <div className="text-muted-foreground flex items-center justify-between">
-              <span>{activeStaff} active accounts</span>
-              <span className="font-medium text-blue-500">Internal Operators</span>
-            </div>
-            <Button asChild variant="link" size="sm" className="h-auto p-0 text-[11px]">
-              <Link href="/platform/staff" className="inline-flex items-center gap-1">
-                Manage staff <ArrowRight className="h-3 w-3" />
-              </Link>
-            </Button>
+            {canReadStaff ? (
+              <>
+                <div className="text-muted-foreground flex items-center justify-between">
+                  <span>{activeStaff} active accounts</span>
+                  <span className="font-medium text-blue-500">Internal Operators</span>
+                </div>
+                <Button asChild variant="link" size="sm" className="h-auto p-0 text-[11px]">
+                  <Link href="/platform/staff" className="inline-flex items-center gap-1">
+                    Manage staff <ArrowRight className="h-3 w-3" />
+                  </Link>
+                </Button>
+              </>
+            ) : (
+              <div className="text-muted-foreground flex items-center justify-between pt-1">
+                <span>Restricted to Administrators</span>
+                <span className="font-mono text-[10px]">READ-ONLY</span>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -173,21 +197,36 @@ export function PlatformDashboard() {
               <Layers className="text-muted-foreground/60 h-4 w-4" />
             </div>
             <CardTitle className="text-2xl font-bold tracking-tight">
-              {isPlansLoading ? <Skeleton className="h-7 w-12" /> : planList.length}
+              {!canReadPlans ? (
+                "—"
+              ) : isPlansLoading ? (
+                <Skeleton className="h-7 w-12" />
+              ) : (
+                planList.length
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 pt-1 text-xs">
-            <div className="text-muted-foreground flex items-center justify-between">
-              <span className="font-medium text-emerald-500">
-                {activePlans} active public tiers
-              </span>
-              <span>{planList.length - activePlans} inactive</span>
-            </div>
-            <Button asChild variant="link" size="sm" className="h-auto p-0 text-[11px]">
-              <Link href="/platform/plans" className="inline-flex items-center gap-1">
-                Configure pricing <ArrowRight className="h-3 w-3" />
-              </Link>
-            </Button>
+            {canReadPlans ? (
+              <>
+                <div className="text-muted-foreground flex items-center justify-between">
+                  <span className="font-medium text-emerald-500">
+                    {activePlans} active public tiers
+                  </span>
+                  <span>{planList.length - activePlans} inactive</span>
+                </div>
+                <Button asChild variant="link" size="sm" className="h-auto p-0 text-[11px]">
+                  <Link href="/platform/plans" className="inline-flex items-center gap-1">
+                    Configure pricing <ArrowRight className="h-3 w-3" />
+                  </Link>
+                </Button>
+              </>
+            ) : (
+              <div className="text-muted-foreground flex items-center justify-between pt-1">
+                <span>Restricted to Billing Staff</span>
+                <span className="font-mono text-[10px]">READ-ONLY</span>
+              </div>
+            )}
           </CardContent>
         </Card>
 

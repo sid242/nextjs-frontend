@@ -108,8 +108,10 @@ export const PLATFORM_PERMISSION_KEYS = {
   PERMISSIONS_READ: "platform_permissions:read",
 
   TENANTS_READ: "tenants:read",
+  TENANTS_CREATE: "tenants:create",
   TENANTS_MANAGE: "tenants:manage",
   TENANTS_SUSPEND: "tenants:suspend",
+  TENANTS_DELETE: "tenants:delete",
 
   SUPPORT_START: "tenant_support:start",
   SUPPORT_END: "tenant_support:end",

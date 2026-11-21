@@ -72,12 +72,10 @@ import {
 
 import { hasPlatformPermission, PLATFORM_PERMISSION_KEYS } from "../permissions";
 import {
-  useApproveTenantDbOperation,
   useCancelTenantDbOperation,
   useExecuteTenantDatabaseOperation,
   usePlatformMe,
   useTenantDatabases,
-  useTenantDbHealth,
   useTenantDbOperation,
   useTenantDbOperations,
 } from "../queries";
@@ -85,7 +83,6 @@ import type {
   ExecuteTenantDatabaseOperationInput,
   ListTenantDatabasesQuery,
   TenantDatabaseItem,
-  TenantDbOperation,
 } from "../schemas";
 
 type DatabaseColumnId =
@@ -112,6 +109,10 @@ const DATABASE_COLUMNS: TableColumnDef<DatabaseColumnId>[] = [
 export function DatabaseOperationsTable() {
   const { data: me } = usePlatformMe();
   const canManageTenants = hasPlatformPermission(me, PLATFORM_PERMISSION_KEYS.TENANTS_MANAGE);
+  const canOperateDb = hasPlatformPermission(me, [
+    PLATFORM_PERMISSION_KEYS.DATABASE_OPERATE,
+    PLATFORM_PERMISSION_KEYS.TENANTS_MANAGE,
+  ]);
 
   const { get, getNumber, setParam, setParams } = useSearchQueryParams();
   const [searchInput, setSearchInput] = useState<string>(() => get("q") ?? "");
@@ -154,7 +155,6 @@ export function DatabaseOperationsTable() {
 
   const { data: activeOp } = useTenantDbOperation(activeOpId);
   const { data: tenantOps, isLoading: loadingOps } = useTenantDbOperations(historyTenant?.id);
-  const approveOpMutation = useApproveTenantDbOperation();
   const cancelOpMutation = useCancelTenantDbOperation();
 
   const tableColumns = useTableColumns<DatabaseColumnId>({
@@ -435,6 +435,24 @@ export function DatabaseOperationsTable() {
           </TableCell>
         );
       case "actions":
+        if (!canOperateDb) {
+          return (
+            <TableCell key="actions" className="text-right">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5"
+                onClick={() => {
+                  setHistoryTenant(item);
+                  setHistoryModalOpen(true);
+                }}
+              >
+                <Clock className="h-3.5 w-3.5 text-purple-500" />
+                Timeline
+              </Button>
+            </TableCell>
+          );
+        }
         return (
           <TableCell key="actions" className="text-right">
             <DropdownMenu>
@@ -1005,7 +1023,7 @@ export function DatabaseOperationsTable() {
 
                     <div className="text-muted-foreground flex items-center justify-between border-t pt-1 text-[11px]">
                       <span>ID: {op.id.slice(0, 8)}...</span>
-                      {op.status === "QUEUED" && (
+                      {canOperateDb && op.status === "QUEUED" && (
                         <div className="flex gap-2">
                           <Button
                             size="sm"

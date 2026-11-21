@@ -231,6 +231,13 @@ export function PlatformUsersTable() {
         );
 
       case "actions":
+        if (!canSuspend) {
+          return (
+            <TableCell key="actions" className="text-right">
+              <span className="text-muted-foreground font-mono text-xs">Read-Only</span>
+            </TableCell>
+          );
+        }
         return (
           <TableCell key="actions" className="text-right">
             <DropdownMenu>
@@ -248,30 +255,28 @@ export function PlatformUsersTable() {
                 <DropdownMenuLabel className="text-xs">User Actions</DropdownMenuLabel>
                 <DropdownMenuSeparator />
 
-                {canSuspend && (
-                  <DropdownMenuItem
-                    className={isSuspended ? "text-emerald-600" : "text-destructive"}
-                    onClick={() =>
-                      setStatusModal({
-                        isOpen: true,
-                        user,
-                        targetStatus: isSuspended ? "ACTIVE" : "SUSPENDED",
-                      })
-                    }
-                  >
-                    {isSuspended ? (
-                      <>
-                        <UserCheck className="mr-2 size-4" />
-                        Reactivate Account
-                      </>
-                    ) : (
-                      <>
-                        <UserX className="mr-2 size-4" />
-                        Suspend Account
-                      </>
-                    )}
-                  </DropdownMenuItem>
-                )}
+                <DropdownMenuItem
+                  className={isSuspended ? "text-emerald-600" : "text-destructive"}
+                  onClick={() =>
+                    setStatusModal({
+                      isOpen: true,
+                      user,
+                      targetStatus: isSuspended ? "ACTIVE" : "SUSPENDED",
+                    })
+                  }
+                >
+                  {isSuspended ? (
+                    <>
+                      <UserCheck className="mr-2 size-4" />
+                      Reactivate Account
+                    </>
+                  ) : (
+                    <>
+                      <UserX className="mr-2 size-4" />
+                      Suspend Account
+                    </>
+                  )}
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </TableCell>

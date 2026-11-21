@@ -42,8 +42,14 @@ export const platformPlansQueryOptions = (
     queryFn: ({ signal }) => getPlatformPlans(params, signal),
   });
 
-export function usePlatformPlans(params?: Partial<PlanFilters> & { includeInactive?: boolean }) {
-  return useQuery(platformPlansQueryOptions(params));
+export function usePlatformPlans(
+  params?: Partial<PlanFilters> & { includeInactive?: boolean },
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    ...platformPlansQueryOptions(params),
+    ...options,
+  });
 }
 
 export const tenantSubscriptionQueryOptions = () =>

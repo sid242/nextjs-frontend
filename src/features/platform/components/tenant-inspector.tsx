@@ -49,9 +49,11 @@ import { getErrorMessage } from "@/lib/api/errors";
 import { formatDate, initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
+import { hasPlatformPermission, PLATFORM_PERMISSION_KEYS } from "../permissions";
 import {
   useActivateTenant,
   useMigrateTenantDatabase,
+  usePlatformMe,
   usePlatformTenant,
   usePlatformTenantMembers,
   useRollbackTenantDatabase,
@@ -67,6 +69,13 @@ interface TenantInspectorProps {
 }
 
 export function TenantInspector({ tenantId }: TenantInspectorProps) {
+  const { data: staffMe } = usePlatformMe();
+  const canSuspendTenant = hasPlatformPermission(staffMe, PLATFORM_PERMISSION_KEYS.TENANTS_SUSPEND);
+  const canStartSupport = hasPlatformPermission(staffMe, PLATFORM_PERMISSION_KEYS.SUPPORT_START);
+  const canManageTenants = hasPlatformPermission(staffMe, PLATFORM_PERMISSION_KEYS.TENANTS_MANAGE);
+  const canOperateDb = hasPlatformPermission(staffMe, PLATFORM_PERMISSION_KEYS.DATABASE_OPERATE);
+  const canManageBilling = hasPlatformPermission(staffMe, PLATFORM_PERMISSION_KEYS.BILLING_MANAGE);
+
   const { data: tenant, isLoading } = usePlatformTenant(tenantId);
   const { data: members, isLoading: isLoadingMembers } = usePlatformTenantMembers(tenantId);
   const { mutateAsync: suspendTenant, isPending: isSuspending } = useSuspendTenant();
@@ -297,34 +306,37 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={handleOpenGeneralSupport}
-            className="h-10 gap-2 rounded-xl shadow-xs"
-          >
-            <LifeBuoy className="size-4 text-blue-500" />
-            Support Session
-          </Button>
-
-          {tenant.status === "ACTIVE" ? (
+          {canStartSupport && (
             <Button
-              variant="destructive"
-              onClick={() => setModalState((prev) => ({ ...prev, type: "suspend" }))}
+              variant="outline"
+              onClick={handleOpenGeneralSupport}
               className="h-10 gap-2 rounded-xl shadow-xs"
             >
-              <PowerOff className="size-4" />
-              Suspend Workspace
-            </Button>
-          ) : (
-            <Button
-              onClick={handleActivate}
-              disabled={isActivating}
-              className="h-10 gap-2 rounded-xl bg-emerald-600 text-white shadow-xs hover:bg-emerald-700"
-            >
-              <Power className="size-4" />
-              {isActivating ? "Reactivating…" : "Reactivate Workspace"}
+              <LifeBuoy className="size-4 text-blue-500" />
+              Support Session
             </Button>
           )}
+
+          {canSuspendTenant &&
+            (tenant.status === "ACTIVE" ? (
+              <Button
+                variant="destructive"
+                onClick={() => setModalState((prev) => ({ ...prev, type: "suspend" }))}
+                className="h-10 gap-2 rounded-xl shadow-xs"
+              >
+                <PowerOff className="size-4" />
+                Suspend Workspace
+              </Button>
+            ) : (
+              <Button
+                onClick={handleActivate}
+                disabled={isActivating}
+                className="h-10 gap-2 rounded-xl bg-emerald-600 text-white shadow-xs hover:bg-emerald-700"
+              >
+                <Power className="size-4" />
+                {isActivating ? "Reactivating…" : "Reactivate Workspace"}
+              </Button>
+            ))}
         </div>
       </div>
 
@@ -369,30 +381,32 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
                   {isCheckingHealth ? "Checking…" : "Check Health"}
                 </Button>
 
-                {tenant.databaseMode === "shared" ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 gap-1.5 rounded-lg border-indigo-500/30 text-[11px] text-indigo-600 hover:bg-indigo-500/10 dark:text-indigo-400"
-                    onClick={() => {
-                      setCustomDbName(`tenant_${tenant.slug.replace(/[^a-z0-9_]/g, "_")}`);
-                      setModalState((prev) => ({ ...prev, type: "migrateDb" }));
-                    }}
-                  >
-                    <Database className="size-3 text-indigo-500" />
-                    Migrate to Dedicated
-                  </Button>
-                ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 gap-1.5 rounded-lg border-amber-500/30 text-[11px] text-amber-600 hover:bg-amber-500/10 dark:text-amber-400"
-                    onClick={() => setModalState((prev) => ({ ...prev, type: "rollbackDb" }))}
-                  >
-                    <Database className="size-3 text-amber-500" />
-                    Rollback to Shared
-                  </Button>
-                )}
+                {canManageTenants &&
+                  canOperateDb &&
+                  (tenant.databaseMode === "shared" ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 gap-1.5 rounded-lg border-indigo-500/30 text-[11px] text-indigo-600 hover:bg-indigo-500/10 dark:text-indigo-400"
+                      onClick={() => {
+                        setCustomDbName(`tenant_${tenant.slug.replace(/[^a-z0-9_]/g, "_")}`);
+                        setModalState((prev) => ({ ...prev, type: "migrateDb" }));
+                      }}
+                    >
+                      <Database className="size-3 text-indigo-500" />
+                      Migrate to Dedicated
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 gap-1.5 rounded-lg border-amber-500/30 text-[11px] text-amber-600 hover:bg-amber-500/10 dark:text-amber-400"
+                      onClick={() => setModalState((prev) => ({ ...prev, type: "rollbackDb" }))}
+                    >
+                      <Database className="size-3 text-amber-500" />
+                      Rollback to Shared
+                    </Button>
+                  ))}
 
                 {dbHealth && (
                   <span className="text-muted-foreground font-mono text-[10px]">
@@ -476,20 +490,22 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
                   {tenant.subscription?.seatCount ?? 5} Seats
                 </div>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 rounded-lg"
-                onClick={() => {
-                  setModalState((prev) => ({
-                    ...prev,
-                    type: "editSeats",
-                    seatCount: tenant.subscription?.seatCount ?? 5,
-                  }));
-                }}
-              >
-                Change Seats
-              </Button>
+              {canManageBilling && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 rounded-lg"
+                  onClick={() => {
+                    setModalState((prev) => ({
+                      ...prev,
+                      type: "editSeats",
+                      seatCount: tenant.subscription?.seatCount ?? 5,
+                    }));
+                  }}
+                >
+                  Change Seats
+                </Button>
+              )}
             </div>
 
             {tenant.subscription?.trialEndsAt && (
@@ -601,15 +617,19 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
                         {formatDate(member.joinedAt)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleOpenMemberSupport(member)}
-                          className="hover:border-primary/50 h-8 gap-1.5 rounded-lg text-xs font-semibold shadow-2xs"
-                        >
-                          <VenetianMask className="text-primary size-3.5" />
-                          Impersonate User
-                        </Button>
+                        {canStartSupport ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleOpenMemberSupport(member)}
+                            className="hover:border-primary/50 h-8 gap-1.5 rounded-lg text-xs font-semibold shadow-2xs"
+                          >
+                            <VenetianMask className="text-primary size-3.5" />
+                            Impersonate User
+                          </Button>
+                        ) : (
+                          <span className="text-muted-foreground font-mono text-xs">—</span>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}

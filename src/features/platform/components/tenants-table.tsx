@@ -194,6 +194,8 @@ export function TenantsTable() {
 
   const canStartSupport = hasPlatformPermission(staffMe, PLATFORM_PERMISSION_KEYS.SUPPORT_START);
   const canSuspendTenant = hasPlatformPermission(staffMe, PLATFORM_PERMISSION_KEYS.TENANTS_SUSPEND);
+  const canManageTenants = hasPlatformPermission(staffMe, PLATFORM_PERMISSION_KEYS.TENANTS_MANAGE);
+  const canDeleteTenant = hasPlatformPermission(staffMe, PLATFORM_PERMISSION_KEYS.TENANTS_DELETE);
 
   const tenants = useMemo(() => tenantsData?.items ?? [], [tenantsData?.items]);
 
@@ -429,7 +431,7 @@ export function TenantsTable() {
                     </DropdownMenuItem>
                   ) : null}
 
-                  {t.provisioningStatus === "FAILED" ? (
+                  {canManageTenants && t.provisioningStatus === "FAILED" ? (
                     <DropdownMenuItem
                       onClick={() => handleRetryProvisioning(t.id)}
                       disabled={isRetrying}
@@ -439,17 +441,17 @@ export function TenantsTable() {
                     </DropdownMenuItem>
                   ) : null}
 
-                  {canSuspendTenant ? (
+                  {canSuspendTenant || canDeleteTenant ? (
                     <>
                       <DropdownMenuSeparator />
-                      {t.status === "ACTIVE" ? (
+                      {canSuspendTenant && t.status === "ACTIVE" ? (
                         <DropdownMenuItem
                           onClick={() => setModalState({ type: "suspend", tenant: t, reason: "" })}
                           className="gap-2 text-red-600 dark:text-red-400"
                         >
                           <PowerOff className="size-3.5" /> Suspend Workspace
                         </DropdownMenuItem>
-                      ) : t.status === "SUSPENDED" ? (
+                      ) : canSuspendTenant && t.status === "SUSPENDED" ? (
                         <DropdownMenuItem
                           onClick={() => setModalState({ type: "activate", tenant: t, reason: "" })}
                           className="gap-2 text-emerald-600 dark:text-emerald-400"
@@ -457,7 +459,7 @@ export function TenantsTable() {
                           <Power className="size-3.5" /> Reactivate Workspace
                         </DropdownMenuItem>
                       ) : null}
-                      {t.status !== "DEACTIVATED" ? (
+                      {canDeleteTenant && t.status !== "DEACTIVATED" ? (
                         <DropdownMenuItem
                           onClick={() => setModalState({ type: "close", tenant: t, reason: "" })}
                           className="gap-2 text-red-700 dark:text-red-400"
