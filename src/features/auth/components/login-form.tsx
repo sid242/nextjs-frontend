@@ -38,7 +38,7 @@ export function LoginForm({
   targetTenant,
 }: {
   next?: string;
-  targetTenant?: { id: string; name: string; slug: string };
+  targetTenant?: { id: string; name: string; slug: string; ssoConfigured?: boolean };
 }) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -187,25 +187,29 @@ export function LoginForm({
         </SubmitButton>
       </FormWrapper>
 
-      <div className="relative my-1">
-        <div className="absolute inset-0 flex items-center">
-          <span className="border-border/60 w-full border-t" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card text-muted-foreground px-2">Or</span>
-        </div>
-      </div>
+      {(!targetTenant || targetTenant.ssoConfigured) && (
+        <>
+          <div className="relative my-1">
+            <div className="absolute inset-0 flex items-center">
+              <span className="border-border/60 w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card text-muted-foreground px-2">Or</span>
+            </div>
+          </div>
 
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full text-xs font-medium"
-        onClick={handleSsoLogin}
-        disabled={ssoLoading}
-      >
-        <Building2 className="mr-2 h-4 w-4" />
-        {ssoLoading ? "Connecting to SSO…" : "Sign in with Enterprise SSO"}
-      </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full text-xs font-medium"
+            onClick={handleSsoLogin}
+            disabled={ssoLoading}
+          >
+            <Building2 className="mr-2 h-4 w-4" />
+            {ssoLoading ? "Connecting to SSO…" : "Sign in with Enterprise SSO"}
+          </Button>
+        </>
+      )}
 
       <p className="text-muted-foreground text-center text-sm">
         No account?{" "}

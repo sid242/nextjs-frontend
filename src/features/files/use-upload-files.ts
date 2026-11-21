@@ -8,7 +8,7 @@ import { getErrorMessage, isCanceledError } from "@/lib/api/errors";
 import { runWithConcurrency } from "@/lib/async";
 import { createId } from "@/lib/id";
 
-import { confirmUpload, requestUpload } from "./api";
+import { confirmUpload, deleteFile, requestUpload } from "./api";
 import { MAX_FILES_PER_BATCH, UPLOAD_CONCURRENCY } from "./constants";
 import { filesKeys } from "./keys";
 import { uploadToS3 } from "./upload";
@@ -37,12 +37,15 @@ async function uploadOne(
   uploadControllers.set(id, controller);
   const { signal } = controller;
 
+  let createdFileId: string | undefined;
+
   try {
     patch(id, { status: "uploading" });
     const { fileId, upload } = await requestUpload(
       { filename: file.name, contentType: file.type, folderId: folderId ?? undefined },
       signal,
     );
+    createdFileId = fileId;
 
     let lastPercent = -1;
     await uploadToS3(
@@ -58,9 +61,13 @@ async function uploadOne(
 
     patch(id, { status: "confirming", progress: 100 });
     await confirmUpload(fileId, signal);
+    createdFileId = undefined;
     patch(id, { status: "done" });
     onUploaded();
   } catch (err) {
+    if (createdFileId) {
+      deleteFile(createdFileId, true).catch(() => {});
+    }
     if (isCanceledError(err) || signal.aborted) patch(id, { status: "cancelled" });
     else
       patch(id, {

@@ -1,9 +1,12 @@
+import { resolveStorageUrl } from "@/lib/storage";
+
 /**
  * Triggers a real browser file download for a given URL and filename.
  * Uses a blob object URL so browsers treat it as same-origin, guaranteeing
  * that the download attribute triggers actual file saving rather than opening in a new tab.
  */
-export async function triggerFileDownload(url: string, filename: string): Promise<void> {
+export async function triggerFileDownload(rawUrl: string, filename: string): Promise<void> {
+  const url = resolveStorageUrl(rawUrl);
   try {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);

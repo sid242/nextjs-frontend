@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -49,6 +49,17 @@ function AcceptInviteInner() {
     isLoading: isPreviewLoading,
     error: previewError,
   } = usePreviewWorkspaceInvite(token);
+
+  useEffect(() => {
+    if (preview) {
+      if (preview.firstName && !methods.getValues("firstName")) {
+        methods.setValue("firstName", preview.firstName, { shouldValidate: false });
+      }
+      if (preview.lastName && !methods.getValues("lastName")) {
+        methods.setValue("lastName", preview.lastName, { shouldValidate: false });
+      }
+    }
+  }, [preview, methods]);
   const acceptMutation = useAcceptWorkspaceInvite();
 
   const missingTokenError = !token

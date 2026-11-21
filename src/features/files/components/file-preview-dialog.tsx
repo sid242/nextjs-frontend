@@ -28,6 +28,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { getErrorMessage } from "@/lib/api/errors";
 import type { FileRecord } from "@/lib/api/types";
 import { formatBytes, formatDate } from "@/lib/format";
+import { resolveStorageUrl } from "@/lib/storage";
 
 import { getDownloadUrl } from "../api";
 import { triggerFileDownload } from "../download";
@@ -115,8 +116,9 @@ export function FilePreviewDialog({ file, open, onOpenChange }: FilePreviewDialo
 
       try {
         const { url } = await getDownloadUrl(file.id, "inline");
+        const resolvedUrl = resolveStorageUrl(url);
         if (isCancelled) return;
-        setPreviewUrl(url);
+        setPreviewUrl(resolvedUrl);
 
         // If file is text or code, fetch text contents to render inline
         if (isText) {

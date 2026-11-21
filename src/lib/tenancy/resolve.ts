@@ -49,6 +49,7 @@ export interface PublicTenantResolution {
     id: string;
     name: string;
     slug: string;
+    ssoConfigured?: boolean;
   };
   branding?: ResolvedTenantBranding;
 }

@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api/http";
 import type { User } from "@/lib/api/types";
 import { useTranslation, type SupportedLocale } from "@/lib/i18n";
+import { resolveStorageUrl } from "@/lib/storage";
 
 import { useUpdateProfile } from "../queries";
 import { profileSchema, type ProfileValues } from "../schemas";
@@ -125,7 +126,8 @@ export function ProfileForm({ user }: { user?: User }) {
       Object.entries(presignRes.upload.fields).forEach(([k, v]) => formData.append(k, v));
       formData.append("file", file);
 
-      const s3Res = await fetch(presignRes.upload.url, {
+      const targetUploadUrl = resolveStorageUrl(presignRes.upload.url);
+      const s3Res = await fetch(targetUploadUrl, {
         method: "POST",
         body: formData,
       });
@@ -135,7 +137,7 @@ export function ProfileForm({ user }: { user?: User }) {
       }
 
       // 3. Update profile with new avatar URL
-      const newAvatarUrl = presignRes.publicUrl;
+      const newAvatarUrl = resolveStorageUrl(presignRes.publicUrl);
       methods.setValue("avatarUrl", newAvatarUrl, { shouldDirty: true });
       await updateProfileMutation.mutateAsync({
         ...methods.getValues(),

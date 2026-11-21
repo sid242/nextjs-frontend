@@ -67,12 +67,25 @@ function parseOrigins(raw?: string): string[] {
 }
 
 function buildCsp(nonce: string, rawHost?: string | null): string {
+  const dynamicDevStorageOrigins: string[] = [];
+  if (isDev && rawHost) {
+    try {
+      const hostOnly = rawHost.split(":")[0];
+      if (hostOnly && hostOnly !== "localhost" && hostOnly !== "127.0.0.1") {
+        dynamicDevStorageOrigins.push(`http://${hostOnly}:9000`);
+      }
+    } catch {
+      /* ignore invalid host */
+    }
+  }
+
   const extraOrigins = Array.from(
     new Set([
       ...parseOrigins(process.env.CSP_CONNECT_EXTRA),
       ...parseOrigins(process.env.CSP_STORAGE_EXTRA),
       ...parseOrigins(process.env.CSP_IMG_EXTRA),
       ...parseOrigins(process.env.CSP_FRAME_EXTRA),
+      ...dynamicDevStorageOrigins,
     ]),
   );
 

@@ -66,6 +66,8 @@ export const verifyMagicLink = (values: VerifyMagicLinkValues) =>
 
 export interface InvitationPreview {
   email: string;
+  firstName?: string;
+  lastName?: string;
   tenantName: string;
   tenantSlug?: string;
   roleName: string;

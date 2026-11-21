@@ -106,3 +106,35 @@ export const clientCookie = {
     }
   },
 };
+
+/**
+ * In local development, storage presigned URLs point to MinIO (e.g. http://localhost:9000/...).
+ * When testing on a mobile device or another machine on the LAN (e.g. browsing from http://192.168.1.33:3001),
+ * "localhost:9000" refers to the mobile device itself where no MinIO is running.
+ * This helper dynamically rewrites the hostname to match the current browser host if accessing via LAN/subdomain.
+ */
+export function resolveStorageUrl(url: string): string {
+  if (typeof window === "undefined" || !url) return url;
+  try {
+    const parsed = new URL(url);
+    const isLocalStorage =
+      (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") &&
+      (parsed.port === "9000" || parsed.port === "9001");
+
+    if (
+      isLocalStorage &&
+      window.location.hostname &&
+      window.location.hostname !== "localhost" &&
+      window.location.hostname !== "127.0.0.1"
+    ) {
+      // In subdomain multi-tenancy (e.g. acme-realty.localhost:3001), don't prefix subdomain to MinIO port
+      const currentHost = window.location.hostname;
+      const hostWithoutSubdomain = currentHost.endsWith(".localhost") ? "localhost" : currentHost;
+      parsed.hostname = hostWithoutSubdomain;
+      return parsed.toString();
+    }
+  } catch {
+    /* fallback to original url */
+  }
+  return url;
+}

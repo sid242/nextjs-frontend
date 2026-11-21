@@ -1,5 +1,3 @@
-import "client-only"; // build error if a server component imports this: server code uses backendFetch instead
-
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from "axios";
 
 import { isProtectedPath, tenantSlugFromPath } from "@/lib/auth/paths";
