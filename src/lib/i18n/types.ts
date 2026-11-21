@@ -1,4 +1,4 @@
-export type SupportedLocale = "en" | "es" | "hi" | "fr";
+export type SupportedLocale = "en" | "hi";
 
 export interface LocaleInfo {
   code: SupportedLocale;
@@ -17,24 +17,10 @@ export const SUPPORTED_LOCALES: LocaleInfo[] = [
     dir: "ltr",
   },
   {
-    code: "es",
-    name: "Spanish",
-    nativeName: "Español",
-    flag: "🇪🇸",
-    dir: "ltr",
-  },
-  {
     code: "hi",
     name: "Hindi",
     nativeName: "हिन्दी",
     flag: "🇮🇳",
-    dir: "ltr",
-  },
-  {
-    code: "fr",
-    name: "French",
-    nativeName: "Français",
-    flag: "🇫🇷",
     dir: "ltr",
   },
 ];

@@ -123,7 +123,7 @@ export function FilePreviewDialog({ file, open, onOpenChange }: FilePreviewDialo
         // If file is text or code, fetch text contents to render inline
         if (isText) {
           try {
-            const res = await fetch(url);
+            const res = await fetch(resolvedUrl);
             if (!res.ok) throw new Error("Failed to load text preview");
             const text = await res.text();
             if (!isCancelled) {
@@ -335,11 +335,31 @@ export function FilePreviewDialog({ file, open, onOpenChange }: FilePreviewDialo
               {/* 2. PDF Preview */}
               {isPdf ? (
                 <div className="h-[68vh] w-full rounded-md border">
-                  <iframe
-                    src={`${previewUrl}#toolbar=1`}
-                    title={filename}
-                    className="h-full w-full rounded-md border-0"
-                  />
+                  <object
+                    data={`${previewUrl}#toolbar=1`}
+                    type="application/pdf"
+                    className="h-full w-full rounded-md"
+                  >
+                    <iframe
+                      src={`${previewUrl}#toolbar=1`}
+                      title={filename}
+                      className="h-full w-full rounded-md border-0"
+                    >
+                      <div className="flex flex-col items-center justify-center gap-3 p-8 text-center">
+                        <p className="text-sm font-medium">
+                          Unable to preview PDF directly in this browser.
+                        </p>
+                        <Button
+                          size="sm"
+                          onClick={() => openInNewTab(previewUrl)}
+                          className="text-xs"
+                        >
+                          <ExternalLinkIcon className="mr-1.5 size-3.5" />
+                          Open PDF in new tab
+                        </Button>
+                      </div>
+                    </iframe>
+                  </object>
                 </div>
               ) : null}
 

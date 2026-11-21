@@ -50,10 +50,19 @@ export function forwardedHeaders(req: Request): Record<string, string | undefine
   const supportHeader = req.headers.get("x-support-session-id");
   const cookieMatch = req.headers.get("cookie")?.match(/(?:^|;\s*)support_session_id=([^;]+)/);
   const supportSession = supportHeader ?? cookieMatch?.[1] ?? undefined;
+  const host = (
+    req.headers.get("x-client-host") ??
+    req.headers.get("x-forwarded-host") ??
+    req.headers.get("host")
+  )
+    ?.split(",")[0]
+    ?.trim();
 
   return {
     "x-request-id": req.headers.get("x-request-id") ?? crypto.randomUUID(),
     "x-forwarded-for": req.headers.get("x-forwarded-for") ?? undefined,
+    "x-forwarded-host": host,
+    "x-client-host": host,
     "user-agent": req.headers.get("user-agent") ?? undefined,
     "x-support-session-id": supportSession,
   };

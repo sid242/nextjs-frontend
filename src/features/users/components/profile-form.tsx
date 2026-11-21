@@ -42,9 +42,7 @@ const TIMEZONE_OPTIONS = [
 
 const LOCALE_OPTIONS = [
   { label: "English (US)", value: "en" },
-  { label: "Español (Spanish)", value: "es" },
   { label: "हिन्दी (Hindi)", value: "hi" },
-  { label: "Français (French)", value: "fr" },
 ];
 
 const DATE_FORMAT_OPTIONS = [

@@ -68,14 +68,17 @@ function parseOrigins(raw?: string): string[] {
 
 function buildCsp(nonce: string, rawHost?: string | null): string {
   const dynamicDevStorageOrigins: string[] = [];
-  if (isDev && rawHost) {
-    try {
-      const hostOnly = rawHost.split(":")[0];
-      if (hostOnly && hostOnly !== "localhost" && hostOnly !== "127.0.0.1") {
-        dynamicDevStorageOrigins.push(`http://${hostOnly}:9000`);
+  if (isDev) {
+    dynamicDevStorageOrigins.push("http://localhost:9000", "http://127.0.0.1:9000");
+    if (rawHost) {
+      try {
+        const hostOnly = rawHost.split(":")[0];
+        if (hostOnly && hostOnly !== "localhost" && hostOnly !== "127.0.0.1") {
+          dynamicDevStorageOrigins.push(`http://${hostOnly}:9000`);
+        }
+      } catch {
+        /* ignore invalid host */
       }
-    } catch {
-      /* ignore invalid host */
     }
   }
 
@@ -133,9 +136,9 @@ function buildCsp(nonce: string, rawHost?: string | null): string {
     "font-src 'self' data: https://editor.unlayer.com https://*.unlayer.com https://fonts.gstatic.com",
     `connect-src ${connect.join(" ")}`,
     `media-src ${storageMedia.join(" ")}`,
-    `frame-src 'self' https://editor.unlayer.com https://*.unlayer.com https://api.razorpay.com https://checkout.razorpay.com ${extraOrigins.join(" ")}`,
+    `frame-src 'self' https://editor.unlayer.com https://*.unlayer.com https://api.razorpay.com https://checkout.razorpay.com ${storageMedia.join(" ")}`,
     "worker-src 'self' blob:",
-    "object-src 'none'",
+    `object-src 'self' blob: ${storageMedia.join(" ")}`,
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",

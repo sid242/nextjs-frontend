@@ -29,6 +29,9 @@ function createInstance(baseURL: string): AxiosInstance {
   // End-to-end tracing: the BFF forwards this id to the backend, so one id spans browser -> Next -> API logs.
   instance.interceptors.request.use((config) => {
     if (!config.headers.has("x-request-id")) config.headers.set("x-request-id", createId());
+    if (typeof window !== "undefined" && window.location.host) {
+      config.headers.set("x-client-host", window.location.host);
+    }
     return config;
   });
   return instance;

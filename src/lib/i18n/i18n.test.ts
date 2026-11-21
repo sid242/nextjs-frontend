@@ -33,7 +33,7 @@ describe("i18n Translation Dictionary Integrity", () => {
     expect(enKeys.length).toBeGreaterThan(40);
   });
 
-  const otherLocales: SupportedLocale[] = ["es", "hi", "fr"];
+  const otherLocales: SupportedLocale[] = ["hi"];
 
   for (const loc of otherLocales) {
     it(`locale '${loc}' must implement all keys present in reference 'en' dictionary with non-empty values`, () => {
@@ -79,12 +79,10 @@ describe("i18n Translation Dictionary Integrity", () => {
   });
 
   it("checks supported locales metadata consistency", () => {
-    expect(SUPPORTED_LOCALES.length).toBe(4);
+    expect(SUPPORTED_LOCALES.length).toBe(2);
     const codes = SUPPORTED_LOCALES.map((l) => l.code);
     expect(codes).toContain("en");
-    expect(codes).toContain("es");
     expect(codes).toContain("hi");
-    expect(codes).toContain("fr");
     expect(DEFAULT_LOCALE).toBe("en");
   });
 });
