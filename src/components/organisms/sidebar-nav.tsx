@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  BarChart3Icon,
   ChevronDownIcon,
   CircleIcon,
   FolderIcon,
@@ -38,6 +39,7 @@ import { cn } from "@/lib/utils";
 
 const ICONS: Record<NavIcon, LucideIcon> = {
   "layout-dashboard": LayoutDashboardIcon,
+  "bar-chart": BarChart3Icon,
   users: UsersIcon,
   "shield-check": ShieldCheckIcon,
   palette: PaletteIcon,

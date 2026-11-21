@@ -66,6 +66,14 @@ export const TENANT_PERMISSIONS = {
   API_KEYS_WRITE: "api-keys:write",
   WEBHOOKS_READ: "webhooks:read",
   WEBHOOKS_WRITE: "webhooks:write",
+
+  // Analytics, Usage & Reports
+  ANALYTICS_READ: "analytics:read",
+  USAGE_READ: "usage:read",
+  ACTIVITY_READ: "activity:read",
+  REPORTS_READ: "reports:read",
+  REPORTS_CREATE: "reports:create",
+  REPORTS_RUN: "reports:run",
 } as const;
 
 export type TenantPermissionKey = (typeof TENANT_PERMISSIONS)[keyof typeof TENANT_PERMISSIONS];
@@ -104,6 +112,7 @@ export const PLATFORM_PERMISSION_KEYS = {
   AUDIT_READ: "platform_audit:read",
   HEALTH_READ: "system_health:read",
   DATABASE_OPERATE: "database:operate",
+  METRICS_READ: "platform_metrics:read",
 } as const;
 
 export type PlatformPermissionKey =

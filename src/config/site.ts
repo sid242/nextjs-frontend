@@ -2,6 +2,7 @@ import { TENANT_PERMISSIONS } from "./permissions";
 
 export type NavIcon =
   | "layout-dashboard"
+  | "bar-chart"
   | "users"
   | "shield-check"
   | "palette"
@@ -35,6 +36,12 @@ export const navSections: NavSection[] = [
         title: "Dashboard",
         href: "/dashboard",
         icon: "layout-dashboard",
+      },
+      {
+        title: "Analytics & Reports",
+        href: "/analytics",
+        icon: "bar-chart",
+        permission: TENANT_PERMISSIONS.ANALYTICS_READ,
       },
     ],
   },
