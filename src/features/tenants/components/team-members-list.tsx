@@ -17,7 +17,7 @@ import {
   Users,
 } from "lucide-react";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,6 +38,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { initials } from "@/lib/format";
+import { resolveStorageUrl } from "@/lib/storage";
 
 import { MEMBER_ROLE_OPTIONS } from "../constants";
 import type { TenantMember } from "../schemas";
@@ -263,6 +264,9 @@ export function TeamMembersList({
                   onClick={() => onSelectMember?.(member)}
                 >
                   <Avatar className="ring-primary/40 size-9 shrink-0 transition-all group-hover:ring-2">
+                    {member?.avatarUrl ? (
+                      <AvatarImage src={resolveStorageUrl(member.avatarUrl)} alt={member?.name} />
+                    ) : null}
                     <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
                       {initials(member?.name)}
                     </AvatarFallback>

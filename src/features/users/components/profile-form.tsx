@@ -141,8 +141,6 @@ export function ProfileForm({ user }: { user?: User }) {
         ...methods.getValues(),
         avatarUrl: newAvatarUrl,
       });
-
-      toast.success("Profile avatar updated successfully");
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to upload avatar");
     } finally {
@@ -161,7 +159,10 @@ export function ProfileForm({ user }: { user?: User }) {
         <div className="relative">
           <Avatar className="border-border/80 size-16 border shadow-xs">
             {currentAvatarUrl ? (
-              <AvatarImage src={currentAvatarUrl} alt={user?.firstName || "Avatar"} />
+              <AvatarImage
+                src={resolveStorageUrl(currentAvatarUrl)}
+                alt={user?.firstName || "Avatar"}
+              />
             ) : null}
             <AvatarFallback className="bg-primary/10 text-primary text-base font-semibold">
               {initials}

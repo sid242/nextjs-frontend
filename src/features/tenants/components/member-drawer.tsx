@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { Briefcase, Calendar, Mail, MapPin, Shield, UserMinus } from "lucide-react";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MemberAccessExplainer } from "@/features/rbac";
 import { formatDate } from "@/lib/date";
 import { initials } from "@/lib/format";
+import { resolveStorageUrl } from "@/lib/storage";
 
 import { MEMBER_ROLE_OPTIONS } from "../constants";
 import { useActiveTenant } from "../queries";
@@ -83,6 +84,9 @@ export function MemberDrawer({
         <SheetHeader className="gap-3 pb-2 text-left">
           <div className="flex items-center gap-3">
             <Avatar className="size-12 shrink-0">
+              {member?.avatarUrl ? (
+                <AvatarImage src={resolveStorageUrl(member.avatarUrl)} alt={member?.name} />
+              ) : null}
               <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
                 {initials(member.name)}
               </AvatarFallback>

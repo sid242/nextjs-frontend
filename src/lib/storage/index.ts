@@ -113,8 +113,9 @@ export const clientCookie = {
  * "localhost:9000" refers to the mobile device itself where no MinIO is running.
  * This helper dynamically rewrites the hostname to match the current browser host if accessing via LAN/subdomain.
  */
-export function resolveStorageUrl(url: string): string {
-  if (typeof window === "undefined" || !url) return url;
+export function resolveStorageUrl(url?: string | null): string {
+  if (!url) return "";
+  if (typeof window === "undefined") return url;
   try {
     const parsed = new URL(url);
     const isLocalStorage =

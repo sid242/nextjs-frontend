@@ -186,6 +186,7 @@ export interface PlatformTenantMember {
   status: "ACTIVE" | "INVITED" | "SUSPENDED";
   joinedAt: string;
   roleName: string;
+  avatarUrl?: string | null;
 }
 
 // ==========================================

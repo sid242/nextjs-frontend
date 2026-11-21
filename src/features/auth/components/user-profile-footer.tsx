@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { PanelLeftCloseIcon, PanelLeftOpenIcon } from "lucide-react";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { User } from "@/lib/api/types";
 import { useSidebar } from "@/lib/context/sidebar-context";
 import { initials } from "@/lib/format";
+import { resolveStorageUrl } from "@/lib/storage";
 import { useTenantHref } from "@/lib/tenancy/use-tenant-href";
 
 interface UserProfileFooterProps {
@@ -17,6 +18,7 @@ interface UserProfileFooterProps {
     email?: string | null;
     firstName?: string | null;
     lastName?: string | null;
+    avatarUrl?: string | null;
   };
   collapsed?: boolean;
   onToggleCollapse?: () => void;
@@ -44,6 +46,9 @@ export function UserProfileFooter({
           <TooltipTrigger asChild>
             <Link href={tenantHref("/settings")}>
               <Avatar className="border-sidebar-border size-8 border transition-opacity hover:opacity-80">
+                {user?.avatarUrl ? (
+                  <AvatarImage src={resolveStorageUrl(user.avatarUrl)} alt={displayName} />
+                ) : null}
                 <AvatarFallback className="bg-sidebar-accent text-sidebar-foreground text-xs font-semibold">
                   {initials(displayName)}
                 </AvatarFallback>
@@ -83,6 +88,9 @@ export function UserProfileFooter({
         className="flex min-w-0 flex-1 items-center gap-2.5 transition-opacity hover:opacity-80"
       >
         <Avatar className="border-sidebar-border size-8 shrink-0 border">
+          {user?.avatarUrl ? (
+            <AvatarImage src={resolveStorageUrl(user.avatarUrl)} alt={displayName} />
+          ) : null}
           <AvatarFallback className="bg-sidebar-accent text-sidebar-foreground text-xs font-semibold">
             {initials(displayName)}
           </AvatarFallback>

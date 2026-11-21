@@ -19,6 +19,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { getErrorMessage } from "@/lib/api/errors";
+import { resolveStorageUrl } from "@/lib/storage";
 
 import { usePlatformMe, useUpdatePlatformProfile } from "../queries";
 import { updatePlatformProfileSchema, type UpdatePlatformProfileInput } from "../schemas";
@@ -70,7 +71,7 @@ function PlatformProfileFormInner({ onClose }: { onClose: () => void }) {
           {avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element -- Profile picture preview from dynamic URL
             <img
-              src={avatarUrl}
+              src={resolveStorageUrl(avatarUrl)}
               alt={displayName || "Staff Profile"}
               className="h-full w-full object-cover"
             />

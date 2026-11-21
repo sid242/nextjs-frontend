@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { PLATFORM_ROUTES } from "@/config/routes";
+import { resolveStorageUrl } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 
 import { PLATFORM_NAV_GROUPS } from "../constants";
@@ -348,7 +349,7 @@ export function PlatformShell({ children }: PlatformShellProps) {
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-indigo-500/30 bg-indigo-500/15 text-xs font-bold text-indigo-600 dark:text-indigo-400">
                       {staff?.avatarUrl ? (
                         <img
-                          src={staff.avatarUrl}
+                          src={resolveStorageUrl(staff.avatarUrl)}
                           alt={staff?.displayName ?? "Platform Staff"}
                           className="h-full w-full object-cover"
                         />

@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,6 +47,7 @@ import { PLATFORM_ROUTES } from "@/config/routes";
 import { TenantLogo } from "@/features/tenants";
 import { getErrorMessage } from "@/lib/api/errors";
 import { formatDate, initials } from "@/lib/format";
+import { resolveStorageUrl } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 
 import { hasPlatformPermission, PLATFORM_PERMISSION_KEYS } from "../permissions";
@@ -567,6 +568,12 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
                       <TableCell>
                         <div className="flex items-center gap-2.5">
                           <Avatar className="size-8">
+                            {member?.avatarUrl ? (
+                              <AvatarImage
+                                src={resolveStorageUrl(member.avatarUrl)}
+                                alt={member.name ?? member.email}
+                              />
+                            ) : null}
                             <AvatarFallback className="text-[11px] font-semibold">
                               {initials(member.name ?? member.email)}
                             </AvatarFallback>

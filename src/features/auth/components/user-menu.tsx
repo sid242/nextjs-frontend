@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { LogOutIcon, SettingsIcon, UserIcon } from "lucide-react";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { User } from "@/lib/api/types";
 import { initials } from "@/lib/format";
+import { resolveStorageUrl } from "@/lib/storage";
 import { resetAllStores } from "@/lib/stores/reset";
 import { useTenantHref } from "@/lib/tenancy/use-tenant-href";
 
@@ -29,6 +30,7 @@ export function UserMenu({
     email?: string | null;
     firstName?: string | null;
     lastName?: string | null;
+    avatarUrl?: string | null;
   };
 }) {
   const queryClient = useQueryClient();
@@ -56,6 +58,9 @@ export function UserMenu({
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="rounded-full" aria-label="Account menu">
           <Avatar className="size-8">
+            {user?.avatarUrl ? (
+              <AvatarImage src={resolveStorageUrl(user.avatarUrl)} alt={displayName} />
+            ) : null}
             <AvatarFallback className="text-xs font-semibold">
               {initials(displayName)}
             </AvatarFallback>
