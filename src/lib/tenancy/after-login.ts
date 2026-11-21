@@ -1,4 +1,5 @@
-import { safeNextPath } from "@/lib/auth/paths";
+import { AUTH_ROUTES, ROUTES, TENANT_PATHS } from "@/config/routes";
+import { isProtectedPath, safeNextPath } from "@/lib/auth/paths";
 
 import { initiateSessionHandoff } from "./handoff";
 import { classifyHost, isIpAddress, normalizeHost } from "./host";
@@ -35,27 +36,45 @@ function resolveMembershipDestination(
   membership: UserMembershipSummary,
   cleanHost: string,
   isPlatform: boolean,
-  requestedNext?: string | null,
+  requestedNext: URL | null,
+  requestedSlug?: string,
 ): AfterLoginResult {
   const targetHost = getHostFromBase(membership?.canonicalBase);
-  const isPathMode =
-    !membership?.canonicalBase || membership?.canonicalBase?.includes?.(`/w/${membership?.slug}`);
+  const slug = encodeURIComponent(membership.slug);
+  const workspacePath = `/w/${slug}`;
+  const canonicalPath =
+    membership?.canonicalBase && URL.canParse(membership.canonicalBase)
+      ? new URL(membership.canonicalBase).pathname.replace(/\/$/, "")
+      : "";
+  const isPathMode = !membership?.canonicalBase || canonicalPath === workspacePath;
   const isSameHost =
     !targetHost || targetHost === cleanHost || isIpAddress(cleanHost) || isPathMode;
 
-  if (isSameHost) {
-    if (requestedNext && requestedNext.startsWith(`/w/${membership?.slug}`)) {
-      return { type: "navigate", path: safeNextPath(requestedNext) };
+  let next: string | undefined;
+  if (requestedNext && isProtectedPath(requestedNext.pathname)) {
+    const suffix = requestedNext.search + requestedNext.hash;
+    if (requestedSlug === slug) {
+      const tenantPath =
+        requestedNext.pathname.slice(workspacePath.length) || TENANT_PATHS.DASHBOARD;
+      next = (isPathMode || isIpAddress(cleanHost) ? workspacePath : "") + tenantPath + suffix;
+    } else if (!requestedSlug && !isPlatform && targetHost === cleanHost) {
+      next = requestedNext.pathname + suffix;
     }
-    const defaultPath = isPlatform ? `/w/${membership?.slug}/dashboard` : "/dashboard";
-    return { type: "navigate", path: defaultPath };
+  }
+
+  if (isSameHost) {
+    const defaultPath =
+      isPathMode || isPlatform || isIpAddress(cleanHost)
+        ? ROUTES.tenant(membership.slug).DASHBOARD
+        : TENANT_PATHS.DASHBOARD;
+    return { type: "navigate", path: next ?? defaultPath };
   }
 
   return {
     type: "handoff",
     tenantId: membership?.tenantId,
     targetHost,
-    next: requestedNext ? safeNextPath(requestedNext) : "/dashboard",
+    next: next ?? TENANT_PATHS.DASHBOARD,
   };
 }
 
@@ -63,6 +82,7 @@ export function routeAfterLogin(
   memberships: UserMembershipSummary[] | undefined | null,
   currentHost: string,
   requestedNext?: string | null,
+  preferredSlug?: string,
 ): AfterLoginResult {
   const activeMemberships = (memberships ?? []).filter(
     (m) => m?.status === "ACTIVE" || m?.status === "TRIALING",
@@ -72,44 +92,26 @@ export function routeAfterLogin(
   const hostInfo = classifyHost(cleanHost);
   const isPlatform = hostInfo?.classification === "platform";
 
-  // Case 1: 0 memberships
-  if (!activeMemberships || (activeMemberships?.length ?? 0) === 0) {
-    return { type: "navigate", path: "/select-workspace" };
-  }
+  const safePath = safeNextPath(requestedNext, "");
+  const base = "https://local.invalid";
+  const parsedNext = safePath ? new URL(safePath, base) : null;
+  const next = parsedNext?.origin === base ? parsedNext : null;
+  const requestedSlug = next?.pathname.match(/^\/w\/([^/]+)/)?.[1];
 
-  // Case 2: exactly 1 membership
-  if (activeMemberships?.length === 1) {
-    const single = activeMemberships?.[0];
-    if (!single) return { type: "navigate", path: "/select-workspace" };
-    return resolveMembershipDestination(single, cleanHost, isPlatform, requestedNext);
-  }
+  const explicit = activeMemberships.find((m) => m?.slug === preferredSlug);
+  const byHost =
+    !isPlatform && !isIpAddress(cleanHost)
+      ? activeMemberships.find((m) => getHostFromBase(m?.canonicalBase) === cleanHost)
+      : undefined;
+  const byPath = activeMemberships.find((m) => encodeURIComponent(m.slug) === requestedSlug);
+  const membership =
+    explicit ??
+    byHost ??
+    byPath ??
+    (activeMemberships.length === 1 ? activeMemberships[0] : undefined);
 
-  // Case 3: >= 2 memberships
-  // If on a domain host (subdomain / custom), check if this domain corresponds to one of the user's memberships
-  if (!isPlatform && !isIpAddress(cleanHost)) {
-    const matchingTenant = activeMemberships?.find(
-      (m) => getHostFromBase(m?.canonicalBase) === cleanHost,
-    );
-    if (matchingTenant) {
-      return {
-        type: "navigate",
-        path: requestedNext ? safeNextPath(requestedNext) : "/dashboard",
-      };
-    }
-    return { type: "navigate", path: "/select-workspace" };
-  }
-
-  // On platform host with multiple memberships
-  if (requestedNext && requestedNext.startsWith("/w/")) {
-    const parts = requestedNext.split("/");
-    const slug = parts?.[2];
-    const match = activeMemberships?.find((m) => m?.slug === slug);
-    if (match) {
-      return resolveMembershipDestination(match, cleanHost, isPlatform, requestedNext);
-    }
-  }
-
-  return { type: "navigate", path: "/select-workspace" };
+  if (!membership) return { type: "navigate", path: AUTH_ROUTES.SELECT_WORKSPACE };
+  return resolveMembershipDestination(membership, cleanHost, isPlatform, next, requestedSlug);
 }
 
 /**
@@ -137,5 +139,5 @@ export async function executePostLoginRouting(
     return;
   }
 
-  router?.replace?.(result?.next || "/select-workspace");
+  router?.replace?.(AUTH_ROUTES.SELECT_WORKSPACE);
 }

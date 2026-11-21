@@ -38,10 +38,32 @@ export const planSchema = z.object({
 
 export type Plan = z.infer<typeof planSchema>;
 
+const catalogPlanPayloadSchema = planSchema.omit({ priceCents: true, entitlements: true }).extend({
+  priceCents: z.number().int().optional(),
+  priceMonthlyMinor: z.number().int().optional(),
+  priceYearlyMinor: z.number().int().optional(),
+  entitlements: z.unknown().optional(),
+});
+
+export const catalogPlanSchema = catalogPlanPayloadSchema.transform(
+  ({ priceCents, priceMonthlyMinor, priceYearlyMinor, entitlements, ...plan }): Plan => {
+    const legacyEntitlements = planEntitlementsSchema.safeParse(entitlements);
+    return {
+      ...plan,
+      priceCents:
+        priceCents ??
+        (plan.billingInterval === "ANNUAL" ? priceYearlyMinor : priceMonthlyMinor) ??
+        0,
+      entitlements: legacyEntitlements.success ? legacyEntitlements.data : undefined,
+    };
+  },
+);
+
 export const tenantSubscriptionUsageSchema = z.object({
   activeMembers: z.number().int(),
-  maxMembers: z.number().int(),
-  remainingSeats: z.number().int(),
+  maxMembers: z.number().int().nullable(),
+  remainingSeats: z.number().int().nullable(),
+  occupiedSeats: z.number().int().optional(),
 });
 
 export const tenantSubscriptionSchema = z.object({
@@ -67,6 +89,43 @@ export const tenantSubscriptionSchema = z.object({
 });
 
 export type TenantSubscription = z.infer<typeof tenantSubscriptionSchema>;
+
+export const tenantBillingOverviewSchema = z
+  .object({
+    subscription: tenantSubscriptionSchema
+      .omit({ usage: true, plan: true })
+      .extend({
+        plan: catalogPlanPayloadSchema.nullable().optional(),
+        billingInterval: z.enum(["MONTHLY", "ANNUAL", "LIFETIME"]).optional(),
+      })
+      .nullable(),
+    usage: tenantSubscriptionUsageSchema.partial().extend({ members: z.number().int() }),
+    limits: z.object({ maxMembers: z.number().int().nullable() }).optional(),
+  })
+  .transform(({ subscription, usage, limits }): TenantSubscription | null => {
+    if (!subscription) return null;
+    const { billingInterval, plan, ...details } = subscription;
+    const maxMembers = usage.maxMembers ?? limits?.maxMembers ?? null;
+    return {
+      ...details,
+      plan:
+        plan &&
+        catalogPlanSchema.parse({
+          ...plan,
+          billingInterval: billingInterval ?? plan.billingInterval,
+          priceCents: subscription.priceSnapshotMinor ?? plan.priceCents,
+          currency: subscription.currency ?? plan.currency,
+        }),
+      usage: {
+        activeMembers: usage.activeMembers ?? usage.members,
+        occupiedSeats: usage.members,
+        maxMembers,
+        remainingSeats:
+          usage.remainingSeats ??
+          (maxMembers === null ? null : Math.max(0, maxMembers - usage.members)),
+      },
+    };
+  });
 
 export const createPlanSchema = z.object({
   key: z

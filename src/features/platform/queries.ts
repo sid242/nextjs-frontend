@@ -382,8 +382,8 @@ export const platformMeQueryOptions = () =>
     staleTime: 5 * 60 * 1000,
   });
 
-export function usePlatformMe() {
-  return useQuery(platformMeQueryOptions());
+export function usePlatformMe(options?: { enabled?: boolean }) {
+  return useQuery({ ...platformMeQueryOptions(), ...options });
 }
 
 export function useUpdatePlatformProfile() {
@@ -407,6 +407,7 @@ export function usePlatformLogin() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (credentials: PlatformLoginInput) => loginPlatformStaff(credentials),
+    meta: { silent: true },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: platformKeys.me() });
     },
@@ -476,6 +477,7 @@ export function useVerifyPlatformTwoFactor() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: { challengeToken: string; code: string }) => verifyPlatformTwoFactor(input),
+    meta: { silent: true },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: platformKeys.me() });
     },

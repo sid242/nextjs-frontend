@@ -90,4 +90,24 @@ describe("routeAfterLogin", () => {
       path: "/w/acme/files",
     });
   });
+
+  it("opens the workspace named by the sign-in page for users with multiple memberships", () => {
+    const result = routeAfterLogin([memberAcme, memberSubdomain], cleanHost, null, "acme");
+    expect(result).toEqual({ type: "navigate", path: "/w/acme/dashboard" });
+  });
+
+  it("does not mistake a tenant slug prefix for the current workspace", () => {
+    const result = routeAfterLogin([memberAcme], cleanHost, "/w/acme-east/files");
+    expect(result).toEqual({ type: "navigate", path: "/w/acme/dashboard" });
+  });
+
+  it("preserves the requested tenant page on domain handoff", () => {
+    const result = routeAfterLogin([memberSubdomain], cleanHost, "/w/globex/files?sort=name");
+    expect(result).toEqual({
+      type: "handoff",
+      tenantId: "t-2",
+      targetHost: "globex.example.com",
+      next: "/files?sort=name",
+    });
+  });
 });

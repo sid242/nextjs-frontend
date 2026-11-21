@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AUTH_ROUTES, ROUTES } from "@/config/routes";
 import { ForgotPasswordForm } from "@/features/auth";
 import { resolveTenantBySlug } from "@/lib/tenancy/resolve";
 
@@ -20,19 +21,21 @@ export default async function TenantForgotPasswordPage({
   }
 
   if (resolved.status === "SUSPENDED" || resolved.status === "DEACTIVATED") {
-    redirect("/tenant-suspended");
+    redirect(AUTH_ROUTES.TENANT_SUSPENDED);
   }
 
   return (
     <Card className="border-border/60 shadow-xs">
       <CardHeader>
-        <CardTitle className="text-xl">Reset your password</CardTitle>
+        <CardTitle className="text-2xl font-bold tracking-tight">
+          <h1>Reset your password</h1>
+        </CardTitle>
         <CardDescription>
           Enter your registered email address and we will send you a reset link.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <ForgotPasswordForm />
+        <ForgotPasswordForm loginHref={ROUTES.tenant(tenantSlug).LOGIN} />
       </CardContent>
     </Card>
   );

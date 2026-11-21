@@ -11,12 +11,13 @@ import { ControlledInput, FormWrapper } from "@/components/molecules/forms";
 import { SubmitButton } from "@/components/molecules/submit-button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { AUTH_ROUTES } from "@/config/routes";
 import { getErrorMessage } from "@/lib/api/errors";
 
 import { forgotPassword } from "../api";
 import { forgotPasswordSchema, type ForgotPasswordValues } from "../schemas";
 
-export function ForgotPasswordForm() {
+export function ForgotPasswordForm({ loginHref = AUTH_ROUTES.LOGIN }: { loginHref?: string }) {
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
 
   const methods = useForm<ForgotPasswordValues>({
@@ -47,7 +48,7 @@ export function ForgotPasswordForm() {
           </p>
         </div>
         <Button variant="outline" asChild className="mt-2">
-          <Link href="/login">Return to Sign In</Link>
+          <Link href={loginHref}>Return to sign in</Link>
         </Button>
       </div>
     );
@@ -81,7 +82,7 @@ export function ForgotPasswordForm() {
       <p className="text-muted-foreground text-center text-sm">
         Remember your password?{" "}
         <Link
-          href="/login"
+          href={loginHref}
           className="text-foreground font-medium underline-offset-4 hover:underline"
         >
           Sign in

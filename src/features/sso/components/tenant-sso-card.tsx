@@ -81,7 +81,7 @@ export function TenantSsoCard() {
       key={ssoConfig?.updatedAt || tenantId || "sso-form"}
       tenantId={tenantId}
       ssoConfig={ssoConfig}
-      subscription={subscription}
+      subscription={subscription ?? undefined}
     />
   );
 }

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AUTH_ROUTES } from "@/config/routes";
 import { LoginForm } from "@/features/auth";
 import { resolveTenantBySlug } from "@/lib/tenancy/resolve";
 
@@ -23,7 +24,7 @@ export default async function TenantLoginPage({
   }
 
   if (resolved.status === "SUSPENDED" || resolved.status === "DEACTIVATED") {
-    redirect("/tenant-suspended");
+    redirect(AUTH_ROUTES.TENANT_SUSPENDED);
   }
 
   const tenantName = resolved.branding?.companyName || resolved.tenant?.name || resolved.name;
@@ -32,15 +33,15 @@ export default async function TenantLoginPage({
     (tenantName ? `Sign in to ${tenantName}` : "Welcome back");
   const description: string =
     (resolved.branding?.authSubtitle as string | undefined) ||
-    (tenantName
-      ? `Enter your credentials to access the ${tenantName} workspace.`
-      : "Sign in to continue.");
+    "Use your workspace email and password.";
 
   return (
-    <Card className="border-border/80 shadow-md">
+    <Card className="border-border/80 shadow-xs">
       <CardHeader>
-        <CardTitle className="text-xl font-bold tracking-tight">{headline}</CardTitle>
-        <CardDescription className="text-xs leading-relaxed">{description}</CardDescription>
+        <CardTitle className="text-2xl font-bold tracking-tight text-balance">
+          <h1>{headline}</h1>
+        </CardTitle>
+        <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent>
         <LoginForm

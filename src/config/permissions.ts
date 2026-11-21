@@ -11,6 +11,7 @@ export const TENANT_PERMISSIONS = {
   TENANTS_READ: "tenants:read",
   TENANTS_UPDATE: "tenants:update",
   TENANTS_DELETE: "tenants:delete",
+  BILLING_READ: "billing:read",
 
   // Members & Teams
   MEMBERS_READ: "members:read",

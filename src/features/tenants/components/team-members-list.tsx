@@ -133,6 +133,7 @@ export function TeamMembersList({
           <div className="relative w-full sm:w-64">
             <SearchIcon className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
             <Input
+              aria-label="Search members by name or email"
               placeholder="Search by name or email…"
               value={searchQuery}
               onChange={(e) => onSearchChange(e?.target?.value ?? "")}
@@ -146,6 +147,7 @@ export function TeamMembersList({
           <Button
             type="button"
             variant={statusFilter === "ALL" ? "secondary" : "ghost"}
+            aria-pressed={statusFilter === "ALL"}
             size="sm"
             className="h-7.5 gap-1.5 rounded-lg px-2.5 text-xs font-medium"
             onClick={() => setStatusFilter("ALL")}
@@ -159,6 +161,7 @@ export function TeamMembersList({
           <Button
             type="button"
             variant={statusFilter === "ACTIVE" ? "secondary" : "ghost"}
+            aria-pressed={statusFilter === "ACTIVE"}
             size="sm"
             className="h-7.5 gap-1.5 rounded-lg px-2.5 text-xs font-medium"
             onClick={() => setStatusFilter("ACTIVE")}
@@ -175,6 +178,7 @@ export function TeamMembersList({
           <Button
             type="button"
             variant={statusFilter === "INVITED" ? "secondary" : "ghost"}
+            aria-pressed={statusFilter === "INVITED"}
             size="sm"
             className="h-7.5 gap-1.5 rounded-lg px-2.5 text-xs font-medium"
             onClick={() => setStatusFilter("INVITED")}
@@ -192,6 +196,7 @@ export function TeamMembersList({
             <Button
               type="button"
               variant={statusFilter === "SUSPENDED" ? "secondary" : "ghost"}
+              aria-pressed={statusFilter === "SUSPENDED"}
               size="sm"
               className="h-7 gap-1.5 px-2.5 text-xs font-medium"
               onClick={() => setStatusFilter("SUSPENDED")}
@@ -207,6 +212,7 @@ export function TeamMembersList({
             <Button
               type="button"
               variant={statusFilter === "REMOVED" ? "secondary" : "ghost"}
+              aria-pressed={statusFilter === "REMOVED"}
               size="sm"
               className="h-7 gap-1.5 px-2.5 text-xs font-medium"
               onClick={() => setStatusFilter("REMOVED")}
@@ -259,8 +265,10 @@ export function TeamMembersList({
                 key={member.id}
                 className="hover:bg-accent/30 flex flex-col gap-3 px-4 py-3.5 transition-colors sm:flex-row sm:items-center sm:justify-between sm:px-6"
               >
-                <div
-                  className="group flex cursor-pointer items-center gap-3"
+                <button
+                  type="button"
+                  className="group focus-visible:outline-ring flex min-w-0 items-center gap-3 rounded-lg text-left focus-visible:outline-2"
+                  disabled={!onSelectMember}
                   onClick={() => onSelectMember?.(member)}
                 >
                   <Avatar className="ring-primary/40 size-9 shrink-0 transition-all group-hover:ring-2">
@@ -271,9 +279,9 @@ export function TeamMembersList({
                       {initials(member?.name)}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="grid leading-tight">
-                    <div className="flex items-center gap-2">
-                      <span className="text-foreground group-hover:text-primary text-sm font-semibold transition-colors">
+                  <span className="grid min-w-0 leading-tight">
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span className="text-foreground group-hover:text-primary text-sm font-semibold wrap-anywhere transition-colors">
                         {member?.name}
                       </span>
                       {member?.memberCode ? (
@@ -289,11 +297,11 @@ export function TeamMembersList({
                           Pending Acceptance
                         </Badge>
                       ) : null}
-                    </div>
-                    <div className="text-muted-foreground flex flex-wrap items-center gap-2 text-xs">
-                      <span className="flex items-center gap-1">
-                        <MailIcon className="size-3" />
-                        {member?.email}
+                    </span>
+                    <span className="text-muted-foreground flex min-w-0 flex-wrap items-center gap-2 text-xs">
+                      <span className="flex min-w-0 items-center gap-1">
+                        <MailIcon aria-hidden="true" className="size-3 shrink-0" />
+                        <span className="wrap-anywhere">{member?.email}</span>
                       </span>
                       {member?.department || member?.jobTitle ? (
                         <>
@@ -303,11 +311,11 @@ export function TeamMembersList({
                           </span>
                         </>
                       ) : null}
-                    </div>
-                  </div>
-                </div>
+                    </span>
+                  </span>
+                </button>
 
-                <div className="flex items-center justify-between gap-3 sm:justify-end">
+                <div className="flex flex-wrap items-center justify-start gap-2 sm:justify-end">
                   <Badge
                     variant={
                       member?.status === "ACTIVE"
@@ -338,7 +346,10 @@ export function TeamMembersList({
                           !canManageRoles || (member?.role === "OWNER" && !isCurrentUserOwner)
                         }
                       >
-                        <SelectTrigger className="h-8 w-28 text-xs font-medium">
+                        <SelectTrigger
+                          aria-label={`Role for ${member.name}`}
+                          className="h-8 w-28 text-xs font-medium"
+                        >
                           <SelectValue placeholder="Select role" />
                         </SelectTrigger>
                         <SelectContent>
@@ -357,7 +368,12 @@ export function TeamMembersList({
                   (member?.status === "INVITED" && onResendInvite) ? (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="size-8">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-8"
+                          aria-label={`Actions for ${member.name}`}
+                        >
                           <MoreVerticalIcon className="size-4" />
                         </Button>
                       </DropdownMenuTrigger>

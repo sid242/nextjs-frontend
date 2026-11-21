@@ -24,15 +24,15 @@ export default async function LoginPage({
     (tenantName ? `Sign in to ${tenantName}` : "Welcome back");
   const description: string =
     (resolved?.branding?.authSubtitle as string | undefined) ||
-    (tenantName
-      ? `Enter your credentials to access the ${tenantName} workspace.`
-      : "Sign in to continue.");
+    "Use your workspace email and password.";
 
   return (
-    <Card className="border-border/80 shadow-md">
+    <Card className="border-border/80 shadow-xs">
       <CardHeader>
-        <CardTitle className="text-xl font-bold tracking-tight">{headline}</CardTitle>
-        <CardDescription className="text-xs leading-relaxed">{description}</CardDescription>
+        <CardTitle className="text-2xl font-bold tracking-tight text-balance">
+          <h1>{headline}</h1>
+        </CardTitle>
+        <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent>
         <LoginForm

@@ -2,7 +2,7 @@ import { type ReactNode } from "react";
 import { cookies, headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
-import { ACCESS_COOKIE, SUPPORT_SESSION_COOKIE } from "@/lib/auth/constants";
+import { ACCESS_COOKIE, PLATFORM_STAFF_COOKIE, SUPPORT_SESSION_COOKIE } from "@/lib/auth/constants";
 import { backendFetch } from "@/lib/server/backend";
 import { TenantUrlProvider, type TenantUrlContextValue } from "@/lib/tenancy";
 import { resolveTenantBySlug } from "@/lib/tenancy/resolve";
@@ -21,6 +21,7 @@ export default async function TenantSlugLayout({ children, params }: TenantSlugL
   // Prevent unauthorized cross-tenant URL tampering (e.g. Super Admin or stranger typing /w/:slug)
   const accessToken = cookieStore.get(ACCESS_COOKIE)?.value;
   const supportSessionId = cookieStore.get(SUPPORT_SESSION_COOKIE)?.value;
+  const hasPlatformSession = cookieStore.has(PLATFORM_STAFF_COOKIE);
 
   if (accessToken && !supportSessionId) {
     const contextRes = await backendFetch(`/tenants/${tenantSlug}/context`, {
@@ -61,5 +62,9 @@ export default async function TenantSlugLayout({ children, params }: TenantSlugL
     };
   }
 
-  return <TenantUrlProvider value={contextValue}>{children}</TenantUrlProvider>;
+  return (
+    <TenantUrlProvider value={{ ...contextValue, hasPlatformSession }}>
+      {children}
+    </TenantUrlProvider>
+  );
 }

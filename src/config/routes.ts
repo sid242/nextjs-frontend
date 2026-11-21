@@ -14,6 +14,7 @@ export const AUTH_ROUTES = {
   VERIFY_EMAIL: "/verify-email",
   ACCEPT_INVITE: "/accept-invite",
   SELECT_WORKSPACE: "/select-workspace",
+  TENANT_SUSPENDED: "/tenant-suspended",
   PRICING: "/pricing",
 } as const;
 
@@ -98,6 +99,9 @@ export const ROUTES = {
   tenant: (tenantSlug?: string) => {
     const base = tenantSlug ? `/w/${encodeURIComponent(tenantSlug)}` : "";
     return {
+      LOGIN: `${base}${AUTH_ROUTES.LOGIN}` as const,
+      REGISTER: `${base}${AUTH_ROUTES.REGISTER}` as const,
+      FORGOT_PASSWORD: `${base}${AUTH_ROUTES.FORGOT_PASSWORD}` as const,
       DASHBOARD: `${base}${TENANT_PATHS.DASHBOARD}` as const,
       LEADS: `${base}${TENANT_PATHS.LEADS}` as const,
       LEAD_NEW: `${base}${TENANT_PATHS.LEAD_NEW}` as const,

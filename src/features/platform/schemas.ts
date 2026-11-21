@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { verificationCodeSchema } from "@/lib/auth/verification-code";
+
 // ==========================================
 // 1. Staff Members
 // ==========================================
@@ -216,11 +218,14 @@ export type PlatformAuditLog = z.infer<typeof platformAuditLogSchema>;
 // ==========================================
 
 export const platformLoginSchema = z.object({
-  email: z.string().trim().email("Enter your platform staff email"),
-  password: z.string().min(1, "Password is required"),
+  email: z.string().trim().email("Enter your platform staff email").max(254),
+  password: z.string().min(1, "Password is required").max(128),
 });
 
 export type PlatformLoginInput = z.infer<typeof platformLoginSchema>;
+
+export const platformVerificationSchema = z.object({ code: verificationCodeSchema });
+export type PlatformVerificationInput = z.infer<typeof platformVerificationSchema>;
 
 export const updatePlatformProfileSchema = z.object({
   displayName: z.string().trim().min(2, "Name must be at least 2 characters").max(100).optional(),

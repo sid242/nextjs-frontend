@@ -41,7 +41,7 @@ export function FormWrapper<T extends FieldValues>({
           e.stopPropagation();
           void methods.handleSubmit(onSubmit)(e);
         }}
-        method={method}
+        method={method ?? "post"}
         action={action}
         noValidate
         {...props}

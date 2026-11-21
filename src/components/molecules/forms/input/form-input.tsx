@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 
 export interface FormInputProps extends Omit<InputProps, "prefix"> {
   label?: ReactNode;
+  labelAction?: ReactNode;
   error?: string;
   hint?: string;
   description?: string;
@@ -31,6 +32,7 @@ export function FormInput({
   id,
   name,
   label,
+  labelAction,
   error,
   hint,
   description,
@@ -81,14 +83,15 @@ export function FormInput({
 
   return (
     <div className={cn("grid gap-1.5", containerClassName)}>
-      {label || badge ? (
-        <div className="flex items-center justify-between">
+      {label || badge || labelAction ? (
+        <div className="flex flex-wrap items-center justify-between gap-x-2">
           {label ? (
             <Label htmlFor={fieldId} className={cn(error && "text-destructive", labelClassName)}>
               {label}
               {required ? <span className="text-destructive ml-1">*</span> : null}
             </Label>
           ) : null}
+          {labelAction}
           {badge ? (
             <Badge variant="secondary" className={cn("px-1.5 py-0 text-[10px]", badgeClassName)}>
               {badge}
@@ -109,6 +112,7 @@ export function FormInput({
           id={fieldId}
           name={name}
           type={resolvedType}
+          required={required}
           value={value}
           defaultValue={defaultValue}
           maxLength={maxLength}
@@ -124,6 +128,7 @@ export function FormInput({
             type="button"
             variant="ghost"
             size="icon"
+            disabled={props.disabled}
             onClick={() => setShowPassword((prev) => !prev)}
             aria-label={showPassword ? "Hide password" : "Show password"}
             className="text-muted-foreground hover:text-foreground absolute right-1 size-7"
