@@ -65,3 +65,61 @@ export interface ListPoliciesFilter {
   page?: number;
   limit?: number;
 }
+
+export interface AttributeDefinition {
+  name: string;
+  path: string;
+  type: string;
+  description: string;
+}
+
+export interface ResourceDefinition {
+  resource: string;
+  displayName: string;
+  description: string;
+  actions: string[];
+  attributes: AttributeDefinition[];
+}
+
+export interface PolicyRegistry {
+  resources: ResourceDefinition[];
+  commonActorAttributes: AttributeDefinition[];
+  commonEnvAttributes: AttributeDefinition[];
+  operators: {
+    operator: string;
+    description: string;
+    supportedTypes: string[];
+  }[];
+}
+
+export interface EvaluatePolicyInput {
+  roleId?: string;
+  policyId?: string;
+  resource: string;
+  action: string;
+  record?: Record<string, unknown>;
+  actor?: {
+    userId?: string;
+    memberId?: string;
+    roleKeys?: string[];
+    departmentId?: string | null;
+    regionId?: string | null;
+    attributes?: Record<string, unknown>;
+  };
+  conditions?: PolicyConditionTree;
+}
+
+export interface MatchedPolicyTrace {
+  policyId: string;
+  policyName: string;
+  effect: PolicyEffect;
+  priority: number;
+  matched: boolean;
+  reason?: string;
+}
+
+export interface EvaluationResult {
+  allowed: boolean;
+  effect: PolicyEffect | "default_deny";
+  traces: MatchedPolicyTrace[];
+}

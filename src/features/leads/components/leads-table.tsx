@@ -52,8 +52,17 @@ export function LeadsTable() {
   const tenantSlug = params?.tenantSlug ?? "";
   const [search, setSearch] = useState("");
 
-  const { data, isLoading } = useLeads({ search: search || undefined });
+  const { data, isLoading, error } = useLeads({ search: search || undefined });
   const deleteMutation = useDeleteLead();
+
+  const isForbidden = Boolean(
+    error &&
+    ((error as unknown as { status?: number; statusCode?: number }).status === 403 ||
+      (error as unknown as { status?: number; statusCode?: number }).statusCode === 403 ||
+      error.message?.includes("403") ||
+      error.message?.toLowerCase().includes("forbidden") ||
+      error.message?.toLowerCase().includes("access denied")),
+  );
 
   const leads = data?.items ?? [];
 
@@ -100,6 +109,23 @@ export function LeadsTable() {
               <TableRow>
                 <TableCell colSpan={6} className="text-muted-foreground py-8 text-center">
                   Loading CRM leads...
+                </TableCell>
+              </TableRow>
+            ) : isForbidden ? (
+              <TableRow>
+                <TableCell colSpan={6} className="py-12 text-center">
+                  <div className="flex flex-col items-center justify-center space-y-2">
+                    <div className="rounded-full bg-amber-500/10 p-3 text-amber-600 dark:text-amber-400">
+                      <LockIcon className="h-6 w-6" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-semibold">Access Restricted</p>
+                      <p className="text-muted-foreground mx-auto max-w-sm text-xs">
+                        Your workspace role does not have permission to view CRM leads. Contact an
+                        administrator to update your PBAC policy or assign a role with read access.
+                      </p>
+                    </div>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : leads.length === 0 ? (

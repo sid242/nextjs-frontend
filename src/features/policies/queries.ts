@@ -7,12 +7,19 @@ import {
   createPolicy,
   deletePolicy,
   detachPolicyFromRole,
+  evaluateDryRun,
   getPolicies,
   getPolicy,
+  getPolicyRegistry,
   getRolePolicies,
   updatePolicy,
 } from "./api";
-import type { CreatePolicyInput, ListPoliciesFilter, UpdatePolicyInput } from "./types";
+import type {
+  CreatePolicyInput,
+  EvaluatePolicyInput,
+  ListPoliciesFilter,
+  UpdatePolicyInput,
+} from "./types";
 
 export const policiesKeys = {
   all: ["policies"] as const,
@@ -103,5 +110,22 @@ export function useDetachPolicyFromRole() {
       queryClient.invalidateQueries({ queryKey: policiesKeys.rolePolicies(vars.roleId) });
       queryClient.invalidateQueries({ queryKey: policiesKeys.all });
     },
+  });
+}
+
+export const policyRegistryQueryOptions = () =>
+  queryOptions({
+    queryKey: [...policiesKeys.all, "registry"] as const,
+    queryFn: ({ signal }) => getPolicyRegistry(signal),
+    staleTime: 5 * 60 * 1000,
+  });
+
+export function usePolicyRegistry() {
+  return useQuery(policyRegistryQueryOptions());
+}
+
+export function useDryRunEvaluatePolicy() {
+  return useMutation({
+    mutationFn: (input: EvaluatePolicyInput) => evaluateDryRun(input),
   });
 }

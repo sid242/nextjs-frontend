@@ -134,4 +134,31 @@ describe("Proxy / Middleware Routing Decision Table", () => {
       expect(res.headers.get("location")).toBe("http://example.com/platform/dashboard");
     });
   });
+
+  describe("Content Security Policy (CSP)", () => {
+    it("includes Razorpay origins in script-src, frame-src, and connect-src", async () => {
+      vi.mocked(resolveModule.resolveTenantByHost).mockResolvedValueOnce({
+        kind: "tenant",
+        tenantId: "t-1",
+        slug: "acme",
+        urlMode: "subdomain",
+        canonicalBase: "http://acme.example.com",
+        status: "ACTIVE",
+      });
+
+      const req = new NextRequest("http://acme.example.com/dashboard", {
+        headers: {
+          host: "acme.example.com",
+          cookie: `${ACCESS_COOKIE}=valid-token`,
+        },
+      });
+
+      const res = await proxy(req);
+      const csp = res.headers.get("content-security-policy");
+      expect(csp).toBeTruthy();
+      expect(csp).toContain("https://checkout.razorpay.com");
+      expect(csp).toContain("https://api.razorpay.com");
+      expect(csp).toContain("https://lumberjack.razorpay.com");
+    });
+  });
 });

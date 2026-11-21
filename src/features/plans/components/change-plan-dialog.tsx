@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckCircle2, CreditCard, ShieldCheck } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { CheckCircle2, CreditCard, Loader2, ShieldAlert, ShieldCheck } from "lucide-react";
 import { useForm } from "react-hook-form";
 
 import { ControlledSelect, FormWrapper } from "@/components/molecules/forms";
@@ -24,9 +25,10 @@ import {
   useVerifyOrderPayment,
   type RazorpayPaymentSuccessResponse,
 } from "@/features/billing";
+import { hasTenantPermission, useTenantContext } from "@/features/tenants";
 import { getErrorMessage } from "@/lib/api/errors";
 
-import { useChangeSubscription, usePublicPlans } from "../queries";
+import { tenantSubscriptionQueryOptions, useChangeSubscription, usePublicPlans } from "../queries";
 import { changeSubscriptionSchema, type ChangeSubscriptionInput, type Plan } from "../schemas";
 
 interface ChangePlanDialogProps {
@@ -39,7 +41,16 @@ export function ChangePlanDialog({ open, onOpenChange, currentPlanKey }: ChangeP
   const [formError, setFormError] = useState<string | null>(null);
   const [billingInterval, setBillingInterval] = useState<"MONTHLY" | "ANNUAL">("MONTHLY");
   const [isCheckoutProcessing, setIsCheckoutProcessing] = useState(false);
+  const [isConfirmingPayment, setIsConfirmingPayment] = useState(false);
   const [verificationSuccess, setVerificationSuccess] = useState(false);
+  const [serverOrderInfo, setServerOrderInfo] = useState<{
+    amount: string;
+    currency: string;
+  } | null>(null);
+
+  const queryClient = useQueryClient();
+  const { data: tenantContext } = useTenantContext();
+  const canManageBilling = hasTenantPermission(tenantContext?.permissions, "billing:manage");
 
   const { data: plans = [], isLoading: isLoadingPlans } = usePublicPlans();
   const { mutateAsync: changeSub, isPending: isChangingFree } = useChangeSubscription();
@@ -73,7 +84,60 @@ export function ChangePlanDialog({ open, onOpenChange, currentPlanKey }: ChangeP
     };
   });
 
+  /**
+   * Polls subscription status when payment succeeds at gateway but verify call experiences
+   * transient network/server hiccups. Never tells the user payment failed in this case.
+   */
+  const pollSubscriptionUntilConfirmed = async (expectedPlanKey: string) => {
+    setIsConfirmingPayment(true);
+    setFormError(null);
+    let attempts = 0;
+    const maxAttempts = 6;
+    const intervalMs = 2500;
+
+    const poll = async () => {
+      attempts++;
+      try {
+        const sub = await queryClient.fetchQuery(tenantSubscriptionQueryOptions());
+        if (sub?.plan?.key === expectedPlanKey || sub?.status === "ACTIVE") {
+          setIsConfirmingPayment(false);
+          setVerificationSuccess(true);
+          setTimeout(() => {
+            setVerificationSuccess(false);
+            setIsCheckoutProcessing(false);
+            onOpenChange(false);
+          }, 1500);
+          return;
+        }
+      } catch {
+        /* continue polling */
+      }
+
+      if (attempts < maxAttempts) {
+        setTimeout(poll, intervalMs);
+      } else {
+        // Backend webhook will process in the background - show success and close
+        setIsConfirmingPayment(false);
+        setVerificationSuccess(true);
+        setTimeout(() => {
+          setVerificationSuccess(false);
+          setIsCheckoutProcessing(false);
+          onOpenChange(false);
+        }, 2000);
+      }
+    };
+
+    setTimeout(poll, intervalMs);
+  };
+
   const onSubmit = async (values: ChangeSubscriptionInput) => {
+    if (!canManageBilling) {
+      setFormError(
+        "You do not have permission to modify billing (requires billing:manage permission).",
+      );
+      return;
+    }
+
     setFormError(null);
     const targetKey = values?.planKey?.trim?.()?.toUpperCase() ?? "PRO";
 
@@ -107,6 +171,16 @@ export function ChangePlanDialog({ open, onOpenChange, currentPlanKey }: ChangeP
         billingInterval,
       });
 
+      const formattedAmount = new Intl.NumberFormat(undefined, {
+        style: "currency",
+        currency: checkoutData.currency || "INR",
+      }).format((checkoutData.amountMinor || 0) / 100);
+
+      setServerOrderInfo({
+        amount: formattedAmount,
+        currency: checkoutData.currency || "INR",
+      });
+
       // Step B: Launch standard Razorpay Checkout
       const RazorpayConstructor = window.Razorpay;
       if (!RazorpayConstructor) {
@@ -136,9 +210,10 @@ export function ChangePlanDialog({ open, onOpenChange, currentPlanKey }: ChangeP
               setVerificationSuccess(false);
               onOpenChange(false);
             }, 1200);
-          } catch (verifyErr: unknown) {
-            setIsCheckoutProcessing(false);
-            setFormError(getErrorMessage(verifyErr, "Payment confirmation failed on server"));
+          } catch {
+            // Gateway charge succeeded! If verify call had a network issue,
+            // never say payment failed. Webhook is source of truth.
+            await pollSubscriptionUntilConfirmed(targetKey);
           }
         },
         theme: {
@@ -147,6 +222,7 @@ export function ChangePlanDialog({ open, onOpenChange, currentPlanKey }: ChangeP
         modal: {
           ondismiss: () => {
             setIsCheckoutProcessing(false);
+            setServerOrderInfo(null);
           },
         },
       };
@@ -159,7 +235,8 @@ export function ChangePlanDialog({ open, onOpenChange, currentPlanKey }: ChangeP
     }
   };
 
-  const isPending = isChangingFree || isCheckoutProcessing;
+  const isPending =
+    isChangingFree || isCheckoutProcessing || isConfirmingPayment || !canManageBilling;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -176,9 +253,27 @@ export function ChangePlanDialog({ open, onOpenChange, currentPlanKey }: ChangeP
         </DialogHeader>
 
         <FormWrapper methods={methods} onSubmit={onSubmit} className="space-y-4 py-2">
+          {!canManageBilling && (
+            <Alert variant="destructive">
+              <ShieldAlert className="h-4 w-4" />
+              <AlertDescription className="text-xs">
+                You do not have permission to modify workspace billing. Requires billing:manage.
+              </AlertDescription>
+            </Alert>
+          )}
+
           {formError ? (
             <Alert variant="destructive">
               <AlertDescription>{formError}</AlertDescription>
+            </Alert>
+          ) : null}
+
+          {isConfirmingPayment ? (
+            <Alert className="border-amber-500/30 bg-amber-500/10 text-amber-600">
+              <Loader2 className="h-4 w-4 animate-spin text-amber-600" />
+              <AlertDescription className="text-xs font-semibold">
+                Payment received at gateway! Confirming subscription entitlements...
+              </AlertDescription>
             </Alert>
           ) : null}
 
@@ -190,6 +285,13 @@ export function ChangePlanDialog({ open, onOpenChange, currentPlanKey }: ChangeP
               </AlertDescription>
             </Alert>
           ) : null}
+
+          {serverOrderInfo && (
+            <div className="bg-muted/40 flex items-center justify-between rounded-lg px-3 py-1.5 text-xs font-medium">
+              <span className="text-muted-foreground">Order Total:</span>
+              <span className="font-semibold">{serverOrderInfo.amount}</span>
+            </div>
+          )}
 
           {/* Billing Interval Selector */}
           {!isTargetFree ? (
@@ -234,7 +336,7 @@ export function ChangePlanDialog({ open, onOpenChange, currentPlanKey }: ChangeP
             placeholder={isLoadingPlans ? "Loading plans..." : "Select plan tier"}
             options={planOptions}
             returnPrimitiveValue
-            disabled={isLoadingPlans || isPending}
+            disabled={isLoadingPlans || isPending || !canManageBilling}
             required
           />
 
@@ -255,14 +357,21 @@ export function ChangePlanDialog({ open, onOpenChange, currentPlanKey }: ChangeP
               variant="outline"
               size="sm"
               onClick={() => onOpenChange(false)}
-              disabled={isPending}
+              disabled={isCheckoutProcessing || isConfirmingPayment}
             >
               Cancel
             </Button>
             <SubmitButton
               size="sm"
               pending={isPending}
-              pendingText={verificationSuccess ? "Activating..." : "Processing..."}
+              pendingText={
+                isConfirmingPayment
+                  ? "Confirming..."
+                  : verificationSuccess
+                    ? "Activating..."
+                    : "Processing..."
+              }
+              disabled={!canManageBilling || isCheckoutProcessing || isConfirmingPayment}
             >
               {isTargetFree ? "Switch to Free" : "Proceed to Checkout"}
             </SubmitButton>

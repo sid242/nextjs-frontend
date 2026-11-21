@@ -4,16 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  ArrowLeft,
-  Code2,
-  FileJson,
-  KeyRound,
-  Layers,
-  Shield,
-  ShieldAlert,
-  ShieldCheck,
-} from "lucide-react";
+import { ArrowLeft, CheckCircle2, Code2, Play, Shield, ShieldAlert, Sparkles } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -26,13 +17,21 @@ import {
 } from "@/components/molecules/forms";
 import { SubmitButton } from "@/components/molecules/submit-button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getErrorMessage } from "@/lib/api/errors";
 
-import { useCreatePolicy, usePolicy, useUpdatePolicy } from "../queries";
+import {
+  useCreatePolicy,
+  useDryRunEvaluatePolicy,
+  usePolicy,
+  usePolicyRegistry,
+  useUpdatePolicy,
+} from "../queries";
 import { createPolicySchema, type CreatePolicyFormValues } from "../schemas";
+import type { EvaluationResult } from "../types";
 
 const EFFECT_OPTIONS = [
   { label: "ALLOW — Permit Operation when conditions match", value: "allow" },
@@ -78,7 +77,7 @@ const CONDITION_PRESETS = [
   },
   {
     label: "Unconditional Full Access",
-    value: JSON.stringify({}, null, 2),
+    value: JSON.stringify({ always: true }, null, 2),
   },
 ];
 
@@ -94,9 +93,25 @@ export function PolicyFormPage({ policyId }: PolicyFormPageProps) {
 
   const [formError, setFormError] = useState<string | null>(null);
 
+  // Dry-run simulation state
+  const [testRecordJson, setTestRecordJson] = useState(
+    JSON.stringify({ departmentId: "SALES", isConfidential: false }, null, 2),
+  );
+  const [testActorJson, setTestActorJson] = useState(
+    JSON.stringify(
+      { departmentId: "SALES", memberId: "member_123", roleKeys: ["SALES_REP"] },
+      null,
+      2,
+    ),
+  );
+  const [dryRunResult, setDryRunResult] = useState<EvaluationResult | null>(null);
+  const [dryRunError, setDryRunError] = useState<string | null>(null);
+
+  const { data: registry, isLoading: isRegistryLoading } = usePolicyRegistry();
   const { data: policy, isLoading: policyLoading } = usePolicy(policyId ?? "");
   const createMutation = useCreatePolicy();
   const updateMutation = useUpdatePolicy();
+  const dryRunMutation = useDryRunEvaluatePolicy();
 
   const methods = useForm<CreatePolicyFormValues>({
     resolver: zodResolver(createPolicySchema),
@@ -120,6 +135,8 @@ export function PolicyFormPage({ policyId }: PolicyFormPageProps) {
     },
   });
 
+  const selectedResource = methods.watch("resource");
+
   useEffect(() => {
     if (isEditing && policy) {
       methods.reset({
@@ -134,6 +151,80 @@ export function PolicyFormPage({ policyId }: PolicyFormPageProps) {
       });
     }
   }, [isEditing, policy, methods]);
+
+  // Derived options from backend registry
+  const resourceOptions = (registry?.resources ?? []).map((r) => ({
+    label: `${r.displayName} (${r.resource})`,
+    value: r.resource,
+  }));
+  if (resourceOptions.length > 0 && !resourceOptions.some((o) => o.value === "*")) {
+    resourceOptions.push({ label: "All Resources (*)", value: "*" });
+  }
+
+  const currentResourceDef = (registry?.resources ?? []).find(
+    (r) => r.resource === selectedResource,
+  );
+  const actionOptions = (
+    currentResourceDef?.actions ?? ["read", "create", "update", "delete", "*"]
+  ).map((a) => ({
+    label: a === "*" ? "All Actions (*)" : a,
+    value: a,
+  }));
+
+  const availableAttributes = [
+    ...(currentResourceDef?.attributes ?? []),
+    ...(registry?.commonActorAttributes ?? []),
+    ...(registry?.commonEnvAttributes ?? []),
+  ];
+
+  const handleTestPolicy = async () => {
+    setDryRunError(null);
+    setDryRunResult(null);
+
+    let parsedConditions: Record<string, unknown> = {};
+    let parsedRecord: Record<string, unknown> = {};
+    let parsedActor: Record<string, unknown> = {};
+
+    try {
+      parsedConditions = JSON.parse(methods.getValues("conditionsJson"));
+    } catch {
+      setDryRunError("Condition expression must be valid JSON before running test");
+      return;
+    }
+
+    try {
+      parsedRecord = JSON.parse(testRecordJson);
+    } catch {
+      setDryRunError("Test Record must be valid JSON");
+      return;
+    }
+
+    try {
+      parsedActor = JSON.parse(testActorJson);
+    } catch {
+      setDryRunError("Test Actor Context must be valid JSON");
+      return;
+    }
+
+    try {
+      const res = await dryRunMutation.mutateAsync({
+        resource: methods.getValues("resource"),
+        action: methods.getValues("action"),
+        conditions: parsedConditions,
+        record: parsedRecord,
+        actor: {
+          departmentId: (parsedActor.departmentId as string) || null,
+          regionId: (parsedActor.regionId as string) || null,
+          memberId: (parsedActor.memberId as string) || undefined,
+          userId: (parsedActor.userId as string) || undefined,
+          roleKeys: Array.isArray(parsedActor.roleKeys) ? (parsedActor.roleKeys as string[]) : [],
+        },
+      });
+      setDryRunResult(res);
+    } catch (err: unknown) {
+      setDryRunError(getErrorMessage(err, "Failed to evaluate policy dry run"));
+    }
+  };
 
   const onSubmit = async (values: CreatePolicyFormValues) => {
     setFormError(null);
@@ -216,7 +307,7 @@ export function PolicyFormPage({ policyId }: PolicyFormPageProps) {
           <p className="text-muted-foreground text-sm">
             {isEditing
               ? "Update evaluation conditions, target resources, and effect."
-              : "Define dynamic ABAC/PBAC rules evaluated against caller and resource attributes."}
+              : "Define dynamic ABAC/PBAC rules driven by registered schema attributes."}
           </p>
         </div>
       </div>
@@ -239,7 +330,7 @@ export function PolicyFormPage({ policyId }: PolicyFormPageProps) {
               <div>
                 <CardTitle className="text-base font-semibold">Policy Target & Action</CardTitle>
                 <CardDescription className="text-xs">
-                  Resource identifier, action verb, and authorization effect.
+                  Registry-validated resource domain, action verb, and authorization effect.
                 </CardDescription>
               </div>
             </div>
@@ -254,20 +345,30 @@ export function PolicyFormPage({ policyId }: PolicyFormPageProps) {
             />
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <ControlledInput
-                control={methods.control}
-                name="resource"
-                label="Resource Domain"
-                placeholder="e.g. leads"
-                description="Target entity domain (e.g. leads, billing, files)."
-                required
-              />
-              <ControlledInput
+              {resourceOptions.length > 0 ? (
+                <ControlledSelect
+                  control={methods.control}
+                  name="resource"
+                  label="Resource Domain"
+                  options={resourceOptions}
+                  disabled={isRegistryLoading}
+                  required
+                />
+              ) : (
+                <ControlledInput
+                  control={methods.control}
+                  name="resource"
+                  label="Resource Domain"
+                  placeholder="e.g. leads"
+                  required
+                />
+              )}
+
+              <ControlledSelect
                 control={methods.control}
                 name="action"
                 label="Action Verb"
-                placeholder="e.g. read, write, or *"
-                description="HTTP operation or capability (* for all actions)."
+                options={actionOptions}
                 required
               />
             </div>
@@ -319,7 +420,7 @@ export function PolicyFormPage({ policyId }: PolicyFormPageProps) {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-4">
             {/* Presets bar */}
             <div>
               <p className="text-muted-foreground pb-1.5 text-xs font-medium">
@@ -343,6 +444,33 @@ export function PolicyFormPage({ policyId }: PolicyFormPageProps) {
               </div>
             </div>
 
+            {/* Available Attributes from Registry */}
+            {availableAttributes.length > 0 && (
+              <div className="border-border/60 bg-muted/20 space-y-1.5 rounded-xl border p-3">
+                <div className="text-foreground flex items-center gap-1.5 text-xs font-medium">
+                  <Sparkles className="h-3 w-3 text-indigo-500" />
+                  Available Schema Attributes for {selectedResource}:
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {availableAttributes.map((attr) => (
+                    <Badge
+                      key={attr.path}
+                      variant="outline"
+                      className="hover:bg-muted/80 cursor-pointer font-mono text-[11px] transition-colors"
+                      title={`${attr.name} (${attr.type}) - ${attr.description}`}
+                      onClick={() => {
+                        const snippet = `"${attr.path}"`;
+                        navigator.clipboard?.writeText?.(attr.path);
+                        toast.info(`Copied ${snippet} to clipboard`);
+                      }}
+                    >
+                      {attr.path}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <ControlledTextarea
               control={methods.control}
               name="conditionsJson"
@@ -355,7 +483,113 @@ export function PolicyFormPage({ policyId }: PolicyFormPageProps) {
           </CardContent>
         </Card>
 
-        {/* Card 3: Activation Status */}
+        {/* Card 3: Test Policy Panel (Dry-Run Simulation) */}
+        <Card className="border-border/80 shadow-xs">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                  <Play className="h-4 w-4" />
+                </div>
+                <div>
+                  <CardTitle className="text-base font-semibold">Test Policy (Dry-Run)</CardTitle>
+                  <CardDescription className="text-xs">
+                    Simulate evaluation against mock caller and resource data without persisting.
+                  </CardDescription>
+                </div>
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-xs"
+                onClick={handleTestPolicy}
+                disabled={dryRunMutation.isPending}
+              >
+                <Play className="h-3.5 w-3.5 text-blue-500" />
+                {dryRunMutation.isPending ? "Evaluating..." : "Run Test"}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {dryRunError && (
+              <Alert variant="destructive">
+                <ShieldAlert className="h-4 w-4" />
+                <AlertDescription className="text-xs">{dryRunError}</AlertDescription>
+              </Alert>
+            )}
+
+            {dryRunResult && (
+              <div
+                className={`space-y-2 rounded-xl border p-3.5 ${
+                  dryRunResult.allowed
+                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                    : "border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-300"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-semibold">
+                    {dryRunResult.allowed ? (
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    ) : (
+                      <ShieldAlert className="h-4 w-4 text-red-600" />
+                    )}
+                    Evaluation Decision:{" "}
+                    <Badge
+                      variant={dryRunResult.allowed ? "default" : "destructive"}
+                      className="font-mono text-[10px] uppercase"
+                    >
+                      {dryRunResult.allowed ? "ALLOWED" : "DENIED"}
+                    </Badge>
+                  </div>
+                  <span className="font-mono text-[11px] opacity-80">
+                    Effect: {dryRunResult.effect}
+                  </span>
+                </div>
+
+                {dryRunResult.traces && dryRunResult.traces.length > 0 && (
+                  <div className="border-border/30 space-y-1 border-t pt-1 font-mono text-[11px]">
+                    {dryRunResult.traces.map((trace, i) => (
+                      <div key={i} className="flex justify-between">
+                        <span>{trace.policyName}</span>
+                        <span>{trace.reason ?? (trace.matched ? "Matched" : "Not matched")}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <label className="text-muted-foreground text-xs font-medium">
+                  Sample Target Record (JSON)
+                </label>
+                <textarea
+                  value={testRecordJson}
+                  onChange={(e) => setTestRecordJson(e.target.value)}
+                  rows={4}
+                  className="border-input focus-visible:ring-ring w-full rounded-md border bg-transparent px-3 py-1 font-mono text-xs shadow-xs focus-visible:ring-1 focus-visible:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-muted-foreground text-xs font-medium">
+                  Sample Actor Context (JSON)
+                </label>
+                <textarea
+                  value={testActorJson}
+                  onChange={(e) => setTestActorJson(e.target.value)}
+                  rows={4}
+                  className="border-input focus-visible:ring-ring w-full rounded-md border bg-transparent px-3 py-1 font-mono text-xs shadow-xs focus-visible:ring-1 focus-visible:outline-none"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Card 4: Activation Status */}
         <Card className="border-border/80 shadow-xs">
           <CardContent className="pt-6">
             <ControlledSwitch

@@ -1,7 +1,15 @@
 import { api } from "@/lib/api/http";
 import { buildQueryString } from "@/lib/utils";
 
-import type { CreatePolicyInput, ListPoliciesFilter, Policy, UpdatePolicyInput } from "./types";
+import type {
+  CreatePolicyInput,
+  EvaluatePolicyInput,
+  EvaluationResult,
+  ListPoliciesFilter,
+  Policy,
+  PolicyRegistry,
+  UpdatePolicyInput,
+} from "./types";
 
 export async function getPolicies(
   params?: ListPoliciesFilter,
@@ -69,4 +77,31 @@ export async function getRolePolicies(roleId: string, signal?: AbortSignal): Pro
   if (Array.isArray(res)) return res;
   if (res && "data" in res && Array.isArray(res.data)) return res.data;
   return [];
+}
+
+export async function getPolicyRegistry(signal?: AbortSignal): Promise<PolicyRegistry> {
+  const res = await api.get<PolicyRegistry | { data: PolicyRegistry }>("/policies/registry", {
+    signal,
+  });
+  if (res && "data" in res && (res as { data: PolicyRegistry }).data) {
+    return (res as { data: PolicyRegistry }).data;
+  }
+  return res as PolicyRegistry;
+}
+
+export async function evaluateDryRun(
+  input: EvaluatePolicyInput,
+  signal?: AbortSignal,
+): Promise<EvaluationResult> {
+  const res = await api.post<EvaluationResult | { data: EvaluationResult }>(
+    "/policies/evaluate",
+    input,
+    {
+      signal,
+    },
+  );
+  if (res && "data" in res && (res as { data: EvaluationResult }).data) {
+    return (res as { data: EvaluationResult }).data;
+  }
+  return res as EvaluationResult;
 }

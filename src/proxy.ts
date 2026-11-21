@@ -83,12 +83,19 @@ function buildCsp(nonce: string, rawHost?: string | null): string {
     "https://cdn.tools.unlayer.com",
   ];
 
+  const razorpayConnectDomains = [
+    "https://lumberjack.razorpay.com",
+    "https://api.razorpay.com",
+    "https://checkout.razorpay.com",
+  ];
+
   const devConnect = isDev ? ["ws:", "wss:", "http:"] : [];
   const connect = [
     "'self'",
     ...devConnect,
     ...socketOrigins(rawHost),
     ...unlayerDomains,
+    ...razorpayConnectDomains,
     ...extraOrigins,
   ];
 
@@ -102,8 +109,8 @@ function buildCsp(nonce: string, rawHost?: string | null): string {
   ];
 
   const scriptDirectives = isDev
-    ? `'self' 'unsafe-inline' 'unsafe-eval' https://editor.unlayer.com https://*.unlayer.com`
-    : `'self' https://editor.unlayer.com https://*.unlayer.com 'nonce-${nonce}' 'strict-dynamic'`;
+    ? `'self' 'unsafe-inline' 'unsafe-eval' https://editor.unlayer.com https://*.unlayer.com https://checkout.razorpay.com`
+    : `'self' https://editor.unlayer.com https://*.unlayer.com https://checkout.razorpay.com 'nonce-${nonce}' 'strict-dynamic'`;
 
   return [
     "default-src 'self'",
@@ -113,7 +120,7 @@ function buildCsp(nonce: string, rawHost?: string | null): string {
     "font-src 'self' data: https://editor.unlayer.com https://*.unlayer.com https://fonts.gstatic.com",
     `connect-src ${connect.join(" ")}`,
     `media-src ${storageMedia.join(" ")}`,
-    `frame-src 'self' https://editor.unlayer.com https://*.unlayer.com ${extraOrigins.join(" ")}`,
+    `frame-src 'self' https://editor.unlayer.com https://*.unlayer.com https://api.razorpay.com https://checkout.razorpay.com ${extraOrigins.join(" ")}`,
     "worker-src 'self' blob:",
     "object-src 'none'",
     "base-uri 'self'",

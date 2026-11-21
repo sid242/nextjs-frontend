@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { hasTenantPermission, useTenantContext } from "@/features/tenants";
 
 import { useTenantSubscription } from "../queries";
 import { CancelSubscriptionDialog } from "./cancel-subscription-dialog";
@@ -25,6 +26,8 @@ export function TenantBillingCard() {
   const [changeDialogOpen, setChangeDialogOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const { data: subscription, isLoading, error } = useTenantSubscription();
+  const { data: tenantContext } = useTenantContext();
+  const canManageBilling = hasTenantPermission(tenantContext?.permissions, "billing:manage");
 
   if (isLoading) {
     return (
@@ -99,28 +102,30 @@ export function TenantBillingCard() {
               </CardDescription>
             </div>
 
-            <div className="flex items-center gap-2">
-              {isPaidPlan && !isCancelling ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setCancelDialogOpen(true)}
-                  className="text-muted-foreground hover:text-destructive h-10 text-xs"
-                >
-                  Cancel Plan
-                </Button>
-              ) : null}
+            {canManageBilling ? (
+              <div className="flex items-center gap-2">
+                {isPaidPlan && !isCancelling ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCancelDialogOpen(true)}
+                    className="text-muted-foreground hover:text-destructive h-10 text-xs"
+                  >
+                    Cancel Plan
+                  </Button>
+                ) : null}
 
-              <Button
-                size="sm"
-                onClick={() => setChangeDialogOpen(true)}
-                className="h-10 gap-1.5 rounded-xl text-xs shadow-xs"
-              >
-                <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-                Upgrade / Switch Plan
-                <ArrowUpRight className="h-3.5 w-3.5" />
-              </Button>
-            </div>
+                <Button
+                  size="sm"
+                  onClick={() => setChangeDialogOpen(true)}
+                  className="h-10 gap-1.5 rounded-xl text-xs shadow-xs"
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                  Upgrade / Switch Plan
+                  <ArrowUpRight className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            ) : null}
           </div>
         </CardHeader>
 
