@@ -36,8 +36,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { PLATFORM_PERMISSION_KEYS } from "@/config/permissions";
 import { PLATFORM_ROUTES } from "@/config/routes";
-import { PLATFORM_PERMISSION_KEYS, PlatformPermissionGate } from "@/features/platform";
+import { PlatformPermissionGate } from "@/features/platform";
 import { getErrorMessage } from "@/lib/api/errors";
 import { useSearchQueryParams, useTableColumns, type TableColumnDef } from "@/lib/hooks";
 

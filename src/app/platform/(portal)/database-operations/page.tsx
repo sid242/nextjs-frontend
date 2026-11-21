@@ -1,8 +1,5 @@
-import {
-  DatabaseOperationsTable,
-  PLATFORM_PERMISSION_KEYS,
-  PlatformPermissionGate,
-} from "@/features/platform";
+import { PLATFORM_PERMISSION_KEYS } from "@/config/permissions";
+import { DatabaseOperationsTable, PlatformPermissionGate } from "@/features/platform";
 
 export const metadata = {
   title: "Tenant Database Operations | Internal Console",

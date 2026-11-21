@@ -1,4 +1,5 @@
-import { PLATFORM_PERMISSION_KEYS, PlatformPermissionGate, StaffTable } from "@/features/platform";
+import { PLATFORM_PERMISSION_KEYS } from "@/config/permissions";
+import { PlatformPermissionGate, StaffTable } from "@/features/platform";
 
 export const metadata = {
   title: "Platform Staff Directory | Internal Console",

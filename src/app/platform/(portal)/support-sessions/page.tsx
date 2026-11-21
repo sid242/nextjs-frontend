@@ -1,8 +1,5 @@
-import {
-  PLATFORM_PERMISSION_KEYS,
-  PlatformPermissionGate,
-  SupportSessionsTable,
-} from "@/features/platform";
+import { PLATFORM_PERMISSION_KEYS } from "@/config/permissions";
+import { PlatformPermissionGate, SupportSessionsTable } from "@/features/platform";
 
 export const metadata = {
   title: "Audited Customer Support Delegation | Internal Console",

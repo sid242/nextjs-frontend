@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 
+import { PLATFORM_PERMISSION_KEYS } from "@/config/permissions";
 import { PlanFormPage } from "@/features/plans";
-import { PLATFORM_PERMISSION_KEYS, PlatformPermissionGate } from "@/features/platform";
+import { PlatformPermissionGate } from "@/features/platform";
 
 export const metadata: Metadata = {
   title: "Provision Commercial Plan | SaaS Operator Portal",

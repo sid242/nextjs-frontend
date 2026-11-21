@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 
-import {
-  PLATFORM_PERMISSION_KEYS,
-  PlatformDashboard,
-  PlatformPermissionGate,
-} from "@/features/platform";
+import { PLATFORM_PERMISSION_KEYS } from "@/config/permissions";
+import { PlatformDashboard, PlatformPermissionGate } from "@/features/platform";
 
 export const metadata: Metadata = {
   title: "Operations Dashboard | Platform Control Plane",

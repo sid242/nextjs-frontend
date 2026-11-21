@@ -1,8 +1,5 @@
-import {
-  PLATFORM_PERMISSION_KEYS,
-  PlatformPermissionGate,
-  PlatformUsersTable,
-} from "@/features/platform";
+import { PLATFORM_PERMISSION_KEYS } from "@/config/permissions";
+import { PlatformPermissionGate, PlatformUsersTable } from "@/features/platform";
 
 export const metadata = {
   title: "Customer User Accounts | Internal Console",

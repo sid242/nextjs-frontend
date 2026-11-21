@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 
-import {
-  PLATFORM_PERMISSION_KEYS,
-  PlatformPermissionGate,
-  TenantsTable,
-} from "@/features/platform";
+import { PLATFORM_PERMISSION_KEYS } from "@/config/permissions";
+import { PlatformPermissionGate, TenantsTable } from "@/features/platform";
 
 export const metadata: Metadata = {
   title: "Customer Workspaces | Platform Operator Portal",

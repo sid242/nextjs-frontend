@@ -1,5 +1,6 @@
+import { PLATFORM_PERMISSION_KEYS } from "@/config/permissions";
 import { PlatformPlansTable } from "@/features/plans";
-import { PLATFORM_PERMISSION_KEYS, PlatformPermissionGate } from "@/features/platform";
+import { PlatformPermissionGate } from "@/features/platform";
 
 export const metadata = {
   title: "Commercial Plans & Entitlements | SaaS Operator Portal",

@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 
-import {
-  PLATFORM_PERMISSION_KEYS,
-  PlatformPermissionGate,
-  StaffFormPage,
-} from "@/features/platform";
+import { PLATFORM_PERMISSION_KEYS } from "@/config/permissions";
+import { PlatformPermissionGate, StaffFormPage } from "@/features/platform";
 
 export const metadata: Metadata = {
   title: "Provision Staff Member | Platform Operator Portal",

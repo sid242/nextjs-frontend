@@ -1,8 +1,5 @@
-import {
-  PLATFORM_PERMISSION_KEYS,
-  PlatformPermissionGate,
-  PlatformPoliciesTable,
-} from "@/features/platform";
+import { PLATFORM_PERMISSION_KEYS } from "@/config/permissions";
+import { PlatformPermissionGate, PlatformPoliciesTable } from "@/features/platform";
 
 export const metadata = {
   title: "Platform PBAC Policies | Internal Console",

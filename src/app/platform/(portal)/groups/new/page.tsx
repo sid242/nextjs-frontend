@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
-import { PLATFORM_PERMISSION_KEYS, PlatformPermissionGate } from "@/features/platform";
+import { PLATFORM_PERMISSION_KEYS } from "@/config/permissions";
+import { PlatformPermissionGate } from "@/features/platform";
 import { GroupFormPage } from "@/features/user-groups";
 
 export const metadata: Metadata = {
