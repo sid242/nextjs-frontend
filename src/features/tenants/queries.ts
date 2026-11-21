@@ -19,12 +19,14 @@ import {
   checkTenantSlug,
   createTenant,
   deleteTenantCustomDomain,
+  executeMemberImport,
   getTenantAuditLogs,
   getTenantBranding,
   getTenantContext,
   getTenantEmailConfig,
   getTenantMembers,
   getTenantModules,
+  getTenantOrgChart,
   getTenants,
   getTenantSecurityPolicy,
   getTenantSettings,
@@ -42,8 +44,15 @@ import {
   updateTenantSecurityPolicy,
   updateTenantSettings,
   updateTenantUrlSettings,
+  validateMemberImport,
   verifyTenantCustomDomain,
 } from "./api";
+import type {
+  ExecuteImportResult,
+  ImportMemberRow,
+  OrgChartResponse,
+  ValidateImportResult,
+} from "./import-export.types";
 import { tenantKeys } from "./keys";
 import type {
   AddMemberInput,
@@ -672,4 +681,54 @@ export function useUpdateTenantSecurityPolicy(
     },
     options,
   );
+}
+
+export function useTenantOrgChart(tenantId?: string | null) {
+  return useAppQuery<OrgChartResponse>({
+    queryKey: tenantKeys.orgChart(tenantId ?? ""),
+    queryFn: ({ signal }: { signal?: AbortSignal }) =>
+      tenantId
+        ? getTenantOrgChart(tenantId, signal)
+        : Promise.reject(new Error("No active tenant")),
+    enabled: Boolean(tenantId),
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useValidateMemberImport(tenantId?: string | null) {
+  return useAppMutation<ValidateImportResult, Error, ImportMemberRow[]>({
+    mutationFn: (rows: ImportMemberRow[]) => {
+      if (!tenantId) throw new Error("Missing active tenant");
+      return validateMemberImport(tenantId, rows);
+    },
+  });
+}
+
+export function useExecuteMemberImport(tenantId?: string | null) {
+  const queryClient = useQueryClient();
+
+  return useAppMutation<
+    ExecuteImportResult,
+    Error,
+    {
+      rows: ImportMemberRow[];
+      sendInviteEmails?: boolean;
+    }
+  >({
+    mutationFn: ({
+      rows,
+      sendInviteEmails = true,
+    }: {
+      rows: ImportMemberRow[];
+      sendInviteEmails?: boolean;
+    }) => {
+      if (!tenantId) throw new Error("Missing active tenant");
+      return executeMemberImport(tenantId, rows, sendInviteEmails);
+    },
+    onSuccess: () => {
+      if (!tenantId) return;
+      void queryClient.invalidateQueries({ queryKey: tenantKeys.members(tenantId) });
+      void queryClient.invalidateQueries({ queryKey: tenantKeys.orgChart(tenantId) });
+    },
+  });
 }

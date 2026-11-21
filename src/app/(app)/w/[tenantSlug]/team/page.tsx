@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { PlusIcon } from "lucide-react";
+import { GitFork, ListFilter, PlusIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { ConfirmDialog } from "@/components/molecules/confirm-dialog";
@@ -18,12 +18,14 @@ import { AddressBook } from "@/features/addresses";
 import { useTenantSubscription } from "@/features/plans";
 import { useTenantRoles } from "@/features/rbac";
 import {
+  BulkImportMembersDialog,
   exportTenantMembers,
   hasTenantPermission,
   InviteMemberDialog,
   MemberDrawer,
   OffboardMemberDialog,
   TeamMembersList,
+  TeamOrgChart,
   TeamStatsCards,
   TENANT_PERMISSIONS,
   TenantPermissionGate,
@@ -60,6 +62,7 @@ export default function TeamPage() {
   const updateRoleMutation = useUpdateMemberRole(activeTenantId ?? "");
   const transferOwnershipMutation = useTransferTenantOwnership(activeTenantId ?? "");
 
+  const [viewMode, setViewMode] = useState<"directory" | "org-chart">("directory");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [drawerMember, setDrawerMember] = useState<TenantMember | null>(null);
@@ -169,38 +172,62 @@ export default function TeamPage() {
             title="Team Management"
             description={`Manage members, permissions, and role assignments for ${activeTenant?.name ?? "your organization"}.`}
           />
-          {canInvite ? (
-            <Button
-              onClick={() => setInviteOpen(true)}
-              className="w-full gap-2 shadow-sm sm:w-auto"
-            >
-              <PlusIcon className="size-4" /> Invite Member
-            </Button>
-          ) : null}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="bg-muted border-border/50 flex items-center gap-1 rounded-lg border p-1">
+              <Button
+                variant={viewMode === "directory" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("directory")}
+                className="h-8 gap-1.5 text-xs"
+              >
+                <ListFilter className="size-3.5" /> Directory
+              </Button>
+              <Button
+                variant={viewMode === "org-chart" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("org-chart")}
+                className="h-8 gap-1.5 text-xs"
+              >
+                <GitFork className="size-3.5" /> Org Chart
+              </Button>
+            </div>
+            {canInvite ? (
+              <>
+                <BulkImportMembersDialog tenantId={activeTenantId} />
+                <Button onClick={() => setInviteOpen(true)} className="gap-2 shadow-sm">
+                  <PlusIcon className="size-4" /> Invite Member
+                </Button>
+              </>
+            ) : null}
+          </div>
         </div>
 
         <TeamStatsCards totalMembers={members.length} activeMembers={activeCount} />
 
-        <TeamMembersList
-          members={members}
-          isLoading={isLoading}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          onRoleChange={handleRoleChange}
-          onRemoveMember={handleRemove}
-          onOffboardMember={(member) => setOffboardTarget(member)}
-          onSelectMember={(member) => setDrawerMember(member)}
-          onExportMembers={handleExportMembers}
-          onTransferOwnership={(id, name) => setTransferTarget({ id, name })}
-          onResendInvite={handleInvite}
-          onManageAddresses={
-            canUpdateMembers ? (id, name) => setAddressMember({ id, name }) : undefined
-          }
-          isCurrentUserOwner={isCurrentUserOwner}
-          canManageRoles={canManageRoles}
-          canRemoveMembers={canRemoveMembers}
-          roles={tenantRoles}
-        />
+        {viewMode === "directory" ? (
+          <TeamMembersList
+            members={members}
+            isLoading={isLoading}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            onRoleChange={handleRoleChange}
+            onRemoveMember={handleRemove}
+            onOffboardMember={(member) => setOffboardTarget(member)}
+            onSelectMember={(member) => setDrawerMember(member)}
+            onExportMembers={handleExportMembers}
+            onTransferOwnership={(id, name) => setTransferTarget({ id, name })}
+            onResendInvite={handleInvite}
+            onManageAddresses={
+              canUpdateMembers ? (id, name) => setAddressMember({ id, name }) : undefined
+            }
+            isCurrentUserOwner={isCurrentUserOwner}
+            canManageRoles={canManageRoles}
+            canRemoveMembers={canRemoveMembers}
+            roles={tenantRoles}
+          />
+        ) : (
+          <TeamOrgChart tenantId={activeTenantId} />
+        )}
 
         <InviteMemberDialog
           open={inviteOpen}

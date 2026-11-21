@@ -1,5 +1,6 @@
 export * from "./schemas";
 export * from "./constants";
+export * from "./import-export.types";
 export { tenantKeys } from "./keys";
 export {
   tenantsQueryOptions,
@@ -44,6 +45,9 @@ export {
   useToggleTenantModule,
   useTransferTenantOwnership,
   useVerifyTenantCustomDomain,
+  useTenantOrgChart,
+  useValidateMemberImport,
+  useExecuteMemberImport,
 } from "./queries";
 export {
   getTenantSettings,
@@ -52,6 +56,9 @@ export {
   updateTenantSecurityPolicy,
   changeTenantSlug,
   exportTenantMembers,
+  getTenantOrgChart,
+  validateMemberImport,
+  executeMemberImport,
 } from "./api";
 export { TenantSwitcher } from "./components/tenant-switcher";
 export { TenantBrand } from "./components/tenant-brand";
@@ -68,6 +75,8 @@ export { InviteMemberDialog } from "./components/invite-member-dialog";
 export { OffboardMemberDialog } from "./components/offboard-member-dialog";
 export { ChangeSlugDialog } from "./components/change-slug-dialog";
 export { MemberDrawer } from "./components/member-drawer";
+export { TeamOrgChart } from "./components/team-org-chart";
+export { BulkImportMembersDialog } from "./components/bulk-import-members-dialog";
 export { TenantPermissionGate } from "./components/tenant-permission-gate";
 export { TENANT_PERMISSIONS, hasTenantPermission, type TenantPermissionKey } from "./permissions";
 export {

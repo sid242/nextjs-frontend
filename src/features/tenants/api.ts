@@ -383,3 +383,36 @@ export async function updateTenantSecurityPolicy(
 ): Promise<TenantSecurityPolicy> {
   return api.patch<TenantSecurityPolicy>(`/tenants/${tenantId}/settings/security`, input);
 }
+
+// ─── Org Chart & Member Import ───────────────────────────────────────────────
+
+export async function getTenantOrgChart(
+  tenantId: string,
+  signal?: AbortSignal,
+): Promise<import("./import-export.types").OrgChartResponse> {
+  return api.get<import("./import-export.types").OrgChartResponse>(
+    `/tenants/${tenantId}/members/org-chart`,
+    { signal },
+  );
+}
+
+export async function validateMemberImport(
+  tenantId: string,
+  rows: import("./import-export.types").ImportMemberRow[],
+): Promise<import("./import-export.types").ValidateImportResult> {
+  return api.post<import("./import-export.types").ValidateImportResult>(
+    `/tenants/${tenantId}/members/import/validate`,
+    { rows },
+  );
+}
+
+export async function executeMemberImport(
+  tenantId: string,
+  rows: import("./import-export.types").ImportMemberRow[],
+  sendInviteEmails = true,
+): Promise<import("./import-export.types").ExecuteImportResult> {
+  return api.post<import("./import-export.types").ExecuteImportResult>(
+    `/tenants/${tenantId}/members/import/execute`,
+    { rows, sendInviteEmails },
+  );
+}
