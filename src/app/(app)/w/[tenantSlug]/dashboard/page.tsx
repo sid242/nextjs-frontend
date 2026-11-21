@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/molecules/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { filesKeys, FilesSummary, RecentFilesCard } from "@/features/files";
+import { OnboardingChecklistCard } from "@/features/onboarding";
 import type { FileRecord } from "@/lib/api/types";
 import { getAccessToken, requireUser } from "@/lib/auth/session";
 import { getServerQueryClient } from "@/lib/query/server";
@@ -41,6 +42,7 @@ export default async function DashboardPage() {
           title={`Welcome back, ${user.firstName}`}
           description="Here's a quick overview of your workspace and activity."
         />
+        <OnboardingChecklistCard />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <FilesSummary />
           <DashboardWidgets />

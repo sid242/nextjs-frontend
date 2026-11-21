@@ -10,6 +10,7 @@ export type NavIcon =
   | "folder"
   | "scroll-text"
   | "settings"
+  | "life-buoy"
   | "circle";
 
 export interface NavItem {
@@ -104,6 +105,12 @@ export const navSections: NavSection[] = [
         href: "/audit-logs",
         icon: "scroll-text",
         permission: TENANT_PERMISSIONS.AUDIT_READ,
+      },
+      {
+        title: "Help & Support",
+        href: "/support",
+        icon: "life-buoy",
+        permission: TENANT_PERMISSIONS.SUPPORT_READ,
       },
       {
         title: "Settings",

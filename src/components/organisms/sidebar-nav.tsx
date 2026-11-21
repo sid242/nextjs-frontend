@@ -9,6 +9,7 @@ import {
   CircleIcon,
   FolderIcon,
   LayoutDashboardIcon,
+  LifeBuoyIcon,
   MailIcon,
   PaletteIcon,
   ScrollTextIcon,
@@ -47,6 +48,7 @@ const ICONS: Record<NavIcon, LucideIcon> = {
   folder: FolderIcon,
   "scroll-text": ScrollTextIcon,
   settings: SettingsIcon,
+  "life-buoy": LifeBuoyIcon,
   circle: CircleIcon,
 };
 

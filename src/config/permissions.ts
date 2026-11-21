@@ -74,6 +74,14 @@ export const TENANT_PERMISSIONS = {
   REPORTS_READ: "reports:read",
   REPORTS_CREATE: "reports:create",
   REPORTS_RUN: "reports:run",
+
+  // Onboarding, Support & Feedback
+  ONBOARDING_READ: "onboarding:read",
+  ONBOARDING_UPDATE: "onboarding:update",
+  SUPPORT_READ: "support:read",
+  SUPPORT_CREATE: "support:create",
+  SUPPORT_REPLY: "support:reply",
+  FEEDBACK_CREATE: "feedback:create",
 } as const;
 
 export type TenantPermissionKey = (typeof TENANT_PERMISSIONS)[keyof typeof TENANT_PERMISSIONS];
@@ -113,6 +121,9 @@ export const PLATFORM_PERMISSION_KEYS = {
   HEALTH_READ: "system_health:read",
   DATABASE_OPERATE: "database:operate",
   METRICS_READ: "platform_metrics:read",
+  SUPPORT_TICKETS_READ: "support_tickets:read",
+  SUPPORT_TICKETS_MANAGE: "support_tickets:manage",
+  FEEDBACK_READ: "feedback:read",
 } as const;
 
 export type PlatformPermissionKey =
