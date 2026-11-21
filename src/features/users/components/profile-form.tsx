@@ -19,6 +19,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api/http";
 import type { User } from "@/lib/api/types";
+import { useTranslation, type SupportedLocale } from "@/lib/i18n";
 
 import { useUpdateProfile } from "../queries";
 import { profileSchema, type ProfileValues } from "../schemas";
@@ -40,11 +41,9 @@ const TIMEZONE_OPTIONS = [
 
 const LOCALE_OPTIONS = [
   { label: "English (US)", value: "en" },
-  { label: "English (UK)", value: "en-GB" },
-  { label: "Hindi (India)", value: "hi" },
-  { label: "Spanish", value: "es" },
-  { label: "French", value: "fr" },
-  { label: "German", value: "de" },
+  { label: "Español (Spanish)", value: "es" },
+  { label: "हिन्दी (Hindi)", value: "hi" },
+  { label: "Français (French)", value: "fr" },
 ];
 
 const DATE_FORMAT_OPTIONS = [
@@ -58,6 +57,7 @@ export function ProfileForm({ user }: { user?: User }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [emailChangeOpen, setEmailChangeOpen] = useState(false);
+  const { setLocale: setI18nLocale } = useTranslation();
 
   const initials =
     [user?.firstName?.[0], user?.lastName?.[0]].filter(Boolean).join("").toUpperCase() || "U";
@@ -87,6 +87,9 @@ export function ProfileForm({ user }: { user?: User }) {
         dateFormat: updated?.dateFormat ?? "YYYY-MM-DD",
         phoneNumber: updated?.phoneNumber ?? "",
       });
+      if (updated?.locale) {
+        setI18nLocale(updated.locale as SupportedLocale);
+      }
       router?.refresh();
     },
   });

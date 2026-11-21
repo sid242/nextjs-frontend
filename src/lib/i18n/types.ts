@@ -1,0 +1,159 @@
+export type SupportedLocale = "en" | "es" | "hi" | "fr";
+
+export interface LocaleInfo {
+  code: SupportedLocale;
+  name: string;
+  nativeName: string;
+  flag: string;
+  dir: "ltr" | "rtl";
+}
+
+export const SUPPORTED_LOCALES: LocaleInfo[] = [
+  {
+    code: "en",
+    name: "English",
+    nativeName: "English",
+    flag: "🇺🇸",
+    dir: "ltr",
+  },
+  {
+    code: "es",
+    name: "Spanish",
+    nativeName: "Español",
+    flag: "🇪🇸",
+    dir: "ltr",
+  },
+  {
+    code: "hi",
+    name: "Hindi",
+    nativeName: "हिन्दी",
+    flag: "🇮🇳",
+    dir: "ltr",
+  },
+  {
+    code: "fr",
+    name: "French",
+    nativeName: "Français",
+    flag: "🇫🇷",
+    dir: "ltr",
+  },
+];
+
+export const DEFAULT_LOCALE: SupportedLocale = "en";
+
+export interface CommonDictionary {
+  save: string;
+  cancel: string;
+  delete: string;
+  edit: string;
+  create: string;
+  confirm: string;
+  back: string;
+  search: string;
+  loading: string;
+  error: string;
+  success: string;
+  refresh: string;
+  actions: string;
+  view: string;
+  copy: string;
+  copied: string;
+  close: string;
+  filter: string;
+  clear: string;
+  status: string;
+  active: string;
+  inactive: string;
+  pending: string;
+  upload: string;
+  download: string;
+  export: string;
+  import: string;
+  noData: string;
+  showing: string;
+  of: string;
+  to: string;
+  next: string;
+  previous: string;
+  language: string;
+}
+
+export interface NavDictionary {
+  dashboard: string;
+  team: string;
+  members: string;
+  roles: string;
+  groups: string;
+  settings: string;
+  billing: string;
+  auditLogs: string;
+  apiKeys: string;
+  webhooks: string;
+  notifications: string;
+  help: string;
+  profile: string;
+  logout: string;
+  workspaces: string;
+  platform: string;
+}
+
+export interface DashboardDictionary {
+  welcome: string;
+  overview: string;
+  activeMembers: string;
+  pendingInvites: string;
+  storageUsed: string;
+  recentActivity: string;
+  quickActions: string;
+  viewAll: string;
+  inviteMember: string;
+  manageTeam: string;
+}
+
+export interface TeamDictionary {
+  title: string;
+  description: string;
+  directory: string;
+  orgChart: string;
+  inviteMember: string;
+  bulkImport: string;
+  searchPlaceholder: string;
+  allRoles: string;
+  allDepartments: string;
+  manager: string;
+  directReports: string;
+  noHierarchy: string;
+  memberCount: string;
+}
+
+export interface SettingsDictionary {
+  title: string;
+  description: string;
+  general: string;
+  security: string;
+  branding: string;
+  domain: string;
+  billing: string;
+  members: string;
+  integrations: string;
+  language: string;
+  localePreferences: string;
+}
+
+export interface BillingDictionary {
+  title: string;
+  currentPlan: string;
+  upgrade: string;
+  manageSubscription: string;
+  seatLimit: string;
+  billingCycle: string;
+}
+
+export interface TranslationSchema {
+  common: CommonDictionary;
+  nav: NavDictionary;
+  dashboard: DashboardDictionary;
+  team: TeamDictionary;
+  settings: SettingsDictionary;
+  billing: BillingDictionary;
+}

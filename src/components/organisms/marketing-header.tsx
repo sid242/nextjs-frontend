@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ThemeToggle } from "@/components/molecules/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/config/site";
+import { LanguageSwitcher } from "@/lib/i18n";
 
 export function MarketingHeader() {
   return (
@@ -11,6 +12,7 @@ export function MarketingHeader() {
         {siteConfig.name}
       </Link>
       <div className="flex items-center gap-2">
+        <LanguageSwitcher />
         <ThemeToggle />
         <Button asChild variant="ghost">
           <Link href="/pricing">Pricing</Link>

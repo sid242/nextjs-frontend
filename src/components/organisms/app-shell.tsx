@@ -6,6 +6,7 @@ import { Breadcrumbs } from "@/components/molecules/breadcrumbs";
 import { GlobalSearch } from "@/components/molecules/global-search";
 import { OfflineBanner } from "@/components/molecules/offline-banner";
 import { ThemeToggle } from "@/components/molecules/theme-toggle";
+import { LanguageSwitcher } from "@/lib/i18n";
 
 import { AppSidebar } from "./app-sidebar";
 import { MobileSidebar } from "./mobile-sidebar";
@@ -76,11 +77,12 @@ export function AppShell({
             <Breadcrumbs />
           </div>
 
-          {/* Right section: Global Search + Status + Notifications + Theme + User Menu */}
+          {/* Right section: Global Search + Status + Notifications + Language Switcher + Theme + User Menu */}
           <div className="ml-auto flex items-center gap-1.5 sm:gap-2.5">
             <GlobalSearch />
             {headerSlot}
             {notifications}
+            <LanguageSwitcher />
             <ThemeToggle />
             {userMenu}
           </div>
