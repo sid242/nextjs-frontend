@@ -13,8 +13,10 @@ import { ControlledInput, FormWrapper } from "@/components/molecules/forms";
 import { SubmitButton } from "@/components/molecules/submit-button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { AUTH_ROUTES, ROUTES } from "@/config/routes";
 import { initiateSso } from "@/features/sso";
 import { getErrorMessage } from "@/lib/api/errors";
+import { useHydrated } from "@/lib/hooks/use-hydrated";
 import { resetAllStores } from "@/lib/stores/reset";
 import { executePostLoginRouting, routeAfterLogin } from "@/lib/tenancy/after-login";
 
@@ -42,6 +44,8 @@ export function LoginForm({
 }) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const hydrated = useHydrated();
+  const authRoutes = targetTenant?.slug ? ROUTES.tenant(targetTenant.slug) : AUTH_ROUTES;
   const [challengeToken, setChallengeToken] = useState<string | null>(null);
   const [ssoLoading, setSsoLoading] = useState(false);
 
@@ -69,7 +73,9 @@ export function LoginForm({
       });
       if (res?.redirectUrl) {
         window.location.href = res.redirectUrl;
+        return;
       }
+      setSsoLoading(false);
     } catch (err: unknown) {
       setSsoLoading(false);
       const msg = getErrorMessage(err);
@@ -90,7 +96,7 @@ export function LoginForm({
       resetAllStores();
 
       const currentHost = typeof window !== "undefined" ? window.location.host : "";
-      const result = routeAfterLogin(data?.memberships, currentHost, next);
+      const result = routeAfterLogin(data?.memberships, currentHost, next, targetTenant?.slug);
       await executePostLoginRouting(result, router);
     },
   });
@@ -115,6 +121,7 @@ export function LoginForm({
     (apiError?.code === "SSO_REQUIRED" || Boolean(apiError?.details?.ssoRequired));
   const ssoDetails = apiError?.details;
   const ssoLoginUrl = ssoDetails?.ssoLoginUrl;
+  const busy = !hydrated || ssoLoading || loginMutation?.isPending;
 
   return (
     <div className="grid gap-5">
@@ -135,6 +142,7 @@ export function LoginForm({
                 type="button"
                 size="sm"
                 className="w-full"
+                disabled={busy}
                 onClick={() => {
                   if (ssoLoginUrl) {
                     window.location.href = ssoLoginUrl;
@@ -157,53 +165,53 @@ export function LoginForm({
           name="email"
           label="Email"
           type="email"
-          autoComplete="email"
+          autoComplete="username"
           placeholder="name@example.com"
+          className="h-10 rounded-xl"
+          disabled={busy}
           required
         />
 
-        <div className="grid gap-1">
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-medium">Password</label>
+        <ControlledInput
+          name="password"
+          label="Password"
+          labelAction={
             <Link
-              href="/forgot-password"
-              className="text-muted-foreground hover:text-foreground text-xs underline-offset-4 hover:underline"
+              href={authRoutes.FORGOT_PASSWORD}
+              className="text-primary text-sm font-medium underline-offset-4 hover:underline"
             >
               Forgot password?
             </Link>
-          </div>
-          <ControlledInput
-            name="password"
-            label=""
-            type="password"
-            autoComplete="current-password"
-            placeholder="••••••••"
-            required
-          />
-        </div>
+          }
+          type="password"
+          autoComplete="current-password"
+          className="h-10 rounded-xl"
+          disabled={busy}
+          required
+        />
 
-        <SubmitButton pending={loginMutation?.isPending} pendingText="Signing in…">
+        <SubmitButton
+          className="h-10 rounded-xl"
+          disabled={busy}
+          pending={loginMutation?.isPending}
+          pendingText="Signing in…"
+        >
           Sign in
         </SubmitButton>
       </FormWrapper>
 
       {(!targetTenant || targetTenant.ssoConfigured) && (
         <>
-          <div className="relative my-1">
-            <div className="absolute inset-0 flex items-center">
-              <span className="border-border/60 w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card text-muted-foreground px-2">Or</span>
-            </div>
+          <div className="text-muted-foreground flex items-center gap-3 text-xs before:flex-1 before:border-t after:flex-1 after:border-t">
+            or
           </div>
 
           <Button
             type="button"
             variant="outline"
-            className="w-full text-xs font-medium"
+            className="w-full"
             onClick={handleSsoLogin}
-            disabled={ssoLoading}
+            disabled={busy}
           >
             <Building2 className="mr-2 h-4 w-4" />
             {ssoLoading ? "Connecting to SSO…" : "Sign in with Enterprise SSO"}
@@ -214,10 +222,10 @@ export function LoginForm({
       <p className="text-muted-foreground text-center text-sm">
         No account?{" "}
         <Link
-          href={targetTenant?.slug ? `/w/${targetTenant.slug}/register` : "/register"}
+          href={authRoutes.REGISTER}
           className="text-foreground font-medium underline-offset-4 hover:underline"
         >
-          Create one
+          Create an account
         </Link>
       </p>
     </div>

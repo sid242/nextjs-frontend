@@ -173,14 +173,15 @@ export function GlobalSearch({ className }: { className?: string }) {
       <Button
         variant="outline"
         size="sm"
+        aria-label="Search workspace"
         onClick={() => setOpen(true)}
         className={cn(
-          "bg-muted/40 hover:bg-muted/70 text-muted-foreground relative h-9 w-40 justify-start rounded-md px-3 text-xs sm:w-60 md:w-64",
+          "bg-muted/40 hover:bg-muted/70 text-muted-foreground relative size-9 rounded-md p-0 text-xs sm:w-60 sm:justify-start sm:px-3 md:w-64",
           className,
         )}
       >
-        <SearchIcon className="mr-2 size-3.5 shrink-0" />
-        <span className="truncate">Search workspace…</span>
+        <SearchIcon aria-hidden="true" className="size-4 shrink-0 sm:mr-2" />
+        <span className="hidden truncate sm:block">Search workspace…</span>
         <kbd className="bg-background text-muted-foreground pointer-events-none absolute top-2 right-2 hidden h-5 items-center gap-0.5 rounded border px-1.5 font-mono text-[10px] font-medium sm:flex">
           <span className="text-xs">⌘</span>K
         </kbd>

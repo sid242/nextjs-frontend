@@ -2,6 +2,7 @@ export interface TenantUrlContextValue {
   slug: string;
   mode: "path" | "subdomain" | "customDomain";
   canonicalBase: string;
+  hasPlatformSession?: boolean;
   allowed?: {
     path: true;
     subdomain: boolean;

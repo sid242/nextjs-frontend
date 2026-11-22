@@ -80,7 +80,7 @@ export function AppShell({
           {/* Right section: Global Search + Status + Notifications + Language Switcher + Theme + User Menu */}
           <div className="ml-auto flex items-center gap-1.5 sm:gap-2.5">
             <GlobalSearch />
-            {headerSlot}
+            {headerSlot ? <div className="hidden shrink-0 sm:block">{headerSlot}</div> : null}
             {notifications}
             <LanguageSwitcher />
             <ThemeToggle />

@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeftIcon, KeyRoundIcon, ShieldAlertIcon, ShieldCheckIcon } from "lucide-react";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 
 import { ControlledInput, FormWrapper } from "@/components/molecules/forms";
 import { SubmitButton } from "@/components/molecules/submit-button";
@@ -13,11 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { getErrorMessage } from "@/lib/api/errors";
 import { resetAllStores } from "@/lib/stores/reset";
-import {
-  executePostLoginRouting,
-  routeAfterLogin,
-  type UserMembershipSummary,
-} from "@/lib/tenancy/after-login";
+import { executePostLoginRouting, routeAfterLogin } from "@/lib/tenancy/after-login";
 
 import { useVerifyTwoFactorChallenge } from "../queries";
 import { twoFactorChallengeSchema, type TwoFactorChallengeValues } from "../schemas";
@@ -32,9 +28,11 @@ interface TwoFactorChallengeFormProps {
 export function TwoFactorChallengeForm({
   challengeToken,
   next,
+  targetTenant,
   onCancel,
 }: TwoFactorChallengeFormProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [useRecoveryCode, setUseRecoveryCode] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -56,23 +54,15 @@ export function TwoFactorChallengeForm({
         code: values?.code?.trim() ?? "",
       });
 
-      toast.success("Identity verified successfully");
+      queryClient.clear();
       resetAllStores();
 
       const currentHost = typeof window !== "undefined" ? window.location.host : "";
-      const memberships =
-        response &&
-        "memberships" in response &&
-        Array.isArray((response as { memberships?: unknown }).memberships)
-          ? ((response as { memberships: unknown[] })
-              .memberships as unknown as UserMembershipSummary[])
-          : undefined;
-      const result = routeAfterLogin(memberships, currentHost, next);
+      const result = routeAfterLogin(response?.memberships, currentHost, next, targetTenant?.slug);
       await executePostLoginRouting(result, router);
     } catch (err) {
       const message = getErrorMessage(err);
       setErrorMsg(message);
-      toast.error(message);
     }
   };
 
@@ -107,6 +97,9 @@ export function TwoFactorChallengeForm({
           label={useRecoveryCode ? "Recovery Code" : "Authentication Code"}
           placeholder={useRecoveryCode ? "e.g. A1B2C3D4E5" : "••••••"}
           autoComplete="one-time-code"
+          inputMode={useRecoveryCode ? "text" : "numeric"}
+          autoCapitalize={useRecoveryCode ? "characters" : "none"}
+          disabled={verifyMutation?.isPending}
           autoFocus
           className="text-center font-mono text-lg tracking-widest"
           required
@@ -120,10 +113,12 @@ export function TwoFactorChallengeForm({
       <div className="flex flex-col gap-2 pt-1 text-center">
         <button
           type="button"
+          disabled={verifyMutation?.isPending}
           onClick={() => {
             setUseRecoveryCode(!useRecoveryCode);
             methods?.reset?.({ challengeToken, code: "" });
             setErrorMsg(null);
+            methods?.setFocus?.("code");
           }}
           className="text-primary cursor-pointer text-xs font-medium hover:underline"
         >
@@ -134,6 +129,7 @@ export function TwoFactorChallengeForm({
 
         <Button
           type="button"
+          disabled={verifyMutation?.isPending}
           variant="ghost"
           size="sm"
           onClick={onCancel}

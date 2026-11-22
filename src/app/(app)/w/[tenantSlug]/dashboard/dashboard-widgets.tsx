@@ -3,12 +3,10 @@
 import Link from "next/link";
 import {
   ArrowRight,
-  Clock,
   CreditCard,
   FileUp,
   Palette,
   ShieldCheck,
-  Sparkles,
   UserPlus,
   Users,
 } from "lucide-react";
@@ -18,203 +16,160 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TENANT_PERMISSIONS } from "@/config/permissions";
+import { TENANT_PATHS } from "@/config/routes";
 import { useTenantSubscription } from "@/features/plans";
-import { useActiveTenant, useTenantMembers } from "@/features/tenants";
+import { hasTenantPermission, useActiveTenant, useTenantContext } from "@/features/tenants";
 import { useTenantHref } from "@/lib/tenancy/use-tenant-href";
+
+const shortcuts = [
+  {
+    title: "Invite a teammate",
+    path: TENANT_PATHS.TEAM,
+    icon: UserPlus,
+    permission: TENANT_PERMISSIONS.MEMBERS_INVITE,
+  },
+  {
+    title: "Upload files",
+    path: TENANT_PATHS.FILES,
+    icon: FileUp,
+    permission: TENANT_PERMISSIONS.FILES_UPLOAD,
+  },
+  {
+    title: "Edit branding",
+    path: TENANT_PATHS.SETTINGS_BRANDING,
+    icon: Palette,
+    permission: TENANT_PERMISSIONS.TENANTS_UPDATE,
+  },
+  {
+    title: "View audit log",
+    path: TENANT_PATHS.AUDIT_LOGS,
+    icon: ShieldCheck,
+    permission: TENANT_PERMISSIONS.AUDIT_READ,
+  },
+];
 
 export function DashboardWidgets() {
   const tenantHref = useTenantHref();
-  const { activeTenant, activeTenantId } = useActiveTenant();
-  const { data: subscription, isLoading: isSubLoading } = useTenantSubscription();
-  const { data: members = [], isLoading: isMembersLoading } = useTenantMembers(activeTenantId);
+  const { activeTenantId } = useActiveTenant();
+  const { data: context } = useTenantContext(activeTenantId);
+  const { data: subscription, isPending, isError } = useTenantSubscription();
+  const plan = subscription?.plan;
+  const usage = subscription?.usage;
+  const seats = usage?.occupiedSeats ?? usage?.activeMembers ?? 0;
+  const seatLimit = usage?.maxMembers;
+  const capacityPercentage = seatLimit ? Math.min(100, (seats / seatLimit) * 100) : 0;
+  const price = plan
+    ? new Intl.NumberFormat(undefined, { style: "currency", currency: plan.currency }).format(
+        plan.priceCents / 100,
+      )
+    : null;
+  const interval = plan?.billingInterval === "ANNUAL" ? "year" : "month";
 
-  const activeMembersCount = (members ?? []).filter((m) => m?.status === "ACTIVE").length;
-  const pendingMembersCount = (members ?? []).filter((m) => m?.status === "INVITED").length;
-  const maxSeats = subscription?.usage?.maxMembers ?? 5;
-  const seatPercentage = Math.min(
-    100,
-    Math.round((activeMembersCount / Math.max(1, maxSeats)) * 100),
-  );
+  if (isPending) {
+    return <Skeleton aria-label="Loading workspace subscription" className="h-32 rounded-2xl" />;
+  }
+
+  if (isError || !subscription || !usage) {
+    return (
+      <Card className="border-border/80 shadow-xs">
+        <CardHeader>
+          <CardTitle>Workspace subscription</CardTitle>
+          <CardDescription>
+            {isError
+              ? "Subscription details are temporarily unavailable."
+              : "No subscription is assigned."}
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
 
   return (
-    <>
-      {/* Team Summary Card */}
-      <Card className="border-border/60 shadow-xs">
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <CardDescription className="text-xs font-medium tracking-wider uppercase">
-              Team Capacity
-            </CardDescription>
-            <Users className="text-muted-foreground h-4 w-4" />
-          </div>
-          <CardTitle className="flex items-baseline gap-2 text-3xl font-bold">
-            {isMembersLoading ? (
-              <Skeleton className="h-8 w-16" />
-            ) : (
-              <>
-                <span>{activeMembersCount}</span>
-                <span className="text-muted-foreground text-xs font-normal">
-                  / {maxSeats} seats used
-                </span>
-              </>
-            )}
+    <div className="grid gap-4 md:grid-cols-2">
+      <Card className="border-border/80 shadow-xs">
+        <CardHeader>
+          <CardDescription className="flex items-center justify-between gap-2">
+            Team capacity <Users aria-hidden="true" className="size-4" />
+          </CardDescription>
+          <CardTitle className="text-2xl font-bold">
+            {seatLimit === null ? seats : `${seats} of ${seatLimit}`}
+            <span className="text-muted-foreground ml-2 text-sm font-normal">seats used</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3 pt-1">
-          <Progress value={seatPercentage} className="h-1.5" />
-          <div className="text-muted-foreground flex items-center justify-between text-xs">
-            <span className="flex items-center gap-1">
-              {pendingMembersCount > 0 ? (
-                <>
-                  <Clock className="h-3 w-3 text-amber-500" />
-                  <span className="font-medium text-amber-600 dark:text-amber-400">
-                    {pendingMembersCount} pending invite{pendingMembersCount === 1 ? "" : "s"}
-                  </span>
-                </>
-              ) : (
-                <span>All invites accepted</span>
-              )}
-            </span>
-            <Button asChild variant="link" size="sm" className="h-auto p-0 text-xs font-medium">
-              <Link href={tenantHref("/team")} className="inline-flex items-center gap-1">
-                Manage Team <ArrowRight className="h-3 w-3" />
-              </Link>
-            </Button>
-          </div>
+        <CardContent className="grid gap-2">
+          {seatLimit !== null && (
+            <Progress aria-label="Team seats used" value={capacityPercentage} />
+          )}
+          <p className="text-muted-foreground text-sm">
+            {seatLimit === null ? "No seat limit" : `${usage.remainingSeats ?? 0} seats available`}
+          </p>
         </CardContent>
       </Card>
 
-      {/* Workspace Plan Card */}
-      <Card className="border-border/60 shadow-xs">
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <CardDescription className="text-xs font-medium tracking-wider uppercase">
-              Subscription Tier
-            </CardDescription>
-            <CreditCard className="text-muted-foreground h-4 w-4" />
-          </div>
-          <CardTitle className="flex items-center gap-2 text-2xl font-bold">
-            {isSubLoading ? (
-              <Skeleton className="h-8 w-28" />
-            ) : (
-              <>
-                <span>{subscription?.plan?.name ?? activeTenant?.plan ?? "Free Tier"}</span>
-                <Badge
-                  variant="outline"
-                  className="border-emerald-500/30 font-mono text-[10px] text-emerald-500"
-                >
-                  {subscription?.status ?? "ACTIVE"}
-                </Badge>
-              </>
-            )}
+      <Card className="border-border/80 shadow-xs">
+        <CardHeader>
+          <CardDescription className="flex items-center justify-between gap-2">
+            Workspace subscription <CreditCard aria-hidden="true" className="size-4" />
+          </CardDescription>
+          <CardTitle className="flex flex-wrap items-center gap-2 text-2xl font-bold">
+            {plan?.name ?? "Subscription"}
+            <Badge variant="secondary">{subscription.status.replaceAll("_", " ")}</Badge>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3 pt-1">
-          <div className="text-muted-foreground flex items-center justify-between text-xs">
-            <span>
-              {subscription?.plan?.priceCents === 0
-                ? "No billing charge"
-                : `$${((subscription?.plan?.priceCents ?? 0) / 100).toFixed(0)} / ${subscription?.plan?.billingInterval?.toLowerCase() ?? "month"}`}
-            </span>
-            <Button asChild variant="link" size="sm" className="h-auto p-0 text-xs font-medium">
-              <Link
-                href={tenantHref("/settings/billing")}
-                className="inline-flex items-center gap-1"
-              >
-                Upgrade / Manage <ArrowRight className="h-3 w-3" />
+        <CardContent className="flex flex-wrap items-center justify-between gap-2">
+          {price && (
+            <p className="text-muted-foreground text-sm">
+              {plan?.priceCents === 0
+                ? "Free"
+                : plan?.billingInterval === "LIFETIME"
+                  ? `${price} one time`
+                  : `${price} / ${interval}`}
+            </p>
+          )}
+          {hasTenantPermission(context?.permissions, TENANT_PERMISSIONS.TENANTS_UPDATE) && (
+            <Button asChild variant="link" className="h-auto p-0">
+              <Link href={tenantHref(TENANT_PATHS.SETTINGS_BILLING)}>
+                Billing settings <ArrowRight aria-hidden="true" className="size-4" />
               </Link>
             </Button>
-          </div>
-          <div className="flex flex-wrap gap-1 pt-0.5">
-            {subscription?.plan?.entitlements?.hasCustomRoles ? (
-              <Badge variant="secondary" className="text-[10px]">
-                Custom RBAC
-              </Badge>
-            ) : null}
-            {subscription?.plan?.entitlements?.hasAdvancedAnalytics ? (
-              <Badge variant="secondary" className="text-[10px]">
-                Analytics
-              </Badge>
-            ) : null}
-            {subscription?.plan?.entitlements?.hasPrioritySupport ? (
-              <Badge variant="secondary" className="text-[10px]">
-                24/7 SLA
-              </Badge>
-            ) : null}
-          </div>
+          )}
         </CardContent>
       </Card>
-    </>
+    </div>
   );
 }
 
 export function DashboardQuickActions() {
   const tenantHref = useTenantHref();
+  const { activeTenantId } = useActiveTenant();
+  const { data: context } = useTenantContext(activeTenantId);
+  const actions = shortcuts.filter(({ permission }) =>
+    hasTenantPermission(context?.permissions, permission),
+  );
+
+  if (!actions.length) return null;
+
   return (
-    <Card className="border-border/60 shadow-xs">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base font-semibold">
-          <Sparkles className="text-primary h-4 w-4" /> Quick Actions
-        </CardTitle>
-        <CardDescription className="text-xs">
-          Common workflows and shortcut destinations for your workspace.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+    <section aria-labelledby="dashboard-quick-actions" className="grid gap-3">
+      <h2 id="dashboard-quick-actions" className="text-lg font-semibold tracking-tight">
+        Quick actions
+      </h2>
+      <div className="grid grid-cols-2 gap-2 xl:grid-cols-4">
+        {actions.map(({ title, path, icon: Icon }) => (
           <Button
+            key={path}
             asChild
             variant="outline"
-            size="sm"
-            className="hover:bg-accent/40 h-auto flex-col items-start gap-1 p-3 text-left"
+            className="h-auto min-h-11 justify-start rounded-xl px-3 text-pretty whitespace-normal"
           >
-            <Link href={tenantHref("/team")}>
-              <UserPlus className="text-primary h-4 w-4" />
-              <div className="text-xs font-semibold">Invite Member</div>
-              <div className="text-muted-foreground text-[10px] font-normal">Add collaborators</div>
+            <Link href={tenantHref(path)}>
+              <Icon aria-hidden="true" className="text-primary size-4" />
+              {title}
             </Link>
           </Button>
-
-          <Button
-            asChild
-            variant="outline"
-            size="sm"
-            className="hover:bg-accent/40 h-auto flex-col items-start gap-1 p-3 text-left"
-          >
-            <Link href={tenantHref("/files")}>
-              <FileUp className="h-4 w-4 text-blue-500" />
-              <div className="text-xs font-semibold">Upload Files</div>
-              <div className="text-muted-foreground text-[10px] font-normal">Cloud storage</div>
-            </Link>
-          </Button>
-
-          <Button
-            asChild
-            variant="outline"
-            size="sm"
-            className="hover:bg-accent/40 h-auto flex-col items-start gap-1 p-3 text-left"
-          >
-            <Link href={tenantHref("/settings/branding")}>
-              <Palette className="h-4 w-4 text-purple-500" />
-              <div className="text-xs font-semibold">Workspace Branding</div>
-              <div className="text-muted-foreground text-[10px] font-normal">Logo & theme</div>
-            </Link>
-          </Button>
-
-          <Button
-            asChild
-            variant="outline"
-            size="sm"
-            className="hover:bg-accent/40 h-auto flex-col items-start gap-1 p-3 text-left"
-          >
-            <Link href={tenantHref("/audit-logs")}>
-              <ShieldCheck className="h-4 w-4 text-emerald-500" />
-              <div className="text-xs font-semibold">Audit Trail</div>
-              <div className="text-muted-foreground text-[10px] font-normal">Security activity</div>
-            </Link>
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+        ))}
+      </div>
+    </section>
   );
 }

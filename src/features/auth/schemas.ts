@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-// Mirrors backend validation (email <= 254, password 8..128, name 1..100).
+import { verificationCodeSchema } from "@/lib/auth/verification-code";
+
 export const loginSchema = z.object({
   email: z.string().trim().min(1, "Email is required").email("Enter a valid email").max(254),
   password: z.string().min(1, "Password is required").max(128),
@@ -135,11 +136,7 @@ export type TwoFactorDisableValues = z.infer<typeof twoFactorDisableSchema>;
 
 export const twoFactorChallengeSchema = z.object({
   challengeToken: z.string().min(1, "Challenge token is required"),
-  code: z
-    .string()
-    .trim()
-    .min(6, "Enter a valid 6-digit code or 10-character recovery code")
-    .max(10, "Code must not exceed 10 characters"),
+  code: verificationCodeSchema,
 });
 export type TwoFactorChallengeValues = z.infer<typeof twoFactorChallengeSchema>;
 

@@ -216,7 +216,7 @@ export default function TeamPage() {
             onSelectMember={(member) => setDrawerMember(member)}
             onExportMembers={handleExportMembers}
             onTransferOwnership={(id, name) => setTransferTarget({ id, name })}
-            onResendInvite={handleInvite}
+            onResendInvite={canInvite ? handleInvite : undefined}
             onManageAddresses={
               canUpdateMembers ? (id, name) => setAddressMember({ id, name }) : undefined
             }
@@ -235,9 +235,9 @@ export default function TeamPage() {
           activeTenantName={activeTenant?.name}
           onInvite={handleInvite}
           isInviting={addMemberMutation.isPending}
-          remainingSeats={subscription?.usage?.remainingSeats}
-          maxMembers={subscription?.usage?.maxMembers}
-          activeMembers={subscription?.usage?.activeMembers}
+          remainingSeats={subscription?.usage?.remainingSeats ?? undefined}
+          maxMembers={subscription?.usage?.maxMembers ?? undefined}
+          activeMembers={subscription?.usage?.occupiedSeats ?? subscription?.usage?.activeMembers}
           planName={subscription?.plan?.name}
           roles={tenantRoles}
         />

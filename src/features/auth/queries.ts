@@ -85,6 +85,7 @@ export function useDisableTwoFactor() {
 export function useVerifyTwoFactorChallenge() {
   return useMutation({
     mutationFn: (values: TwoFactorChallengeValues) => verifyTwoFactorChallenge(values),
+    meta: { silent: true },
   });
 }
 

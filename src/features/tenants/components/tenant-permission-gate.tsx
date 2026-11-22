@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PLATFORM_ROUTES } from "@/config/routes";
 import { usePlatformMe } from "@/features/platform";
-import { useTenantHref } from "@/lib/tenancy";
+import { useTenantHref, useTenantUrl } from "@/lib/tenancy";
 
 import { hasTenantPermission } from "../permissions";
 import { useActiveTenant, useTenantContext } from "../queries";
@@ -29,10 +29,20 @@ export function TenantPermissionGate({
 }: TenantPermissionGateProps) {
   const tenantHref = useTenantHref();
   const params = useParams();
+  const hasPlatformSession = useTenantUrl()?.hasPlatformSession === true;
   const slugFromParam = typeof params?.tenantSlug === "string" ? params.tenantSlug : undefined;
   const { activeTenant, isLoading: tenantLoading } = useActiveTenant();
   const { data: context, isLoading: contextLoading } = useTenantContext(activeTenant?.id);
-  const { data: staff } = usePlatformMe();
+  const isAllowed = hasTenantPermission(context?.permissions, permission);
+  const { data: staff } = usePlatformMe({
+    enabled:
+      hasPlatformSession &&
+      !tenantLoading &&
+      !contextLoading &&
+      !isAllowed &&
+      !fallback &&
+      !hideInsteadOfBanner,
+  });
 
   const isLoading = tenantLoading || contextLoading;
 
@@ -45,8 +55,6 @@ export function TenantPermissionGate({
       </div>
     );
   }
-
-  const isAllowed = hasTenantPermission(context?.permissions, permission);
 
   if (isAllowed) {
     return <>{children}</>;
@@ -64,7 +72,7 @@ export function TenantPermissionGate({
   const targetName = activeTenant?.name ?? (targetSlug ? `"${targetSlug}"` : "this workspace");
 
   // If the visitor is a Platform Staff operator viewing a customer workspace without active support delegation:
-  if (staff?.id) {
+  if (hasPlatformSession && staff?.id) {
     return (
       <div className="bg-card/60 flex min-h-105 flex-col items-center justify-center rounded-2xl border border-indigo-500/30 p-8 text-center shadow-xs">
         <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-indigo-500/30 bg-indigo-500/15 text-indigo-500 shadow-xs dark:text-indigo-400">

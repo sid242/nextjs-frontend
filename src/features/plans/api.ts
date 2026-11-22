@@ -1,23 +1,26 @@
 import { api } from "@/lib/api/http";
 import { buildQueryString } from "@/lib/utils";
 
-import type {
-  AssignSubscriptionInput,
-  ChangeSubscriptionInput,
-  CreatePlanInput,
-  EntitlementDefinition,
-  Plan,
-  PlanFilters,
-  PlatformSubscriptionsResponse,
-  SubscriptionFilters,
-  TenantEntitlementOverrideInput,
-  TenantEntitlementOverrideResult,
-  TenantSubscription,
-  UpdatePlanInput,
+import {
+  catalogPlanSchema,
+  tenantBillingOverviewSchema,
+  type AssignSubscriptionInput,
+  type ChangeSubscriptionInput,
+  type CreatePlanInput,
+  type EntitlementDefinition,
+  type Plan,
+  type PlanFilters,
+  type PlatformSubscriptionsResponse,
+  type SubscriptionFilters,
+  type TenantEntitlementOverrideInput,
+  type TenantEntitlementOverrideResult,
+  type TenantSubscription,
+  type UpdatePlanInput,
 } from "./schemas";
 
 export async function getPublicPlans(signal?: AbortSignal): Promise<Plan[]> {
-  return api.get<Plan[]>("/plans", { signal });
+  const plans = await api.get<unknown>("/plans", { signal });
+  return catalogPlanSchema.array().parse(plans);
 }
 
 export async function getPlatformPlans(
@@ -37,7 +40,8 @@ export async function getPlatformPlans(
     },
     ["minPriceMinor"],
   );
-  return api.get<Plan[]>(`/plans/platform${qs}`, { signal });
+  const plans = await api.get<unknown>(`/billing/platform/plans${qs}`, { signal });
+  return catalogPlanSchema.array().parse(plans);
 }
 
 export async function createPlan(input: CreatePlanInput): Promise<Plan> {
@@ -48,8 +52,11 @@ export async function updatePlan(id: string, input: UpdatePlanInput): Promise<Pl
   return api.patch<Plan>(`/plans/platform/${id}`, input);
 }
 
-export async function getTenantSubscription(signal?: AbortSignal): Promise<TenantSubscription> {
-  return api.get<TenantSubscription>("/plans/subscription", { signal });
+export async function getTenantSubscription(
+  signal?: AbortSignal,
+): Promise<TenantSubscription | null> {
+  const overview = await api.get<unknown>("/plans/subscription", { signal });
+  return tenantBillingOverviewSchema.parse(overview);
 }
 
 export async function changeTenantSubscription(
