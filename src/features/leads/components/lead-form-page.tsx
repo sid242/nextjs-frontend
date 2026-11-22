@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, Building, DollarSign, Lock, Shield, User } from "lucide-react";
+import { ArrowLeft, DollarSign, Lock, Shield, User } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -20,7 +20,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TENANT_PATHS } from "@/config/routes";
 import { getErrorMessage } from "@/lib/api/errors";
+import { useTenantHref } from "@/lib/tenancy";
 
 import { useCreateLead, useLead, useUpdateLead } from "../queries";
 import { createLeadSchema, type CreateLeadFormValues } from "../schemas";
@@ -55,8 +57,7 @@ interface LeadFormPageProps {
 
 export function LeadFormPage({ leadId }: LeadFormPageProps) {
   const router = useRouter();
-  const params = useParams<{ tenantSlug: string }>();
-  const tenantSlug = params?.tenantSlug ?? "";
+  const tenantHref = useTenantHref();
   const isEditing = Boolean(leadId);
 
   const [formError, setFormError] = useState<string | null>(null);
@@ -138,7 +139,7 @@ export function LeadFormPage({ leadId }: LeadFormPageProps) {
         });
         toast.success(`Lead "${values.name}" created successfully!`);
       }
-      router.push(`/w/${tenantSlug}/leads`);
+      router.push(tenantHref(TENANT_PATHS.LEADS));
     } catch (err: unknown) {
       setFormError(
         getErrorMessage(err, isEditing ? "Failed to update CRM lead" : "Failed to create CRM lead"),
@@ -169,7 +170,7 @@ export function LeadFormPage({ leadId }: LeadFormPageProps) {
             asChild
             className="text-muted-foreground hover:text-foreground -ml-2 gap-1.5"
           >
-            <Link href={`/w/${tenantSlug}/leads`}>
+            <Link href={tenantHref(TENANT_PATHS.LEADS)}>
               <ArrowLeft className="h-4 w-4" />
               Back to CRM Leads
             </Link>
@@ -339,7 +340,7 @@ export function LeadFormPage({ leadId }: LeadFormPageProps) {
         {/* Form Actions Footer */}
         <div className="flex items-center justify-end gap-3 pt-2">
           <Button variant="outline" asChild disabled={isPending}>
-            <Link href={`/w/${tenantSlug}/leads`}>Cancel</Link>
+            <Link href={tenantHref(TENANT_PATHS.LEADS)}>Cancel</Link>
           </Button>
           <SubmitButton
             pending={isPending}

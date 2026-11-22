@@ -1,3 +1,5 @@
+import { ROUTES } from "@/config/routes";
+
 import { isIpAddress, normalizeHost } from "./host";
 
 export interface InitiateHandoffParams {
@@ -57,7 +59,7 @@ export async function switchWorkspaceOrHandoff({
   const host = normalizeHost(
     currentHost ?? (typeof window !== "undefined" ? window?.location?.host : ""),
   );
-  const destination = next || `/w/${tenant?.slug}/dashboard`;
+  const destination = next || ROUTES.tenant(tenant?.slug).DASHBOARD;
 
   if (tenant?.slug) {
     setWorkspaceContextCookie(tenant.slug);

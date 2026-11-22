@@ -6,7 +6,11 @@ import type { Socket } from "socket.io-client";
  */
 export interface ServerToClientEvents {
   /** Emitted by the file worker when background processing finishes. */
-  "file:processed": (payload: { fileId: string }) => void;
+  "file:processed": (payload: {
+    fileId: string;
+    tenantId: string;
+    scanStatus: "CLEAN" | "INFECTED" | "FAILED";
+  }) => void;
   "room:message": (payload: { roomId: string; text: string; from: string; at: number }) => void;
   /** Emitted by notification service when new notification is dispatched. */
   "notification:new": (payload: {

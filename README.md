@@ -208,3 +208,19 @@ E2E (Playwright against a seeded backend: login -> upload -> download -> logout)
 - [ ] Decide on fonts (`next/font`) and design tokens in `globals.css`
 - [ ] Email verification / password reset (needs backend support first); i18n; analytics behind consent
 - [ ] Load-test the BFF proxy; consider caching public GETs
+
+## Paired foundation verification
+
+Run the backend and its worker against an isolated PostgreSQL, Redis and MinIO stack. Apply migrations and seed the backend demo fixtures only in a disposable local database. Set `API_URL` to the versioned backend URL and use the same `BFF_SHARED_SECRET` in both processes. Confirm `/api/ready` returns 200 before browser checks.
+
+```sh
+npm run check
+npm run lint:hrefs
+npm run build
+npx playwright install chromium
+npm run test:e2e
+```
+
+The browser suite signs in with the backend demo staff, owner and viewer fixtures. It submits a synthetic member import with invite email delivery disabled. Override the demo identities with the `FOUNDATION_STAFF_EMAIL`, `FOUNDATION_OWNER_EMAIL`, `FOUNDATION_VIEWER_EMAIL`, `FOUNDATION_OWNER_SLUG` and `FOUNDATION_FIXTURE_PASSWORD` variables when using different local fixtures. Set `FOUNDATION_BROWSER_CHANNEL=msedge` to use an installed Edge browser.
+
+Repeat the suite with the backend using `FOUNDATION_MODULES=` and set `FOUNDATION_EXPECT_LEADS=false` for the browser runner. Use the same frontend build in both configurations. Keep navigation and direct-route gates driven by the backend capability response and the user's permissions.

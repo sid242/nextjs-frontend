@@ -39,8 +39,12 @@ export function useUpdateTenantSsoConfig(tenantId?: string) {
 }
 
 export function useTestSsoConnection(tenantId?: string) {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: TestSsoConnectionInput) => testSsoConnection(tenantId!, input),
+    onSettled: () => {
+      if (tenantId) return queryClient.invalidateQueries({ queryKey: ssoKeys.config(tenantId) });
+    },
   });
 }
 

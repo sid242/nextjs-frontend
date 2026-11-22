@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, type ReactNode } from "react";
+import { useParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { io } from "socket.io-client";
 
@@ -49,6 +50,7 @@ async function getFirstTicket(
  */
 export function SocketProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
+  const workspaceSlug = useParams<{ tenantSlug?: string }>()?.tenantSlug;
 
   useEffect(() => {
     const { setSocket, setStatus } = useRealtimeStore.getState();
@@ -73,12 +75,12 @@ export function SocketProvider({ children }: { children: ReactNode }) {
         reconnectionDelayMax: 10_000,
         auth: (callback) => {
           if (firstToken) {
-            callback({ token: firstToken });
+            callback({ token: firstToken, workspaceSlug });
             firstToken = null;
             return;
           }
           fetchTicket()
-            .then((fresh) => callback({ token: fresh.token }))
+            .then((fresh) => callback({ token: fresh.token, workspaceSlug }))
             .catch(() => callback({ token: "" })); // server rejects it -> connect_error handler below recovers
         },
       });
@@ -124,7 +126,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       setSocket(null);
       setStatus("idle");
     };
-  }, [queryClient]);
+  }, [queryClient, workspaceSlug]);
 
   return <>{children}</>;
 }

@@ -406,6 +406,24 @@ export async function validateMemberImport(
   );
 }
 
+export async function queueMemberImport(
+  tenantId: string,
+  rows: import("./import-export.types").ImportMemberRow[],
+  sendInviteEmails = true,
+) {
+  return api.post<import("./import-export.types").MemberImportJob>(
+    "/tenants/" + tenantId + "/members/import/jobs",
+    { rows, sendInviteEmails },
+  );
+}
+
+export async function getMemberImportJob(tenantId: string, jobId: string, signal?: AbortSignal) {
+  return api.get<import("./import-export.types").MemberImportJob>(
+    "/tenants/" + tenantId + "/members/import/jobs/" + jobId,
+    { signal },
+  );
+}
+
 export async function executeMemberImport(
   tenantId: string,
   rows: import("./import-export.types").ImportMemberRow[],

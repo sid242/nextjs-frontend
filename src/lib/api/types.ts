@@ -12,7 +12,7 @@ export interface User {
 }
 
 export type FileStatus = "PENDING" | "UPLOADED";
-export type FileScanStatus = "PENDING" | "CLEAN" | "INFECTED" | "SKIPPED";
+export type FileScanStatus = "PENDING" | "CLEAN" | "INFECTED" | "SKIPPED" | "FAILED";
 export type FileVisibility = "PRIVATE" | "TENANT" | "PUBLIC_LINK";
 
 export interface FileFolderRecord {

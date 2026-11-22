@@ -2,15 +2,11 @@
 
 import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type {
-  FileFolderRecord,
-  FileRecord,
-  FileShareRecord,
-  FileVersionRecord,
-  StorageStats,
-} from "@/lib/api/types";
+import type { FileRecord, StorageStats } from "@/lib/api/types";
+import { useTenantUrl } from "@/lib/tenancy";
 
 import {
+  confirmUpload,
   createFolder,
   createShare,
   deleteFile,
@@ -30,10 +26,17 @@ import {
 import { filesKeys } from "./keys";
 
 export const filesQueryOptions = {
-  list: (params?: ListFilesParams) =>
-    queryOptions({
-      queryKey: filesKeys.list(params),
-      queryFn: async ({ signal }) => {
+  list: (slug: string, params?: ListFilesParams) =>
+    queryOptions<{ items: FileRecord[]; total: number }>({
+      queryKey: filesKeys.list(slug, params),
+      enabled: Boolean(slug),
+      refetchInterval: (query) =>
+        query.state.data?.items?.some(
+          (file) => file?.status === "UPLOADED" && file?.scanStatus === "PENDING",
+        )
+          ? 5_000
+          : false,
+      queryFn: async ({ signal }): Promise<{ items: FileRecord[]; total: number }> => {
         const res = await listFiles(params, signal);
         if (Array.isArray(res)) return { items: res, total: res.length };
         if (res && typeof res === "object" && "items" in res && Array.isArray(res.items)) {
@@ -52,55 +55,73 @@ export const filesQueryOptions = {
       },
     }),
 
-  folders: (parentId?: string) =>
+  folders: (slug: string, parentId?: string) =>
     queryOptions({
-      queryKey: filesKeys.folders(parentId),
+      queryKey: filesKeys.folders(slug, parentId),
+      enabled: Boolean(slug),
       queryFn: async ({ signal }) => {
         const res = await listFolders(parentId, signal);
         return Array.isArray(res) ? res : [];
       },
     }),
 
-  stats: () =>
+  stats: (slug: string) =>
     queryOptions({
-      queryKey: filesKeys.stats(),
+      queryKey: filesKeys.stats(slug),
+      enabled: Boolean(slug),
       queryFn: async () => {
         const res = await getStorageStats();
         return res as StorageStats;
       },
     }),
 
-  shares: (fileId: string) =>
+  shares: (slug: string, fileId: string) =>
     queryOptions({
-      queryKey: filesKeys.shares(fileId),
+      queryKey: filesKeys.shares(slug, fileId),
       queryFn: async () => {
         if (!fileId) return [];
         const res = await listShares(fileId);
         return Array.isArray(res) ? res : [];
       },
-      enabled: Boolean(fileId),
+      enabled: Boolean(slug && fileId),
     }),
 
-  versions: (fileId: string) =>
+  versions: (slug: string, fileId: string) =>
     queryOptions({
-      queryKey: filesKeys.versions(fileId),
+      queryKey: filesKeys.versions(slug, fileId),
       queryFn: async () => {
         if (!fileId) return [];
         const res = await listVersions(fileId);
         return Array.isArray(res) ? res : [];
       },
-      enabled: Boolean(fileId),
+      enabled: Boolean(slug && fileId),
     }),
 };
 
-export const useFiles = (params?: ListFilesParams) => useQuery(filesQueryOptions.list(params));
-export const useFolders = (parentId?: string) => useQuery(filesQueryOptions.folders(parentId));
-export const useStorageStats = () => useQuery(filesQueryOptions.stats());
-export const useFileShares = (fileId: string) => useQuery(filesQueryOptions.shares(fileId));
-export const useFileVersions = (fileId: string) => useQuery(filesQueryOptions.versions(fileId));
+export const useFiles = (params?: ListFilesParams) =>
+  useQuery(filesQueryOptions.list(useTenantUrl()?.slug ?? "", params));
+export const useFolders = (parentId?: string) =>
+  useQuery(filesQueryOptions.folders(useTenantUrl()?.slug ?? "", parentId));
+export const useStorageStats = () => useQuery(filesQueryOptions.stats(useTenantUrl()?.slug ?? ""));
+export const useFileShares = (fileId: string) =>
+  useQuery(filesQueryOptions.shares(useTenantUrl()?.slug ?? "", fileId));
+export const useFileVersions = (fileId: string) =>
+  useQuery(filesQueryOptions.versions(useTenantUrl()?.slug ?? "", fileId));
+
+export function useRetryFileScan() {
+  const queryClient = useQueryClient();
+  const slug = useTenantUrl()?.slug ?? "";
+  return useMutation({
+    mutationFn: (fileId: string) => confirmUpload(fileId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: filesKeys.workspace(slug) });
+    },
+  });
+}
 
 export function useDeleteFile() {
   const queryClient = useQueryClient();
+  const slug = useTenantUrl()?.slug ?? "";
   return useMutation({
     mutationFn: (arg: string | { id: string; permanent?: boolean }) => {
       const id = typeof arg === "string" ? arg : arg.id;
@@ -108,23 +129,25 @@ export function useDeleteFile() {
       return deleteFile(id, permanent);
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: filesKeys.all });
+      void queryClient.invalidateQueries({ queryKey: filesKeys.workspace(slug) });
     },
   });
 }
 
 export function useRestoreFile() {
   const queryClient = useQueryClient();
+  const slug = useTenantUrl()?.slug ?? "";
   return useMutation({
     mutationFn: (id: string) => restoreFile(id),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: filesKeys.all });
+      void queryClient.invalidateQueries({ queryKey: filesKeys.workspace(slug) });
     },
   });
 }
 
 export function useUpdateFile() {
   const queryClient = useQueryClient();
+  const slug = useTenantUrl()?.slug ?? "";
   return useMutation({
     mutationFn: ({
       id,
@@ -138,24 +161,26 @@ export function useUpdateFile() {
       visibility?: "PRIVATE" | "TENANT" | "PUBLIC_LINK";
     }) => updateFile(id, body),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: filesKeys.all });
+      void queryClient.invalidateQueries({ queryKey: filesKeys.workspace(slug) });
     },
   });
 }
 
 export function useCreateFolder() {
   const queryClient = useQueryClient();
+  const slug = useTenantUrl()?.slug ?? "";
   return useMutation({
     mutationFn: (body: { name: string; parentId?: string | null; color?: string | null }) =>
       createFolder(body),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: filesKeys.all });
+      void queryClient.invalidateQueries({ queryKey: filesKeys.workspace(slug) });
     },
   });
 }
 
 export function useUpdateFolder() {
   const queryClient = useQueryClient();
+  const slug = useTenantUrl()?.slug ?? "";
   return useMutation({
     mutationFn: ({
       id,
@@ -167,23 +192,25 @@ export function useUpdateFolder() {
       parentId?: string | null;
     }) => updateFolder(id, body),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: filesKeys.all });
+      void queryClient.invalidateQueries({ queryKey: filesKeys.workspace(slug) });
     },
   });
 }
 
 export function useDeleteFolder() {
   const queryClient = useQueryClient();
+  const slug = useTenantUrl()?.slug ?? "";
   return useMutation({
     mutationFn: (id: string) => deleteFolder(id),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: filesKeys.all });
+      void queryClient.invalidateQueries({ queryKey: filesKeys.workspace(slug) });
     },
   });
 }
 
 export function useCreateFileShare() {
   const queryClient = useQueryClient();
+  const slug = useTenantUrl()?.slug ?? "";
   return useMutation({
     mutationFn: ({
       fileId,
@@ -195,29 +222,31 @@ export function useCreateFileShare() {
       expiresInHours?: number;
     }) => createShare(fileId, body),
     onSuccess: (_, { fileId }) => {
-      void queryClient.invalidateQueries({ queryKey: filesKeys.shares(fileId) });
+      void queryClient.invalidateQueries({ queryKey: filesKeys.shares(slug, fileId) });
     },
   });
 }
 
 export function useRevokeFileShare() {
   const queryClient = useQueryClient();
+  const slug = useTenantUrl()?.slug ?? "";
   return useMutation({
     mutationFn: ({ fileId, shareId }: { fileId: string; shareId: string }) =>
       revokeShare(fileId, shareId),
     onSuccess: (_, { fileId }) => {
-      void queryClient.invalidateQueries({ queryKey: filesKeys.shares(fileId) });
+      void queryClient.invalidateQueries({ queryKey: filesKeys.shares(slug, fileId) });
     },
   });
 }
 
 export function useRestoreFileVersion() {
   const queryClient = useQueryClient();
+  const slug = useTenantUrl()?.slug ?? "";
   return useMutation({
     mutationFn: ({ fileId, versionNumber }: { fileId: string; versionNumber: number }) =>
       restoreVersion(fileId, versionNumber),
-    onSuccess: (_, { fileId }) => {
-      void queryClient.invalidateQueries({ queryKey: filesKeys.all });
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: filesKeys.workspace(slug) });
     },
   });
 }

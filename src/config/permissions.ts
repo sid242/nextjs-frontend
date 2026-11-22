@@ -38,7 +38,9 @@ export const TENANT_PERMISSIONS = {
 
   // CRM Leads
   LEADS_READ: "leads:read",
-  LEADS_WRITE: "leads:write",
+  LEADS_CREATE: "leads:create",
+  LEADS_UPDATE: "leads:update",
+  LEADS_DELETE: "leads:delete",
 
   // Modules & Permissions
   MODULES_READ: "modules:read",

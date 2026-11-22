@@ -245,6 +245,7 @@ export const searchAuditLogsSchema = z.object({
 export type SearchAuditLogsInput = z.infer<typeof searchAuditLogsSchema>;
 
 export interface TenantContext {
+  businessModules?: import("@/config/optional-modules").WorkspaceModuleAvailability;
   tenant: {
     id: string;
     name: string;

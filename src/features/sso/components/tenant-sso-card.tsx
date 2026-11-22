@@ -32,8 +32,10 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { TENANT_PATHS } from "@/config/routes";
 import { useTenantSubscription, type TenantSubscription } from "@/features/plans";
-import { useActiveTenant } from "@/features/tenants";
+import { TENANT_PERMISSIONS, TenantPermissionGate, useActiveTenant } from "@/features/tenants";
+import { formatDate } from "@/lib/date";
 import { useTenantHref } from "@/lib/tenancy";
 
 import {
@@ -288,8 +290,64 @@ function TenantSsoCardInner({ tenantId, ssoConfig, subscription }: TenantSsoCard
       ? `${window.location.origin}/api/v1/scim/v2`
       : "https://api.yourdomain.com/api/v1/scim/v2";
 
+  const activeScimTokens =
+    scimTokens?.filter(
+      (token) =>
+        token?.status === "ACTIVE" && (!token?.expiresAt || new Date(token.expiresAt) > new Date()),
+    ) ?? [];
+  const latestDirectoryRequest = activeScimTokens
+    .map((token) => token?.lastUsedAt)
+    .filter((usedAt): usedAt is string => Boolean(usedAt))
+    .sort()
+    .at(-1);
+  const ssoCheckAt = ssoConfig?.lastConnectionTestAt;
+
   return (
     <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Enterprise setup checklist</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <dl className="divide-border space-y-3 divide-y text-sm">
+            <div className="flex flex-wrap justify-between gap-2 pb-3">
+              <dt className="font-medium">Single sign-on</dt>
+              <dd className="text-muted-foreground">
+                {ssoConfig?.status === "ACTIVE" ? "Enabled" : "Disabled"}
+                {ssoCheckAt
+                  ? (ssoConfig?.lastConnectionTestSucceeded ? " · Checked " : " · Check failed ") +
+                    formatDate(ssoCheckAt)
+                  : " · Saved configuration unchecked"}
+              </dd>
+            </div>
+            <div className="flex flex-wrap justify-between gap-2 pb-3">
+              <dt className="font-medium">Directory sync</dt>
+              <dd className="text-muted-foreground">
+                {isLoadingTokens
+                  ? "Checking tokens…"
+                  : latestDirectoryRequest
+                    ? "Last directory request " + formatDate(latestDirectoryRequest)
+                    : activeScimTokens.length
+                      ? "Waiting for the first directory request"
+                      : "No active tokens"}
+              </dd>
+            </div>
+            <TenantPermissionGate permission={TENANT_PERMISSIONS.AUDIT_READ} hideInsteadOfBanner>
+              <div className="flex flex-wrap justify-between gap-2">
+                <dt className="font-medium">Audit trail</dt>
+                <dd>
+                  <Link
+                    className="text-primary hover:underline"
+                    href={tenantHref(TENANT_PATHS.AUDIT_LOGS)}
+                  >
+                    Review audit activity and export options
+                  </Link>
+                </dd>
+              </div>
+            </TenantPermissionGate>
+          </dl>
+        </CardContent>
+      </Card>
       {/* Plan Entitlement Warning if not Enterprise */}
       {!isEnterprise && (
         <Alert
@@ -303,7 +361,10 @@ function TenantSsoCardInner({ tenantId, ssoConfig, subscription }: TenantSsoCard
           <AlertDescription className="text-amber-800 dark:text-amber-300">
             SAML 2.0 / OIDC Single Sign-On and SCIM 2.0 Directory Sync are exclusive features of the
             Enterprise tier.{" "}
-            <Link href={tenantHref("/settings/billing")} className="font-semibold underline">
+            <Link
+              href={tenantHref(TENANT_PATHS.SETTINGS_BILLING)}
+              className="font-semibold underline"
+            >
               Upgrade to Enterprise
             </Link>{" "}
             to enable SAML, Okta, Azure AD / Entra ID, and automated SCIM provisioning.

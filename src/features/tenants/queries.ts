@@ -20,6 +20,7 @@ import {
   createTenant,
   deleteTenantCustomDomain,
   executeMemberImport,
+  getMemberImportJob,
   getTenantAuditLogs,
   getTenantBranding,
   getTenantContext,
@@ -32,6 +33,7 @@ import {
   getTenantSettings,
   getTenantUrlSettings,
   offboardTenantMember,
+  queueMemberImport,
   removeTenantMember,
   saveTenantEmailConfig,
   searchTenantAuditLogs,
@@ -50,6 +52,7 @@ import {
 import type {
   ExecuteImportResult,
   ImportMemberRow,
+  MemberImportJob,
   OrgChartResponse,
   ValidateImportResult,
 } from "./import-export.types";
@@ -702,6 +705,33 @@ export function useValidateMemberImport(tenantId?: string | null) {
       return validateMemberImport(tenantId, rows);
     },
   });
+}
+
+export function useQueueMemberImport(tenantId?: string | null) {
+  return useAppMutation<MemberImportJob, Error, ImportMemberRow[]>({
+    mutationFn: (rows: ImportMemberRow[]) => {
+      if (!tenantId) throw new Error("Workspace context is required");
+      return queueMemberImport(tenantId, rows);
+    },
+  });
+}
+
+export function useMemberImportJob(tenantId?: string | null, jobId?: string | null) {
+  return useAppQuery<MemberImportJob>(
+    queryOptions<MemberImportJob>({
+      queryKey: [...tenantKeys.all, tenantId, "member-import", jobId],
+      queryFn: ({ signal }) => {
+        if (!tenantId || !jobId) throw new Error("Import context is required");
+        return getMemberImportJob(tenantId, jobId, signal);
+      },
+      enabled: Boolean(tenantId && jobId),
+      staleTime: 0,
+      refetchInterval: (query) =>
+        query.state.data?.state === "completed" || query.state.data?.state === "failed"
+          ? false
+          : 1500,
+    }),
+  );
 }
 
 export function useExecuteMemberImport(tenantId?: string | null) {

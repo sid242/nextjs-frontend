@@ -22,6 +22,8 @@ export const tenantSsoConfigSchema = z.object({
   acsUrl: z.string().optional().nullable(),
   oidcCallbackUrl: z.string().optional().nullable(),
   metadataUrl: z.string().optional().nullable(),
+  lastConnectionTestAt: z.string().nullable().optional(),
+  lastConnectionTestSucceeded: z.boolean().nullable().optional(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
 });

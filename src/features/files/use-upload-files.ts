@@ -113,8 +113,13 @@ export function useUploadFiles(folderId?: string | null) {
         ({ id }) =>
           useUploadStore.getState().items.find((item) => item.id === id)?.status === "done",
       ).length;
-      if (done > 0) toast.success(done === 1 ? "File uploaded" : `${done} files uploaded`);
+      if (done > 0)
+        toast.success(
+          done === 1
+            ? "File uploaded and queued for scanning"
+            : `${done} files uploaded and queued for scanning`,
+        );
     },
-    [queryClient],
+    [folderId, queryClient],
   );
 }
