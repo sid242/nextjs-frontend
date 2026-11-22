@@ -1,3 +1,4 @@
+import { WORKSPACE_MODULES, type WorkspaceModuleKey } from "./optional-modules";
 import { TENANT_PERMISSIONS } from "./permissions";
 
 export type NavIcon =
@@ -22,6 +23,7 @@ export interface NavItem {
   external?: boolean;
   items?: NavItem[];
   permission?: string | string[];
+  module?: WorkspaceModuleKey;
 }
 
 export interface NavSection {
@@ -78,11 +80,7 @@ export const navSections: NavSection[] = [
           },
         ],
       },
-      {
-        title: "CRM Leads",
-        href: "/leads",
-        icon: "circle",
-      },
+      WORKSPACE_MODULES.leads.navigation,
       {
         title: "Files",
         href: "/files",

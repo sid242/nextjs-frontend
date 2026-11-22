@@ -23,6 +23,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
 import {
   Table,
   TableBody,
@@ -34,7 +35,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 
 import type { ImportMemberRow, ValidateImportResult } from "../import-export.types";
-import { useExecuteMemberImport, useValidateMemberImport } from "../queries";
+import { useMemberImportJob, useQueueMemberImport, useValidateMemberImport } from "../queries";
 
 interface BulkImportMembersDialogProps {
   tenantId?: string | null;
@@ -52,7 +53,12 @@ export function BulkImportMembersDialog({ tenantId, onSuccess }: BulkImportMembe
   const [validationResult, setValidationResult] = useState<ValidateImportResult | null>(null);
 
   const validateMutation = useValidateMemberImport(tenantId);
-  const executeMutation = useExecuteMemberImport(tenantId);
+  const queueMutation = useQueueMemberImport(tenantId);
+  const [jobId, setJobId] = useState<string | null>(null);
+  const { data: job, isError: jobUnavailable } = useMemberImportJob(tenantId, jobId);
+  const isRunning = Boolean(
+    jobId && !jobUnavailable && (!job || job.state === "active" || job.state === "waiting"),
+  );
 
   const parseCsv = (text: string): ImportMemberRow[] => {
     const lines = text
@@ -144,19 +150,21 @@ export function BulkImportMembersDialog({ tenantId, onSuccess }: BulkImportMembe
     }
 
     try {
-      const result = await executeMutation.mutateAsync({
-        rows: validRows,
-        sendInviteEmails: true,
-      });
+      const queued = await queueMutation.mutateAsync(validRows);
+      setJobId(queued.id);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Bulk import failed";
+      toast.error(msg);
+    }
+  };
 
-      toast.success(`Successfully imported ${result.importedCount} member(s).`);
+  const finishImport = () => {
+    setJobId(null);
+    if (job?.state === "completed") {
       setOpen(false);
       setCsvContent("");
       setValidationResult(null);
       onSuccess?.();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Bulk import failed";
-      toast.error(msg);
     }
   };
 
@@ -201,6 +209,43 @@ export function BulkImportMembersDialog({ tenantId, onSuccess }: BulkImportMembe
         </DialogHeader>
 
         <div className="flex-1 space-y-4 overflow-y-auto py-2 pr-1">
+          {jobId && (
+            <div
+              className="border-border space-y-2 rounded-xl border p-3 text-sm"
+              aria-live="polite"
+            >
+              {isRunning && (
+                <>
+                  <p>{job?.state === "active" ? "Importing members" : "Import queued"}</p>
+                  <Progress value={job?.progress ?? 0} aria-label="Member import progress" />
+                </>
+              )}
+              {job?.state === "completed" && job.result && (
+                <>
+                  <p className="font-medium">
+                    {job.result.importedCount} imported · {job.result.failedCount} failed
+                  </p>
+                  <ul className="text-muted-foreground space-y-1">
+                    {job.result.results
+                      .filter((row) => row?.status === "FAILED")
+                      .map((row) => (
+                        <li key={row?.email}>
+                          {row?.email} · {row?.error ?? "Import failed"}
+                        </li>
+                      ))}
+                  </ul>
+                </>
+              )}
+              {job?.state === "failed" && (
+                <p role="alert">
+                  Import did not finish. Review the preview before submitting again.
+                </p>
+              )}
+              {jobUnavailable && (
+                <p role="alert">Import status is unavailable. Reopen the dialog to check again.</p>
+              )}
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <label
@@ -214,6 +259,7 @@ export function BulkImportMembersDialog({ tenantId, onSuccess }: BulkImportMembe
                 id="csv-file-input"
                 type="file"
                 accept=".csv,text/csv"
+                disabled={Boolean(jobId) || queueMutation.isPending}
                 onChange={handleFileUpload}
                 className="hidden"
               />
@@ -233,6 +279,7 @@ export function BulkImportMembersDialog({ tenantId, onSuccess }: BulkImportMembe
             <Textarea
               placeholder={SAMPLE_CSV}
               rows={5}
+              disabled={Boolean(jobId) || queueMutation.isPending}
               value={csvContent}
               onChange={(e) => {
                 setCsvContent(e.target.value);
@@ -247,7 +294,12 @@ export function BulkImportMembersDialog({ tenantId, onSuccess }: BulkImportMembe
               type="button"
               variant="secondary"
               size="sm"
-              disabled={validateMutation.isPending || !csvContent.trim()}
+              disabled={
+                Boolean(jobId) ||
+                queueMutation.isPending ||
+                validateMutation.isPending ||
+                !csvContent.trim()
+              }
               onClick={handleValidate}
               className="text-xs"
             >
@@ -329,22 +381,26 @@ export function BulkImportMembersDialog({ tenantId, onSuccess }: BulkImportMembe
             onClick={() => setOpen(false)}
             className="text-xs"
           >
-            Cancel
+            {jobId ? "Close" : "Cancel"}
           </Button>
           <Button
             type="button"
             size="sm"
             disabled={
-              executeMutation.isPending ||
-              !validationResult ||
-              validationResult.validCount === 0 ||
-              validationResult.exceedsQuota
+              jobId
+                ? isRunning
+                : queueMutation.isPending ||
+                  !validationResult ||
+                  validationResult.validCount === 0 ||
+                  validationResult.exceedsQuota
             }
-            onClick={handleImport}
+            onClick={jobId ? finishImport : handleImport}
             className="text-xs"
           >
-            {executeMutation.isPending && <Loader2 className="mr-1.5 size-3 animate-spin" />}
-            Import Valid Members
+            {(queueMutation.isPending || isRunning) && (
+              <Loader2 className="mr-1.5 size-3 animate-spin" />
+            )}
+            {jobId ? (isRunning ? "Import running" : "Done") : "Import Valid Members"}
           </Button>
         </DialogFooter>
       </DialogContent>

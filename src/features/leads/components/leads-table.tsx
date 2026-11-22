@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
 import {
   DollarSignIcon,
   Edit2Icon,
@@ -12,6 +11,7 @@ import {
   SearchIcon,
   Trash2Icon,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TENANT_PERMISSIONS } from "@/config/permissions";
+import { TENANT_PATHS } from "@/config/routes";
+import { hasTenantPermission, useActiveTenant, useTenantContext } from "@/features/tenants";
+import { ApiError, getErrorMessage } from "@/lib/api/errors";
+import { useTenantHref } from "@/lib/tenancy";
 
 import { useDeleteLead, useLeads } from "../queries";
 import type { Lead, LeadStatus } from "../types";
@@ -48,27 +53,29 @@ const STATUS_VARIANTS: Record<
 };
 
 export function LeadsTable() {
-  const params = useParams<{ tenantSlug: string }>();
-  const tenantSlug = params?.tenantSlug ?? "";
+  const tenantHref = useTenantHref();
+  const { activeTenant } = useActiveTenant();
+  const { data: context } = useTenantContext(activeTenant?.id ?? null);
   const [search, setSearch] = useState("");
 
   const { data, isLoading, error } = useLeads({ search: search || undefined });
   const deleteMutation = useDeleteLead();
 
-  const isForbidden = Boolean(
-    error &&
-    ((error as unknown as { status?: number; statusCode?: number }).status === 403 ||
-      (error as unknown as { status?: number; statusCode?: number }).statusCode === 403 ||
-      error.message?.includes("403") ||
-      error.message?.toLowerCase().includes("forbidden") ||
-      error.message?.toLowerCase().includes("access denied")),
-  );
+  const isForbidden = error instanceof ApiError && error.status === 403;
+  const canCreate = hasTenantPermission(context?.permissions, TENANT_PERMISSIONS.LEADS_CREATE);
+  const canEdit = hasTenantPermission(context?.permissions, TENANT_PERMISSIONS.LEADS_UPDATE);
+  const canDelete = hasTenantPermission(context?.permissions, TENANT_PERMISSIONS.LEADS_DELETE);
+  const showActions = canEdit || canDelete;
+  const columnCount = showActions ? 6 : 5;
 
   const leads = data?.items ?? [];
 
   const handleDelete = async (lead: Lead) => {
-    if (confirm(`Are you sure you want to delete lead "${lead.name}"?`)) {
+    if (!confirm(`Are you sure you want to delete lead "${lead.name}"?`)) return;
+    try {
       await deleteMutation.mutateAsync(lead.id);
+    } catch (deleteError) {
+      toast.error(getErrorMessage(deleteError));
     }
   };
 
@@ -84,12 +91,14 @@ export function LeadsTable() {
             className="pl-8"
           />
         </div>
-        <Button asChild className="gap-2">
-          <Link href={`/w/${tenantSlug}/leads/new`}>
-            <PlusIcon className="h-4 w-4" />
-            Create Lead
-          </Link>
-        </Button>
+        {canCreate && (
+          <Button asChild className="gap-2">
+            <Link href={tenantHref(TENANT_PATHS.LEAD_NEW)}>
+              <PlusIcon className="h-4 w-4" />
+              Create Lead
+            </Link>
+          </Button>
+        )}
       </div>
 
       <div className="bg-card rounded-md border">
@@ -101,19 +110,19 @@ export function LeadsTable() {
               <TableHead>Value</TableHead>
               <TableHead>Department</TableHead>
               <TableHead>Region</TableHead>
-              <TableHead className="w-[80px]">Actions</TableHead>
+              {showActions && <TableHead className="w-20">Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-muted-foreground py-8 text-center">
+                <TableCell colSpan={columnCount} className="text-muted-foreground py-8 text-center">
                   Loading CRM leads...
                 </TableCell>
               </TableRow>
             ) : isForbidden ? (
               <TableRow>
-                <TableCell colSpan={6} className="py-12 text-center">
+                <TableCell colSpan={columnCount} className="py-12 text-center">
                   <div className="flex flex-col items-center justify-center space-y-2">
                     <div className="rounded-full bg-amber-500/10 p-3 text-amber-600 dark:text-amber-400">
                       <LockIcon className="h-6 w-6" />
@@ -130,7 +139,7 @@ export function LeadsTable() {
               </TableRow>
             ) : leads.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-muted-foreground py-8 text-center">
+                <TableCell colSpan={columnCount} className="text-muted-foreground py-8 text-center">
                   No leads found. Either none have been created or your assigned workspace PBAC
                   policy restricts access to these records.
                 </TableCell>
@@ -175,34 +184,45 @@ export function LeadsTable() {
                     <TableCell className="text-muted-foreground text-xs uppercase">
                       {lead.regionId || "—"}
                     </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontalIcon className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <Link
-                              href={`/w/${tenantSlug}/leads/${lead.id}/edit`}
-                              className="flex cursor-pointer items-center gap-2"
+                    {showActions && (
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              aria-label={`Actions for ${lead.name}`}
                             >
-                              <Edit2Icon className="h-4 w-4" />
-                              Edit Lead
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => handleDelete(lead)}
-                            className="text-destructive focus:text-destructive cursor-pointer gap-2"
-                          >
-                            <Trash2Icon className="h-4 w-4" />
-                            Delete Lead
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
+                              <MoreHorizontalIcon className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {canEdit && (
+                              <DropdownMenuItem asChild>
+                                <Link
+                                  href={tenantHref(TENANT_PATHS.LEAD_EDIT(lead.id))}
+                                  className="flex cursor-pointer items-center gap-2"
+                                >
+                                  <Edit2Icon className="h-4 w-4" />
+                                  Edit Lead
+                                </Link>
+                              </DropdownMenuItem>
+                            )}
+                            {canEdit && canDelete && <DropdownMenuSeparator />}
+                            {canDelete && (
+                              <DropdownMenuItem
+                                onClick={() => handleDelete(lead)}
+                                className="text-destructive focus:text-destructive cursor-pointer gap-2"
+                              >
+                                <Trash2Icon className="h-4 w-4" />
+                                Delete Lead
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    )}
                   </TableRow>
                 );
               })

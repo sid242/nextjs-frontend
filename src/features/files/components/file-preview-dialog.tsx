@@ -31,6 +31,7 @@ import { formatBytes, formatDate } from "@/lib/format";
 import { resolveStorageUrl } from "@/lib/storage";
 
 import { getDownloadUrl } from "../api";
+import { isFileAvailable } from "../availability";
 import { triggerFileDownload } from "../download";
 import { FileStatusBadge } from "./file-status-badge";
 
@@ -102,11 +103,9 @@ export function FilePreviewDialog({ file, open, onOpenChange }: FilePreviewDialo
     async function loadPreview() {
       if (!file) return;
 
-      if (file.status !== "UPLOADED") {
+      if (!isFileAvailable(file)) {
         setLoading(false);
-        setError(
-          "This file has not completed uploading or is still processing. Previews are available once the upload is confirmed.",
-        );
+        setError("Previews are available after a file passes scanning.");
         return;
       }
 
@@ -204,7 +203,7 @@ export function FilePreviewDialog({ file, open, onOpenChange }: FilePreviewDialo
                   {file?.status ? (
                     <>
                       <span>•</span>
-                      <FileStatusBadge status={file.status} />
+                      <FileStatusBadge status={file.status} scanStatus={file.scanStatus} />
                     </>
                   ) : null}
                   {contentType ? (

@@ -24,6 +24,7 @@ import { formatBytes, formatDate } from "@/lib/format";
 import { useTenantHref } from "@/lib/tenancy";
 
 import { getDownloadUrl } from "../api";
+import { isFileAvailable } from "../availability";
 import { triggerFileDownload } from "../download";
 import { useFiles } from "../queries";
 import { FilePreviewDialog } from "./file-preview-dialog";
@@ -128,6 +129,7 @@ export function RecentFilesCard() {
                     <div className="min-w-0">
                       <button
                         type="button"
+                        disabled={!isFileAvailable(file)}
                         onClick={() => setPreviewFile(file)}
                         className="hover:text-primary max-w-xs truncate text-left text-xs font-medium transition-colors hover:underline sm:max-w-md md:max-w-lg"
                         title={file?.filename}
@@ -143,7 +145,7 @@ export function RecentFilesCard() {
                   </div>
 
                   <div className="flex shrink-0 items-center gap-2">
-                    <FileStatusBadge status={file?.status} />
+                    <FileStatusBadge status={file?.status} scanStatus={file?.scanStatus} />
                     <Button
                       size="icon"
                       variant="ghost"
@@ -151,6 +153,7 @@ export function RecentFilesCard() {
                       onClick={() => setPreviewFile(file)}
                       title="Preview file directly"
                       aria-label={`Preview ${file?.filename}`}
+                      disabled={!isFileAvailable(file)}
                     >
                       <EyeIcon className="size-3.5" />
                     </Button>
@@ -158,7 +161,7 @@ export function RecentFilesCard() {
                       size="icon"
                       variant="ghost"
                       className="size-7"
-                      disabled={file?.status !== "UPLOADED"}
+                      disabled={!isFileAvailable(file)}
                       onClick={() => void handleDownload(file)}
                       title="Download file"
                       aria-label={`Download ${file?.filename}`}

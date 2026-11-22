@@ -86,6 +86,7 @@ function checkPermission(item: NavItem, userPermissions?: string[]): boolean {
 }
 
 interface SidebarNavProps {
+  modules?: import("@/config/optional-modules").WorkspaceModuleAvailability;
   orientation?: "vertical" | "horizontal";
   /** Icon-only mode. Labels stay in the DOM (sr-only) so the links remain accessible. */
   collapsed?: boolean;
@@ -100,6 +101,7 @@ export function SidebarNav({
   onNavigate,
   sections = defaultNavSections,
   permissions,
+  modules,
 }: SidebarNavProps) {
   const pathname = usePathname();
   const sidebar = useSidebar();
@@ -110,17 +112,19 @@ export function SidebarNav({
   const [toggledItems, setToggledItems] = useState<Record<string, boolean>>({});
 
   const filteredSections = useMemo(() => {
-    if (!permissions) return sections;
+    const canShow = (item: NavItem) =>
+      (!item.module || modules?.[item.module] === true) && checkPermission(item, permissions);
     return sections
       .map((section) => {
         const items = (section?.items ?? [])
           .map((item) => {
+            if (!canShow(item)) return null;
             if (item?.items && item.items.length > 0) {
-              const childItems = item.items.filter((child) => checkPermission(child, permissions));
+              const childItems = item.items.filter(canShow);
               if (childItems.length === 0) return null;
               return { ...item, items: childItems };
             }
-            return checkPermission(item, permissions) ? item : null;
+            return item;
           })
           .filter((item): item is NavItem => item !== null);
 
@@ -128,7 +132,7 @@ export function SidebarNav({
         return { ...section, items };
       })
       .filter((section): section is NavSection => section !== null);
-  }, [sections, permissions]);
+  }, [sections, permissions, modules]);
 
   const toggleItem = (key: string, currentlyOpen: boolean) => {
     setToggledItems((prev) => ({

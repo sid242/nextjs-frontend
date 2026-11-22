@@ -54,6 +54,13 @@ export interface ValidateImportResult {
   rows: ValidationRowItem[];
 }
 
+export interface MemberImportJob {
+  id: string;
+  state: "waiting" | "active" | "completed" | "failed";
+  progress: number;
+  result?: ExecuteImportResult;
+}
+
 export interface ExecuteImportResult {
   totalSubmitted: number;
   importedCount: number;

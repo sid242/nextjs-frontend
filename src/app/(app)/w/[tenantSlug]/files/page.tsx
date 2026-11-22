@@ -35,7 +35,13 @@ import {
   useDeleteFolder,
   useFolders,
 } from "@/features/files";
-import { useActiveTenant } from "@/features/tenants";
+import {
+  hasTenantPermission,
+  TENANT_PERMISSIONS,
+  TenantPermissionGate,
+  useActiveTenant,
+  useTenantContext,
+} from "@/features/tenants";
 import type { FileFolderRecord } from "@/lib/api/types";
 
 interface FolderModalState {
@@ -44,7 +50,18 @@ interface FolderModalState {
 }
 
 export default function FilesPage() {
+  return (
+    <TenantPermissionGate permission={TENANT_PERMISSIONS.FILES_READ}>
+      <WorkspaceFiles />
+    </TenantPermissionGate>
+  );
+}
+
+function WorkspaceFiles() {
   const { activeTenant } = useActiveTenant();
+  const { data: context } = useTenantContext(activeTenant?.id ?? null);
+  const canWrite = hasTenantPermission(context?.permissions, TENANT_PERMISSIONS.FILES_UPLOAD);
+  const canDelete = hasTenantPermission(context?.permissions, TENANT_PERMISSIONS.FILES_DELETE);
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
   const [showUploader, setShowUploader] = useState(false);
 
@@ -81,26 +98,28 @@ export default function FilesPage() {
         title="Files & Storage"
         description={`Secure document management and storage for ${activeTenant?.name ?? "your workspace"}.`}
         actions={
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setFolderModal({ mode: "create" })}
-              className="flex items-center gap-1.5"
-            >
-              <FolderPlus className="size-4" />
-              <span>New Folder</span>
-            </Button>
+          canWrite ? (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setFolderModal({ mode: "create" })}
+                className="flex items-center gap-1.5"
+              >
+                <FolderPlus className="size-4" />
+                <span>New Folder</span>
+              </Button>
 
-            <Button
-              size="sm"
-              onClick={() => setShowUploader((prev) => !prev)}
-              className="flex items-center gap-1.5"
-            >
-              <Upload className="size-4" />
-              <span>{showUploader ? "Hide Uploader" : "Upload Files"}</span>
-            </Button>
-          </div>
+              <Button
+                size="sm"
+                onClick={() => setShowUploader((prev) => !prev)}
+                className="flex items-center gap-1.5"
+              >
+                <Upload className="size-4" />
+                <span>{showUploader ? "Hide Uploader" : "Upload Files"}</span>
+              </Button>
+            </div>
+          ) : undefined
         }
       />
 
@@ -108,7 +127,7 @@ export default function FilesPage() {
       <FilesSummary />
 
       {/* Conditional File Uploader */}
-      {showUploader && (
+      {canWrite && showUploader && (
         <div className="bg-card rounded-lg border p-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between border-b pb-2">
             <span className="text-muted-foreground text-xs font-medium">
@@ -154,27 +173,31 @@ export default function FilesPage() {
           )}
         </div>
 
-        {activeFolder ? (
+        {activeFolder && (canWrite || canDelete) ? (
           <div className="flex items-center gap-1.5">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setFolderModal({ mode: "rename", folder: activeFolder })}
-              className="h-7 gap-1 px-2 text-xs"
-            >
-              <Pencil className="size-3" />
-              <span>Rename</span>
-            </Button>
+            {canWrite && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setFolderModal({ mode: "rename", folder: activeFolder })}
+                className="h-7 gap-1 px-2 text-xs"
+              >
+                <Pencil className="size-3" />
+                <span>Rename</span>
+              </Button>
+            )}
 
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setFolderModal({ mode: "delete", folder: activeFolder })}
-              className="text-destructive hover:text-destructive h-7 gap-1 px-2 text-xs"
-            >
-              <Trash2 className="size-3" />
-              <span>Delete Folder</span>
-            </Button>
+            {canDelete && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setFolderModal({ mode: "delete", folder: activeFolder })}
+                className="text-destructive hover:text-destructive h-7 gap-1 px-2 text-xs"
+              >
+                <Trash2 className="size-3" />
+                <span>Delete Folder</span>
+              </Button>
+            )}
           </div>
         ) : (
           <div className="text-muted-foreground text-xs">
@@ -204,48 +227,54 @@ export default function FilesPage() {
                     </span>
                   </div>
 
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-muted-foreground hover:text-foreground size-6 opacity-0 group-hover:opacity-100"
-                      >
-                        <MoreVertical className="size-3.5" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-36">
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveFolderId(folder.id);
-                        }}
-                      >
-                        <FolderOpen className="mr-2 size-3.5" />
-                        Open
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setFolderModal({ mode: "rename", folder });
-                        }}
-                      >
-                        <Pencil className="mr-2 size-3.5" />
-                        Rename
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setFolderModal({ mode: "delete", folder });
-                        }}
-                      >
-                        <Trash2 className="mr-2 size-3.5" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  {(canWrite || canDelete) && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-muted-foreground hover:text-foreground size-6 opacity-0 group-hover:opacity-100"
+                        >
+                          <MoreVertical className="size-3.5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-36">
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveFolderId(folder.id);
+                          }}
+                        >
+                          <FolderOpen className="mr-2 size-3.5" />
+                          Open
+                        </DropdownMenuItem>
+                        {canWrite && (
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setFolderModal({ mode: "rename", folder });
+                            }}
+                          >
+                            <Pencil className="mr-2 size-3.5" />
+                            Rename
+                          </DropdownMenuItem>
+                        )}
+                        {canWrite && canDelete && <DropdownMenuSeparator />}
+                        {canDelete && (
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setFolderModal({ mode: "delete", folder });
+                            }}
+                          >
+                            <Trash2 className="mr-2 size-3.5" />
+                            Delete
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </CardContent>
               </Card>
             ))}
@@ -258,7 +287,7 @@ export default function FilesPage() {
 
       {/* Create Folder Dialog (Controlled FormWrapper) */}
       <CreateFolderDialog
-        open={folderModal.mode === "create"}
+        open={canWrite && folderModal.mode === "create"}
         onOpenChange={(open) => !open && setFolderModal({ mode: null })}
         parentFolderId={activeFolderId}
         parentFolderName={activeFolder?.name}
@@ -267,13 +296,13 @@ export default function FilesPage() {
       {/* Rename Folder Dialog (Controlled FormWrapper) */}
       <RenameFolderDialog
         folder={folderModal.folder ?? null}
-        open={folderModal.mode === "rename"}
+        open={canWrite && folderModal.mode === "rename"}
         onOpenChange={(open) => !open && setFolderModal({ mode: null })}
       />
 
       {/* Delete Folder Confirmation Dialog */}
       <ConfirmDialog
-        open={folderModal.mode === "delete"}
+        open={canDelete && folderModal.mode === "delete"}
         onOpenChange={(open) => !open && setFolderModal({ mode: null })}
         title={`Delete folder "${folderModal.folder?.name}"?`}
         description="This will permanently delete the folder. Files inside will NOT be deleted; they will be moved to Root (All Files)."

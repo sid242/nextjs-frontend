@@ -7,7 +7,8 @@ import { ShieldAlert } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PLATFORM_ROUTES } from "@/config/routes";
+import type { WorkspaceModuleKey } from "@/config/optional-modules";
+import { PLATFORM_ROUTES, TENANT_PATHS } from "@/config/routes";
 import { usePlatformMe } from "@/features/platform";
 import { useTenantHref, useTenantUrl } from "@/lib/tenancy";
 
@@ -16,6 +17,7 @@ import { useActiveTenant, useTenantContext } from "../queries";
 
 interface TenantPermissionGateProps {
   permission: string | string[];
+  module?: WorkspaceModuleKey;
   children: ReactNode;
   fallback?: ReactNode;
   hideInsteadOfBanner?: boolean;
@@ -23,6 +25,7 @@ interface TenantPermissionGateProps {
 
 export function TenantPermissionGate({
   permission,
+  module,
   children,
   fallback,
   hideInsteadOfBanner = false,
@@ -32,7 +35,7 @@ export function TenantPermissionGate({
   const hasPlatformSession = useTenantUrl()?.hasPlatformSession === true;
   const slugFromParam = typeof params?.tenantSlug === "string" ? params.tenantSlug : undefined;
   const { activeTenant, isLoading: tenantLoading } = useActiveTenant();
-  const { data: context, isLoading: contextLoading } = useTenantContext(activeTenant?.id);
+  const { data: context, isLoading: contextLoading } = useTenantContext(activeTenant?.id ?? null);
   const isAllowed = hasTenantPermission(context?.permissions, permission);
   const { data: staff } = usePlatformMe({
     enabled:
@@ -56,7 +59,22 @@ export function TenantPermissionGate({
     );
   }
 
-  if (isAllowed) {
+  if (module && context && context.businessModules?.[module] !== true) {
+    if (hideInsteadOfBanner) return null;
+    return (
+      <div className="bg-card space-y-3 rounded-2xl border p-8 text-center shadow-xs">
+        <h1 className="text-xl font-semibold">Module unavailable</h1>
+        <p className="text-muted-foreground text-sm">
+          This module is unavailable in your workspace.
+        </p>
+        <Button asChild variant="outline">
+          <Link href={tenantHref(TENANT_PATHS.DASHBOARD)}>Back to Dashboard</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  if (isAllowed && (!module || context?.businessModules?.[module] === true)) {
     return <>{children}</>;
   }
 

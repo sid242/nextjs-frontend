@@ -55,8 +55,9 @@ import {
 } from "@/lib/hooks";
 
 import { getDownloadUrl } from "../api";
+import { isFileAvailable } from "../availability";
 import { triggerFileDownload } from "../download";
-import { useDeleteFile, useFiles, useFolders, useUpdateFile } from "../queries";
+import { useDeleteFile, useFiles, useFolders, useRetryFileScan, useUpdateFile } from "../queries";
 import { useFileRealtime } from "../use-file-realtime";
 import { FilePreviewDialog } from "./file-preview-dialog";
 import { FileStatusBadge } from "./file-status-badge";
@@ -90,11 +91,13 @@ interface FilesTableProps {
 
 export function FilesTable({ folderId }: FilesTableProps = {}) {
   useFileRealtime();
+  const retryScan = useRetryFileScan();
   const { data: tenantContext } = useTenantContext();
   const canDelete = hasTenantPermission(
     tenantContext?.permissions,
     TENANT_PERMISSIONS.FILES_DELETE,
   );
+  const canWrite = hasTenantPermission(tenantContext?.permissions, TENANT_PERMISSIONS.FILES_UPLOAD);
 
   const { get, getNumber, setParam, setParams } = useSearchQueryParams();
   const [searchInput, setSearchInput] = useState<string>(() => get("q") ?? "");
@@ -183,6 +186,7 @@ export function FilesTable({ folderId }: FilesTableProps = {}) {
           <TableCell key="name" className="max-w-64 truncate font-medium" title={file?.filename}>
             <button
               type="button"
+              disabled={!isFileAvailable(file)}
               onClick={() => setModalState({ type: "preview", file })}
               className="hover:text-primary max-w-full truncate text-left font-medium transition-colors hover:underline"
             >
@@ -195,7 +199,7 @@ export function FilesTable({ folderId }: FilesTableProps = {}) {
       case "status":
         return (
           <TableCell key="status">
-            <FileStatusBadge status={file?.status} />
+            <FileStatusBadge status={file?.status} scanStatus={file?.scanStatus} />
           </TableCell>
         );
       case "added":
@@ -211,6 +215,7 @@ export function FilesTable({ folderId }: FilesTableProps = {}) {
               size="icon"
               variant="ghost"
               aria-label={`Preview ${file?.filename}`}
+              disabled={!isFileAvailable(file)}
               onClick={() => setModalState({ type: "preview", file })}
               title="Preview file directly"
               className="size-8 rounded-lg"
@@ -221,26 +226,44 @@ export function FilesTable({ folderId }: FilesTableProps = {}) {
               size="icon"
               variant="ghost"
               aria-label={`Download ${file?.filename}`}
-              disabled={file?.status !== "UPLOADED"}
+              disabled={!isFileAvailable(file)}
               onClick={() => void download(file)}
               title="Download file"
               className="size-8 rounded-lg"
             >
               <DownloadIcon className="size-4" />
             </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              aria-label={`Move ${file?.filename} to folder`}
-              onClick={() => {
-                setSelectedFolderId(file?.folderId ?? "root");
-                setModalState({ type: "move", file });
-              }}
-              title="Move to folder"
-              className="size-8 rounded-lg"
-            >
-              <FolderInput className="size-4" />
-            </Button>
+            {canWrite && file.scanStatus === "FAILED" && (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={retryScan.isPending}
+                onClick={() =>
+                  retryScan.mutate(file.id, {
+                    onSuccess: () => toast.success("File queued for scanning"),
+                    onError: (error) =>
+                      toast.error(getErrorMessage(error, "Could not retry the scan.")),
+                  })
+                }
+              >
+                Retry scan
+              </Button>
+            )}
+            {canWrite && (
+              <Button
+                size="icon"
+                variant="ghost"
+                aria-label={`Move ${file?.filename} to folder`}
+                onClick={() => {
+                  setSelectedFolderId(file?.folderId ?? "root");
+                  setModalState({ type: "move", file });
+                }}
+                title="Move to folder"
+                className="size-8 rounded-lg"
+              >
+                <FolderInput className="size-4" />
+              </Button>
+            )}
             {canDelete ? (
               <Button
                 size="icon"

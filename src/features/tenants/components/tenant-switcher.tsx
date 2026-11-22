@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CheckIcon, ChevronsUpDownIcon, Loader2Icon } from "lucide-react";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useSidebar } from "@/lib/context/sidebar-context";
+import { resetAllStores } from "@/lib/stores/reset";
 import { switchWorkspaceOrHandoff } from "@/lib/tenancy/handoff";
 import { cn } from "@/lib/utils";
 
@@ -34,21 +36,23 @@ const PLAN_BADGES: Record<TenantPlan, "default" | "secondary" | "outline"> = {
 export function TenantSwitcher({ collapsed: propCollapsed }: TenantSwitcherProps) {
   const sidebar = useSidebar();
   const collapsed = propCollapsed ?? sidebar.collapsed;
-  const { activeTenant, tenants, setActiveTenantId } = useActiveTenant();
+  const { activeTenant, tenants } = useActiveTenant();
   const [switchingId, setSwitchingId] = useState<string | null>(null);
 
   const handleSwitch = async (tenant: Tenant) => {
-    if (!tenant?.id || tenant.id === activeTenant?.id) return;
+    if (!tenant?.id || tenant.id === activeTenant?.id || switchingId) return;
     setSwitchingId(tenant.id);
     try {
       await switchWorkspaceOrHandoff({
         tenant,
-        onLocalNavigate: () => {
-          setActiveTenantId?.(tenant.id);
+        onLocalNavigate: (destination) => {
+          resetAllStores();
+
+          window.location.assign(destination);
         },
       });
     } catch {
-      setActiveTenantId?.(tenant.id);
+      toast.error("Could not switch workspaces. Try again.");
     } finally {
       setSwitchingId(null);
     }
