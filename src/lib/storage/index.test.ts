@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { clientCookie, clientStorage } from "./index";
+import { clientCookie, clientStorage, resolveStorageUrl } from "./index";
 
 describe("clientStorage in Node / SSR environment", () => {
   it("returns safe defaults when window is undefined", () => {
@@ -104,5 +104,27 @@ describe("clientStorage in Browser environment", () => {
     expect(clientCookie.get("session_test")).toBe("xyz-token");
     clientCookie.remove("session_test");
     expect(clientCookie.get("session_test")).toBeNull();
+  });
+});
+
+describe("resolveStorageUrl", () => {
+  it("encodes LAN and local hosts into the storage route path", () => {
+    const url = "http://192.168.1.25:9000/app-uploads-local/file.pdf?sig=abc";
+    expect(resolveStorageUrl(url)).toBe(
+      "/api/storage/192.168.1.25%3A9000/app-uploads-local/file.pdf?sig=abc",
+    );
+  });
+
+  it("handles localhost:9000 storage URLs", () => {
+    const url = "http://localhost:9000/app-uploads-local/file.pdf";
+    expect(resolveStorageUrl(url)).toBe("/api/storage/localhost%3A9000/app-uploads-local/file.pdf");
+  });
+
+  it("leaves external URLs and existing /api/storage URLs unchanged", () => {
+    expect(resolveStorageUrl("/api/storage/file.pdf")).toBe("/api/storage/file.pdf");
+    expect(resolveStorageUrl("https://s3.amazonaws.com/bucket/file.pdf")).toBe(
+      "https://s3.amazonaws.com/bucket/file.pdf",
+    );
+    expect(resolveStorageUrl(null)).toBe("");
   });
 });

@@ -134,7 +134,7 @@ export function resolveStorageUrl(url?: string | null): string {
       /^(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(h);
 
     if (isLocalPort || (isLocalHost && isLocalPath)) {
-      return `/api/storage${parsed.pathname}${parsed.search}`;
+      return `/api/storage/${encodeURIComponent(parsed.host)}${parsed.pathname}${parsed.search}`;
     }
   } catch {
     /* fallback to original url */

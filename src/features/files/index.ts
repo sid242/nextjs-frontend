@@ -7,6 +7,8 @@ export { FilePreviewDialog } from "./components/file-preview-dialog";
 export { FileStatusBadge } from "./components/file-status-badge";
 export { CreateFolderDialog } from "./components/create-folder-dialog";
 export { RenameFolderDialog } from "./components/rename-folder-dialog";
+export { MoveFolderDialog } from "./components/move-folder-dialog";
+export * from "./folder-utils";
 
 export * from "./schemas";
 

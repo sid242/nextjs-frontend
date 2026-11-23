@@ -5,6 +5,7 @@ import {
   DownloadIcon,
   EyeIcon,
   FileIcon,
+  Folder,
   FolderInput,
   SearchIcon,
   Trash2Icon,
@@ -57,6 +58,7 @@ import {
 import { getDownloadUrl } from "../api";
 import { isFileAvailable } from "../availability";
 import { triggerFileDownload } from "../download";
+import { formatFolderTreeOptions, getFolderPath } from "../folder-utils";
 import { useDeleteFile, useFiles, useFolders, useRetryFileScan, useUpdateFile } from "../queries";
 import { useFileRealtime } from "../use-file-realtime";
 import { FilePreviewDialog } from "./file-preview-dialog";
@@ -87,9 +89,10 @@ interface FileModalState {
 
 interface FilesTableProps {
   folderId?: string | null;
+  onNavigateFolder?: (folderId: string) => void;
 }
 
-export function FilesTable({ folderId }: FilesTableProps = {}) {
+export function FilesTable({ folderId, onNavigateFolder }: FilesTableProps = {}) {
   useFileRealtime();
   const retryScan = useRetryFileScan();
   const { data: tenantContext } = useTenantContext();
@@ -112,6 +115,8 @@ export function FilesTable({ folderId }: FilesTableProps = {}) {
   const { data, isPending, isError, error, refetch } = useFiles(queryParams);
   const { data: folders = [] } = useFolders();
   const updateFileMutation = useUpdateFile();
+
+  const treeOptions = useMemo(() => formatFolderTreeOptions(folders), [folders]);
 
   const fileList = useMemo(() => {
     if (!data) return [];
@@ -184,14 +189,27 @@ export function FilesTable({ folderId }: FilesTableProps = {}) {
       case "name":
         return (
           <TableCell key="name" className="max-w-64 truncate font-medium" title={file?.filename}>
-            <button
-              type="button"
-              disabled={!isFileAvailable(file)}
-              onClick={() => setModalState({ type: "preview", file })}
-              className="hover:text-primary max-w-full truncate text-left font-medium transition-colors hover:underline"
-            >
-              {file?.filename}
-            </button>
+            <div className="flex flex-col truncate">
+              <button
+                type="button"
+                disabled={!isFileAvailable(file)}
+                onClick={() => setModalState({ type: "preview", file })}
+                className="hover:text-primary max-w-full truncate text-left font-medium transition-colors hover:underline"
+              >
+                {file?.filename}
+              </button>
+              {!folderId && file?.folderId ? (
+                <button
+                  type="button"
+                  onClick={() => onNavigateFolder?.(file.folderId!)}
+                  className="text-muted-foreground hover:text-primary mt-0.5 inline-flex max-w-full items-center gap-1 text-[11px] font-normal transition-colors"
+                  title={`Folder: ${getFolderPath(file.folderId, folders)}`}
+                >
+                  <Folder className="size-3 shrink-0" />
+                  <span className="truncate">{getFolderPath(file.folderId, folders)}</span>
+                </button>
+              ) : null}
+            </div>
           </TableCell>
         );
       case "size":
@@ -441,27 +459,34 @@ export function FilesTable({ folderId }: FilesTableProps = {}) {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="py-4">
+          <div className="space-y-2 py-4">
+            <label className="text-muted-foreground text-xs font-medium">Destination Folder</label>
             <Select value={selectedFolderId} onValueChange={setSelectedFolderId}>
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select destination folder" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="root">Root (No Folder)</SelectItem>
-                {folders.map((folder) => (
-                  <SelectItem key={folder.id} value={folder.id}>
-                    {folder.name}
+              <SelectContent className="max-h-64">
+                <SelectItem value="root">📂 Root (No Folder / Top Level)</SelectItem>
+                {treeOptions.map((opt) => (
+                  <SelectItem key={opt.id} value={opt.id}>
+                    {"\u00A0\u00A0".repeat(opt.depth)}📁 {opt.name}
+                    {opt.depth > 0 ? ` (${opt.path})` : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setModalState({ type: null, file: null })}>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setModalState({ type: null, file: null })}
+            >
               Cancel
             </Button>
             <Button
+              size="sm"
               disabled={updateFileMutation.isPending}
               onClick={async () => {
                 if (!modalState.file) return;
@@ -477,62 +502,7 @@ export function FilesTable({ folderId }: FilesTableProps = {}) {
                 }
               }}
             >
-              Move File
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Move to Folder Modal */}
-      <Dialog
-        open={modalState.type === "move"}
-        onOpenChange={(open) => !open && setModalState({ type: null, file: null })}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Move File to Folder</DialogTitle>
-            <DialogDescription>
-              Select a destination folder for &quot;{modalState.file?.filename}&quot;.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="py-4">
-            <Select value={selectedFolderId} onValueChange={setSelectedFolderId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select destination folder" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="root">Root (No Folder)</SelectItem>
-                {folders.map((folder) => (
-                  <SelectItem key={folder.id} value={folder.id}>
-                    {folder.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setModalState({ type: null, file: null })}>
-              Cancel
-            </Button>
-            <Button
-              disabled={updateFileMutation.isPending}
-              onClick={async () => {
-                if (!modalState.file) return;
-                try {
-                  await updateFileMutation.mutateAsync({
-                    id: modalState.file.id,
-                    folderId: selectedFolderId === "root" ? null : selectedFolderId,
-                  });
-                  toast.success("File moved successfully");
-                  setModalState({ type: null, file: null });
-                } catch {
-                  toast.error("Failed to move file.");
-                }
-              }}
-            >
-              Move File
+              {updateFileMutation.isPending ? "Moving…" : "Move File"}
             </Button>
           </DialogFooter>
         </DialogContent>
