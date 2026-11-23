@@ -8,10 +8,42 @@ describe("Storage Gateway Route Handler (/api/storage/[...path])", () => {
 
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.stubEnv("NODE_ENV", "test");
+    vi.stubEnv("S3_ENDPOINT", "http://192.168.1.25:9000");
   });
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
+    vi.unstubAllEnvs();
+  });
+
+  it("returns 404 in production environment for both GET and POST", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+
+    const getReq = new NextRequest("http://localhost:3001/api/storage/app-uploads-local/test.png");
+    const getRes = await GET(getReq, {
+      params: Promise.resolve({ path: ["app-uploads-local", "test.png"] }),
+    });
+    expect(getRes.status).toBe(404);
+
+    const postReq = new NextRequest("http://localhost:3001/api/storage/app-uploads-local", {
+      method: "POST",
+      body: new Uint8Array([1, 2, 3]),
+    });
+    const postRes = await POST(postReq, {
+      params: Promise.resolve({ path: ["app-uploads-local"] }),
+    });
+    expect(postRes.status).toBe(404);
+  });
+
+  it("rejects unpermitted internal or foreign hosts in development with 400", async () => {
+    const unpermittedReq = new NextRequest("http://localhost:3001/api/storage/10.0.0.1%3A80/admin");
+    const res = await GET(unpermittedReq, {
+      params: Promise.resolve({ path: ["10.0.0.1:80", "admin"] }),
+    });
+    expect(res.status).toBe(400);
+    const text = await res.text();
+    expect(text).toContain('Storage host "10.0.0.1:80" is not permitted');
   });
 
   it("handles POST with upstream 204 No Content without crashing on null body", async () => {

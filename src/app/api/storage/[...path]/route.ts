@@ -7,8 +7,7 @@ function getStorageBaseUrl(): string {
   if (envEndpoint) {
     try {
       const parsed = new URL(envEndpoint);
-      const port = parsed.port || "9000";
-      return `http://127.0.0.1:${port}`;
+      return parsed.origin;
     } catch {
       /* ignore */
     }
@@ -16,15 +15,31 @@ function getStorageBaseUrl(): string {
   return "http://127.0.0.1:9000";
 }
 
+function getAllowedStorageHosts(): Set<string> {
+  const allowed = new Set<string>(["localhost", "localhost:9000", "127.0.0.1", "127.0.0.1:9000"]);
+
+  const envEndpoint = process.env.S3_ENDPOINT;
+  if (envEndpoint) {
+    try {
+      const parsed = new URL(envEndpoint);
+      if (parsed.host) allowed.add(parsed.host.toLowerCase());
+      if (parsed.hostname) allowed.add(parsed.hostname.toLowerCase());
+    } catch {
+      /* ignore */
+    }
+  }
+
+  return allowed;
+}
+
 function isAllowedStorageHost(host: string): boolean {
-  const h = host.toLowerCase().split(":")[0] ?? "";
-  if (!h) return false;
-  return (
-    h === "localhost" ||
-    h === "127.0.0.1" ||
-    h.endsWith(".localhost") ||
-    /^(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(h)
-  );
+  const normalized = host.toLowerCase().trim();
+  const allowedHosts = getAllowedStorageHosts();
+  if (allowedHosts.has(normalized)) {
+    return true;
+  }
+  const hostname = normalized.split(":")[0] ?? "";
+  return allowedHosts.has(hostname);
 }
 
 function resolveStorageTarget(rawPath: string[], search: string): string {
@@ -33,10 +48,13 @@ function resolveStorageTarget(rawPath: string[], search: string): string {
   }
 
   const firstSegment = decodeURIComponent(rawPath[0] ?? "");
-  // If first segment is an allowed local/LAN host (e.g. "192.168.1.25:9000" or "localhost:9000")
-  if (isAllowedStorageHost(firstSegment) && rawPath.length > 1) {
-    const relativePath = rawPath.slice(1).map(decodeURIComponent).join("/");
-    return `http://${firstSegment}/${relativePath}${search}`;
+  // If first segment looks like a host (e.g. contains a dot or colon)
+  if (firstSegment.includes(".") || firstSegment.includes(":")) {
+    if (isAllowedStorageHost(firstSegment) && rawPath.length > 1) {
+      const relativePath = rawPath.slice(1).map(decodeURIComponent).join("/");
+      return `http://${firstSegment}/${relativePath}${search}`;
+    }
+    throw new Error(`Storage host "${firstSegment}" is not permitted`);
   }
 
   // Legacy fallback: direct bucket path like ["app-uploads-local", ...]
@@ -48,14 +66,27 @@ function resolveStorageTarget(rawPath: string[], search: string): string {
  * Same-origin gateway to local development MinIO object storage.
  * Ensures that remote LAN devices (e.g. mobile testing at 192.168.x.x), subdomains,
  * and dev tunnels can seamlessly load and upload S3 assets without direct port 9000 access.
+ *
+ * Disabled completely in production to prevent SSRF and unauthorized internal proxying.
  */
 export async function GET(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
+  if (process.env.NODE_ENV === "production") {
+    return new NextResponse("Not Found", { status: 404 });
+  }
+
   const { path } = await params;
   if (!path || path.length === 0) {
     return new NextResponse("Not Found", { status: 404 });
   }
 
-  const targetUrl = resolveStorageTarget(path, req.nextUrl.search);
+  let targetUrl: string;
+  try {
+    targetUrl = resolveStorageTarget(path, req.nextUrl.search);
+  } catch (err: unknown) {
+    return new NextResponse(err instanceof Error ? err.message : "Invalid storage path", {
+      status: 400,
+    });
+  }
 
   try {
     const upstreamRes = await fetch(targetUrl);
@@ -91,12 +122,23 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ path
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
+  if (process.env.NODE_ENV === "production") {
+    return new NextResponse("Not Found", { status: 404 });
+  }
+
   const { path } = await params;
   if (!path || path.length === 0) {
     return new NextResponse("Not Found", { status: 404 });
   }
 
-  const targetUrl = resolveStorageTarget(path, req.nextUrl.search);
+  let targetUrl: string;
+  try {
+    targetUrl = resolveStorageTarget(path, req.nextUrl.search);
+  } catch (err: unknown) {
+    return new NextResponse(err instanceof Error ? err.message : "Invalid storage path", {
+      status: 400,
+    });
+  }
 
   try {
     const contentType = req.headers.get("content-type") || "";
