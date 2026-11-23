@@ -135,7 +135,7 @@ export function ProfileForm({ user }: { user?: User }) {
       }
 
       // 3. Update profile with new avatar URL
-      const newAvatarUrl = resolveStorageUrl(presignRes.publicUrl);
+      const newAvatarUrl = presignRes.publicUrl;
       methods.setValue("avatarUrl", newAvatarUrl, { shouldDirty: true });
       await updateProfileMutation.mutateAsync({
         ...methods.getValues(),

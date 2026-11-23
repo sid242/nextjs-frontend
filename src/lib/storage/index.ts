@@ -108,31 +108,33 @@ export const clientCookie = {
 };
 
 /**
- * In local development, storage presigned URLs point to MinIO (e.g. http://localhost:9000/...).
- * When testing on a mobile device or another machine on the LAN (e.g. browsing from http://192.168.1.33:3001),
- * "localhost:9000" refers to the mobile device itself where no MinIO is running.
- * This helper dynamically rewrites the hostname to match the current browser host if accessing via LAN/subdomain.
+ * In local development, storage presigned and public URLs point to MinIO (e.g. http://localhost:9000/app-uploads-local/...).
+ * When testing on a mobile device or another machine on the LAN (e.g. browsing from http://192.168.1.x:3001),
+ * subdomain multi-tenancy (e.g. acme-realty.localhost:3001), or dev tunnels, local storage requests are routed
+ * through the same-origin `/api/storage` gateway to guarantee zero CORS, mixed-content, or port-forwarding issues.
  */
 export function resolveStorageUrl(url?: string | null): string {
   if (!url) return "";
-  if (typeof window === "undefined") return url;
+  if (url.startsWith("/api/storage/")) return url;
+  if (url.startsWith("data:") || url.startsWith("blob:")) return url;
+
+  if (url.startsWith("/app-uploads-local/")) {
+    return `/api/storage${url}`;
+  }
+
   try {
     const parsed = new URL(url);
-    const isLocalStorage =
-      (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") &&
-      (parsed.port === "9000" || parsed.port === "9001");
+    const isLocalPort = parsed.port === "9000" || parsed.port === "9001";
+    const isLocalPath = parsed.pathname.startsWith("/app-uploads-local/");
+    const h = parsed.hostname.toLowerCase();
+    const isLocalHost =
+      h === "localhost" ||
+      h === "127.0.0.1" ||
+      h.endsWith(".localhost") ||
+      /^(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(h);
 
-    if (
-      isLocalStorage &&
-      window.location.hostname &&
-      window.location.hostname !== "localhost" &&
-      window.location.hostname !== "127.0.0.1"
-    ) {
-      // In subdomain multi-tenancy (e.g. acme-realty.localhost:3001), don't prefix subdomain to MinIO port
-      const currentHost = window.location.hostname;
-      const hostWithoutSubdomain = currentHost.endsWith(".localhost") ? "localhost" : currentHost;
-      parsed.hostname = hostWithoutSubdomain;
-      return parsed.toString();
+    if (isLocalPort || (isLocalHost && isLocalPath)) {
+      return `/api/storage${parsed.pathname}${parsed.search}`;
     }
   } catch {
     /* fallback to original url */

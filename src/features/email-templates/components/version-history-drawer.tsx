@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/sheet";
 import { Spinner } from "@/components/ui/spinner";
 import { formatDate } from "@/lib/format";
+import { sanitizeEmailHtml } from "@/lib/sanitize-email-html";
 
 import { useRollbackTemplateVersion, useTemplateVersions } from "../queries";
 import type { EmailTemplate, EmailTemplateVersion } from "../types";
@@ -153,7 +154,9 @@ export function VersionHistoryDrawer({ template, open, onOpenChange }: VersionHi
           <div className="bg-muted/20 flex-1 overflow-auto rounded-lg border p-4">
             <div
               className="prose prose-sm dark:prose-invert max-w-none"
-              dangerouslySetInnerHTML={{ __html: previewVersion?.htmlContent || "" }}
+              dangerouslySetInnerHTML={{
+                __html: sanitizeEmailHtml(previewVersion?.htmlContent || ""),
+              }}
             />
           </div>
         </DialogContent>

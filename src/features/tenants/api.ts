@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@/lib/api/http";
+import { resolveStorageUrl } from "@/lib/storage";
 
 import type {
   AddMemberInput,
@@ -202,7 +203,7 @@ export async function uploadBrandingAsset(
     form.append("file", file); // AWS S3 requires file to be the last field
 
     const xhr = new XMLHttpRequest();
-    xhr.open("POST", uploadUrl);
+    xhr.open("POST", resolveStorageUrl(uploadUrl));
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) {
         resolve();

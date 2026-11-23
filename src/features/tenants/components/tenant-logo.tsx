@@ -5,6 +5,7 @@ import { Building2Icon } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { initials } from "@/lib/format";
+import { resolveStorageUrl } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 
 import { useActiveTenant, useTenantBranding } from "../queries";
@@ -69,9 +70,13 @@ export function TenantLogo({
 
   const activeBranding = isControlledBranding ? overrideBranding : fetchedBranding;
 
-  const lightLogo = activeBranding?.logoUrl?.trim() || null;
-  const darkLogo = activeBranding?.logoDarkUrl?.trim() || null;
-  const favicon = activeBranding?.faviconUrl?.trim() || null;
+  const rawLightLogo = activeBranding?.logoUrl?.trim() || null;
+  const rawDarkLogo = activeBranding?.logoDarkUrl?.trim() || null;
+  const rawFavicon = activeBranding?.faviconUrl?.trim() || null;
+
+  const lightLogo = rawLightLogo ? resolveStorageUrl(rawLightLogo) : null;
+  const darkLogo = rawDarkLogo ? resolveStorageUrl(rawDarkLogo) : null;
+  const favicon = rawFavicon ? resolveStorageUrl(rawFavicon) : null;
 
   const lightSrc = variant === "icon" ? favicon || lightLogo : lightLogo;
 

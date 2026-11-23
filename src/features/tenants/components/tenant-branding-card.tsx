@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { getErrorMessage } from "@/lib/api/errors";
+import { resolveStorageUrl } from "@/lib/storage";
 import { useTenantHref } from "@/lib/tenancy";
 import { cn } from "@/lib/utils";
 
@@ -638,7 +639,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                       <div className="relative flex size-full items-center justify-center">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={formData.logoUrl}
+                          src={resolveStorageUrl(formData.logoUrl)}
                           alt="Light Logo"
                           className="max-h-16 max-w-full object-contain"
                         />
@@ -685,7 +686,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                       <div className="relative flex size-full items-center justify-center">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={formData.logoDarkUrl}
+                          src={resolveStorageUrl(formData.logoDarkUrl)}
                           alt="Dark Logo"
                           className="max-h-16 max-w-full object-contain"
                         />
@@ -732,7 +733,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                       <div className="relative flex size-full items-center justify-center">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={formData.faviconUrl}
+                          src={resolveStorageUrl(formData.faviconUrl)}
                           alt="Favicon"
                           className="size-8 rounded-sm object-contain"
                         />
@@ -1161,7 +1162,7 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                     <div className="relative size-full">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={formData.authCoverUrl}
+                        src={resolveStorageUrl(formData.authCoverUrl)}
                         alt="Auth Hero Cover"
                         className="size-full object-cover"
                       />
@@ -1581,7 +1582,9 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                         {formData.authCoverUrl && (
                           <div
                             className="absolute inset-0 bg-cover bg-center"
-                            style={{ backgroundImage: `url(${formData.authCoverUrl})` }}
+                            style={{
+                              backgroundImage: `url(${resolveStorageUrl(formData.authCoverUrl)})`,
+                            }}
                           />
                         )}
                         <div
@@ -1792,11 +1795,11 @@ function TenantBrandingForm({ branding, activeTenant, activeTenantId }: TenantBr
                         {formData.logoUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
-                            src={
+                            src={resolveStorageUrl(
                               previewDark && formData.logoDarkUrl
                                 ? formData.logoDarkUrl
-                                : formData.logoUrl
-                            }
+                                : formData.logoUrl,
+                            )}
                             alt={formData.companyName || "Organization"}
                             className="mx-auto max-h-6 max-w-[120px] object-contain"
                           />

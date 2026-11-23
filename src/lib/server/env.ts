@@ -7,7 +7,7 @@ const schema = z.object({
   SOCKET_URL: z.string().url(),
   CSP_CONNECT_EXTRA: z.string().default(""),
   CSP_FRAME_EXTRA: z.string().default(""),
-  BFF_SHARED_SECRET: z.string().default("bff-dev-shared-secret-key-min-16-chars"),
+  BFF_SHARED_SECRET: z.string().min(16).default("bff-dev-shared-secret-key-min-16-chars"),
   NEXT_PUBLIC_APP_BASE_DOMAIN: z.string().default("localhost:3001"),
   NEXT_PUBLIC_APP_PROTOCOL: z.enum(["http", "https"]).default("http"),
   PLATFORM_HOST: z.string().default("localhost:3001"),
@@ -27,6 +27,18 @@ export function getEnv(): ServerEnv {
       `Invalid server environment: ${JSON.stringify(parsed.error.flatten().fieldErrors)}`,
     );
   }
+
+  if (process.env.NODE_ENV === "production") {
+    if (
+      !process.env.BFF_SHARED_SECRET ||
+      parsed.data.BFF_SHARED_SECRET === "bff-dev-shared-secret-key-min-16-chars"
+    ) {
+      throw new Error(
+        "Invalid server environment: Dedicated non-default BFF_SHARED_SECRET is required in production.",
+      );
+    }
+  }
+
   cached = parsed.data;
   return cached;
 }

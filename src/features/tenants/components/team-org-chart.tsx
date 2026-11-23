@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { initials } from "@/lib/format";
+import { resolveStorageUrl } from "@/lib/storage";
 
 import type { OrgChartNode } from "../import-export.types";
 import { useTenantOrgChart } from "../queries";
@@ -47,7 +48,9 @@ function OrgChartMemberCard({ node, level = 0 }: OrgChartMemberCardProps) {
         <div className="flex items-start justify-between gap-2.5">
           <div className="flex items-start gap-2.5">
             <Avatar className="mt-0.5 size-9 border">
-              {node.avatarUrl && <AvatarImage src={node.avatarUrl} alt={node.name} />}
+              {node.avatarUrl && (
+                <AvatarImage src={resolveStorageUrl(node.avatarUrl)} alt={node.name} />
+              )}
               <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
                 {initials(node.name || "Member")}
               </AvatarFallback>

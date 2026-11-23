@@ -7,6 +7,7 @@ import { siteConfig } from "@/config/site";
 import { TenantLogo, TenantThemeProvider } from "@/features/tenants";
 import { tenantSlugFromPath } from "@/lib/auth/paths";
 import { resolvePublicTenant } from "@/lib/server/tenant-resolver";
+import { resolveStorageUrl } from "@/lib/storage";
 
 export default async function AuthLayout({ children }: { children: React.ReactNode }) {
   const headerList = await headers();
@@ -28,7 +29,7 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
   const resolved = await resolvePublicTenant({ host, slug: querySlug });
   const branding = resolved?.branding;
   const layout = (branding?.authLayout as "SPLIT" | "CARD") || "SPLIT";
-  const coverUrl = branding?.authCoverUrl;
+  const coverUrl = branding?.authCoverUrl ? resolveStorageUrl(branding.authCoverUrl) : undefined;
   const tenantName: string =
     (branding?.companyName as string | undefined) || resolved?.tenant?.name || siteConfig.name;
   const headline: string =

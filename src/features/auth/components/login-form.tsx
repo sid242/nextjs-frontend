@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Building2 } from "lucide-react";
+import { ArrowRight, Building2, KeyRound, Mail } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -131,7 +131,10 @@ export function LoginForm({
         className="grid gap-4"
       >
         {isSsoRequired ? (
-          <Alert className="border-primary/50 bg-primary/10">
+          <Alert
+            className="border-primary/50 bg-primary/10 rounded-[var(--radius)]"
+            style={{ borderRadius: "var(--radius)" }}
+          >
             <Building2 className="text-primary size-4" />
             <AlertDescription className="flex flex-col gap-2">
               <span>
@@ -141,7 +144,8 @@ export function LoginForm({
               <Button
                 type="button"
                 size="sm"
-                className="w-full"
+                className="w-full rounded-[var(--radius)]"
+                style={{ borderRadius: "var(--radius)" }}
                 disabled={busy}
                 onClick={() => {
                   if (ssoLoginUrl) {
@@ -156,7 +160,11 @@ export function LoginForm({
             </AlertDescription>
           </Alert>
         ) : loginMutation?.isError ? (
-          <Alert variant="destructive">
+          <Alert
+            variant="destructive"
+            className="rounded-[var(--radius)]"
+            style={{ borderRadius: "var(--radius)" }}
+          >
             <AlertDescription>{getErrorMessage(loginMutation?.error)}</AlertDescription>
           </Alert>
         ) : null}
@@ -167,7 +175,9 @@ export function LoginForm({
           type="email"
           autoComplete="username"
           placeholder="name@example.com"
-          className="h-10 rounded-xl"
+          prefix={<Mail className="text-muted-foreground size-4" />}
+          className="h-10 rounded-[var(--radius)]"
+          style={{ borderRadius: "var(--radius)" }}
           disabled={busy}
           required
         />
@@ -175,29 +185,35 @@ export function LoginForm({
         <ControlledInput
           name="password"
           label="Password"
-          labelAction={
-            <Link
-              href={authRoutes.FORGOT_PASSWORD}
-              className="text-primary text-sm font-medium underline-offset-4 hover:underline"
-            >
-              Forgot password?
-            </Link>
-          }
           type="password"
           autoComplete="current-password"
-          className="h-10 rounded-xl"
+          placeholder="••••••••••••"
+          prefix={<KeyRound className="text-muted-foreground size-4" />}
+          className="h-10 rounded-[var(--radius)]"
+          style={{ borderRadius: "var(--radius)" }}
           disabled={busy}
           required
         />
 
         <SubmitButton
-          className="h-10 rounded-xl"
+          className="h-10 w-full gap-2 rounded-[var(--radius)] font-medium shadow-xs"
+          style={{ borderRadius: "var(--radius)" }}
           disabled={busy}
           pending={loginMutation?.isPending}
           pendingText="Signing in…"
         >
           Sign in
+          <ArrowRight className="size-4" />
         </SubmitButton>
+
+        <div className="text-center">
+          <Link
+            href={authRoutes.FORGOT_PASSWORD}
+            className="text-primary text-sm font-medium underline-offset-4 hover:underline"
+          >
+            Forgot password?
+          </Link>
+        </div>
       </FormWrapper>
 
       {(!targetTenant || targetTenant.ssoConfigured) && (
@@ -209,25 +225,40 @@ export function LoginForm({
           <Button
             type="button"
             variant="outline"
-            className="w-full"
+            className="h-10 w-full rounded-[var(--radius)]"
+            style={{ borderRadius: "var(--radius)" }}
             onClick={handleSsoLogin}
             disabled={busy}
           >
-            <Building2 className="mr-2 h-4 w-4" />
+            <Building2 className="mr-2 size-4" />
             {ssoLoading ? "Connecting to SSO…" : "Sign in with Enterprise SSO"}
           </Button>
         </>
       )}
 
-      <p className="text-muted-foreground text-center text-sm">
-        No account?{" "}
-        <Link
-          href={authRoutes.REGISTER}
-          className="text-foreground font-medium underline-offset-4 hover:underline"
-        >
-          Create an account
-        </Link>
-      </p>
+      <div className="flex flex-col gap-2 pt-1 text-center text-sm">
+        <p className="text-muted-foreground">
+          No account?{" "}
+          <Link
+            href={authRoutes.REGISTER}
+            className="text-foreground font-medium underline-offset-4 hover:underline"
+          >
+            Create an account
+          </Link>
+        </p>
+
+        {targetTenant?.slug ? (
+          <p className="text-muted-foreground text-xs">
+            Not your workspace?{" "}
+            <Link
+              href={AUTH_ROUTES.SELECT_WORKSPACE}
+              className="text-primary font-medium hover:underline"
+            >
+              Switch workspace
+            </Link>
+          </p>
+        ) : null}
+      </div>
     </div>
   );
 }

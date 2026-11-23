@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { sanitizeEmailHtml } from "@/lib/sanitize-email-html";
 
 import { STANDARD_VARIABLES } from "../constants";
 
@@ -213,7 +214,7 @@ export function DevicePreview({
 
             <div
               className="prose prose-sm dark:prose-invert max-w-none overflow-x-hidden p-3.5 text-neutral-900"
-              dangerouslySetInnerHTML={{ __html: renderedHtml }}
+              dangerouslySetInnerHTML={{ __html: sanitizeEmailHtml(renderedHtml) }}
             />
           </div>
         ) : (
@@ -231,7 +232,7 @@ export function DevicePreview({
 
             <div
               className="prose prose-sm dark:prose-invert max-w-none overflow-x-hidden p-5 text-neutral-900 sm:p-7"
-              dangerouslySetInnerHTML={{ __html: renderedHtml }}
+              dangerouslySetInnerHTML={{ __html: sanitizeEmailHtml(renderedHtml) }}
             />
           </div>
         )}

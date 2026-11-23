@@ -1,45 +1,50 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ShieldCheck } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  KeyRound,
+  Lock,
+  Mail,
+  ShieldAlert,
+  ShieldCheck,
+} from "lucide-react";
 import { useForm } from "react-hook-form";
 
 import { ControlledInput, FormWrapper } from "@/components/molecules/forms";
 import { SubmitButton } from "@/components/molecules/submit-button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { PLATFORM_ROUTES } from "@/config/routes";
 import { getErrorMessage } from "@/lib/api/errors";
 import { isPlatformLogin, isPlatformPath, safeNextPath } from "@/lib/auth/paths";
 import { useHydrated } from "@/lib/hooks/use-hydrated";
 
 import { usePlatformLogin, useVerifyPlatformTwoFactor } from "../queries";
-import {
-  platformLoginSchema,
-  platformVerificationSchema,
-  type PlatformLoginInput,
-  type PlatformVerificationInput,
-} from "../schemas";
+import { platformLoginSchema, type PlatformLoginInput } from "../schemas";
 
 export function PlatformLoginForm({ next }: { next?: string }) {
   const hydrated = useHydrated();
-  const [attempt, setAttempt] = useState({
-    token: "",
-    recoveryMode: false,
-    error: "",
-  });
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [challengeToken, setChallengeToken] = useState<string | null>(null);
+  const [code, setCode] = useState("");
+  const [useRecoveryCode, setUseRecoveryCode] = useState(false);
 
   const { mutateAsync: login, isPending: isLoggingIn } = usePlatformLogin();
   const { mutateAsync: verifyTwoFactor, isPending: isVerifying } = useVerifyPlatformTwoFactor();
-  const credentials = useForm<PlatformLoginInput>({
+
+  const methods = useForm<PlatformLoginInput>({
     resolver: zodResolver(platformLoginSchema),
-    defaultValues: { email: "", password: "" },
-  });
-  const verification = useForm<PlatformVerificationInput>({
-    resolver: zodResolver(platformVerificationSchema),
-    defaultValues: { code: "" },
+    defaultValues: {
+      email: "",
+      password: "",
+    },
   });
 
   function finishSignIn() {
@@ -54,147 +59,222 @@ export function PlatformLoginForm({ next }: { next?: string }) {
     window.location.replace(destination);
   }
 
-  async function onSubmit(values: PlatformLoginInput) {
-    setAttempt((current) => ({ ...current, error: "" }));
+  const onSubmit = async (values: PlatformLoginInput) => {
+    setErrorMsg(null);
     try {
-      const result = await login(values);
+      const result = await login({
+        email: values?.email?.trim?.() ?? "",
+        password: values?.password ?? "",
+      });
+
       if (result?.twoFactorRequired && result?.challengeToken) {
-        credentials.resetField("password");
-        setAttempt({ token: result.challengeToken, recoveryMode: false, error: "" });
+        setChallengeToken(result.challengeToken);
+        setCode("");
         return;
       }
 
       finishSignIn();
-    } catch (error) {
-      setAttempt((current) => ({
-        ...current,
-        error: getErrorMessage(error, "Unable to sign in. Try again."),
-      }));
+    } catch (err: unknown) {
+      setErrorMsg(getErrorMessage(err, "Invalid platform credentials or account suspended"));
     }
-  }
+  };
 
-  async function onVerify({ code }: PlatformVerificationInput) {
-    setAttempt((current) => ({ ...current, error: "" }));
+  const onVerifyChallenge = async (e: FormEvent) => {
+    e?.preventDefault?.();
+    if (!challengeToken || !code.trim()) return;
+
+    setErrorMsg(null);
     try {
-      await verifyTwoFactor({ challengeToken: attempt.token, code });
+      await verifyTwoFactor({
+        challengeToken,
+        code: code.trim(),
+      });
       finishSignIn();
-    } catch (error) {
-      setAttempt((current) => ({
-        ...current,
-        error: getErrorMessage(error, "Unable to verify the code. Try again."),
-      }));
+    } catch (err: unknown) {
+      setErrorMsg(getErrorMessage(err, "Invalid verification code or expired challenge"));
     }
-  }
+  };
 
-  const inChallenge = Boolean(attempt.token);
-  const alert = attempt.error ? (
-    <Alert variant="destructive">
-      <AlertDescription>{attempt.error}</AlertDescription>
-    </Alert>
-  ) : null;
+  if (challengeToken) {
+    return (
+      <div className="mx-auto w-full max-w-md space-y-6">
+        {/* Brand Header */}
+        <div className="space-y-2 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/25">
+            <ShieldCheck className="h-6 w-6" />
+          </div>
+          <div className="flex items-center justify-center gap-1.5 pt-1">
+            <h1 className="text-xl font-bold tracking-tight">Two-Factor Authentication</h1>
+            <Badge
+              variant="outline"
+              className="border-indigo-500/30 bg-indigo-500/10 font-mono text-[10px] text-indigo-600 dark:text-indigo-400"
+            >
+              REQUIRED
+            </Badge>
+          </div>
+          <p className="text-muted-foreground text-xs">
+            {useRecoveryCode
+              ? "Enter one of your 10-character emergency recovery codes."
+              : "Enter the 6-digit code from your authenticator app to access the Platform Console."}
+          </p>
+        </div>
+
+        <Card className="border-border/80 bg-card/60 shadow-xl backdrop-blur">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+              <KeyRound className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+              {useRecoveryCode ? "Recovery Code Verification" : "Authenticator Verification"}
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Confirm your operator identity to initialize an administrative session.
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent>
+            <form onSubmit={onVerifyChallenge} className="space-y-4">
+              {errorMsg ? (
+                <Alert variant="destructive">
+                  <AlertDescription>{errorMsg}</AlertDescription>
+                </Alert>
+              ) : null}
+
+              <div className="space-y-1.5">
+                <Label htmlFor="code" className="text-xs font-medium">
+                  {useRecoveryCode ? "Emergency Recovery Code" : "6-Digit Authenticator Code"}
+                </Label>
+                <Input
+                  id="code"
+                  type="text"
+                  autoFocus
+                  placeholder={useRecoveryCode ? "A1B2-C3D4E5" : "••••••"}
+                  value={code}
+                  onChange={(e) => setCode(e?.target?.value ?? "")}
+                  className="text-center font-mono text-base tracking-widest"
+                  required
+                />
+              </div>
+
+              <Button
+                type="submit"
+                disabled={isVerifying || code.trim().length < 6}
+                className="w-full bg-gradient-to-r from-indigo-600 via-indigo-600 to-violet-600 font-medium text-white shadow-md shadow-indigo-500/20 hover:from-indigo-700 hover:to-violet-700"
+              >
+                {isVerifying ? "Verifying…" : "Verify and Access Console"}
+              </Button>
+            </form>
+
+            <div className="mt-4 flex flex-col gap-2 text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setUseRecoveryCode(!useRecoveryCode);
+                  setCode("");
+                  setErrorMsg(null);
+                }}
+                className="text-primary cursor-pointer text-xs font-medium hover:underline"
+              >
+                {useRecoveryCode
+                  ? "Use 6-digit Authenticator app code"
+                  : "Lost device? Use emergency recovery code"}
+              </button>
+
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setChallengeToken(null);
+                  setCode("");
+                  setErrorMsg(null);
+                }}
+                className="text-muted-foreground hover:text-foreground text-xs"
+              >
+                <ArrowLeft className="mr-1 size-3.5" />
+                Return to operator login
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
-    <Card className="border-border/80 w-full max-w-md gap-6 shadow-xs">
-      <CardHeader className="gap-2">
-        <div className="bg-primary/10 text-primary mb-2 grid size-11 place-items-center rounded-xl">
-          <ShieldCheck aria-hidden="true" className="size-5" />
+    <div className="mx-auto w-full max-w-md space-y-6">
+      {/* Brand Header */}
+      <div className="space-y-2 text-center">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/25">
+          <ShieldAlert className="h-6 w-6" />
         </div>
-        <CardTitle className="text-2xl font-bold tracking-tight text-balance">
-          <h1>{inChallenge ? "Verify your sign-in" : "Sign in to Platform Console"}</h1>
-        </CardTitle>
-        <CardDescription>
-          {inChallenge
-            ? attempt.recoveryMode
-              ? "Enter a 10-character recovery code."
-              : "Enter the 6-digit code from your authenticator app."
-            : "Use your platform staff account to manage workspaces."}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {inChallenge ? (
-          <div className="grid gap-3">
-            <FormWrapper methods={verification} onSubmit={onVerify} className="grid gap-4">
-              {alert}
-              <ControlledInput
-                name="code"
-                label={attempt.recoveryMode ? "Recovery code" : "Authenticator code"}
-                autoComplete="one-time-code"
-                inputMode={attempt.recoveryMode ? "text" : "numeric"}
-                autoCapitalize={attempt.recoveryMode ? "characters" : "none"}
-                className="h-10 rounded-xl"
-                disabled={isVerifying}
-                autoFocus
-                required
-              />
-              <SubmitButton
-                className="h-10 rounded-xl"
-                pending={isVerifying}
-                pendingText="Verifying…"
-              >
-                Verify and sign in
-              </SubmitButton>
-            </FormWrapper>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={isVerifying}
-              onClick={() => {
-                verification.reset();
-                setAttempt((current) => ({
-                  ...current,
-                  recoveryMode: !current.recoveryMode,
-                  error: "",
-                }));
-                verification.setFocus("code");
-              }}
-            >
-              {attempt.recoveryMode ? "Use authenticator code" : "Use recovery code"}
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              disabled={isVerifying}
-              onClick={() => {
-                verification.reset();
-                setAttempt({ token: "", recoveryMode: false, error: "" });
-              }}
-            >
-              Return to password sign-in
-            </Button>
-          </div>
-        ) : (
-          <FormWrapper methods={credentials} onSubmit={onSubmit} className="grid gap-4">
-            {alert}
+        <div className="flex items-center justify-center gap-1.5 pt-1">
+          <h1 className="text-xl font-bold tracking-tight">SaaS Platform Console</h1>
+          <Badge
+            variant="outline"
+            className="border-indigo-500/30 bg-indigo-500/10 font-mono text-[10px] text-indigo-600 dark:text-indigo-400"
+          >
+            SECURE
+          </Badge>
+        </div>
+        <p className="text-muted-foreground text-xs">
+          Internal operator portal &bull; Zero-standing privileges to customer tenants
+        </p>
+      </div>
+
+      <Card className="border-border/80 bg-card/60 shadow-xl backdrop-blur">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+            <Lock className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+            Operator Authentication
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Authenticate using your provisioned internal SaaS platform credentials.
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent>
+          <FormWrapper methods={methods} onSubmit={onSubmit} className="space-y-4">
+            {errorMsg ? (
+              <Alert variant="destructive">
+                <AlertDescription>{errorMsg}</AlertDescription>
+              </Alert>
+            ) : null}
+
             <ControlledInput
               name="email"
-              label="Staff email"
+              label="Email"
               type="email"
-              autoComplete="username"
-              placeholder="name@company.com"
-              className="h-10 rounded-xl"
+              autoComplete="email"
+              placeholder="operator@platform.com"
+              prefix={<Mail className="h-4 w-4" />}
               disabled={!hydrated || isLoggingIn}
               required
+              className="h-9 font-mono text-xs"
             />
+
             <ControlledInput
               name="password"
               label="Password"
               type="password"
               autoComplete="current-password"
-              className="h-10 rounded-xl"
+              placeholder="••••••••••••"
+              prefix={<KeyRound className="h-4 w-4" />}
               disabled={!hydrated || isLoggingIn}
               required
+              className="h-9 text-xs"
             />
+
             <SubmitButton
-              className="h-10 rounded-xl"
-              disabled={!hydrated}
               pending={isLoggingIn}
-              pendingText="Signing in…"
+              pendingText="Verifying Credentials..."
+              disabled={!hydrated}
+              className="h-9 w-full gap-2 bg-gradient-to-r from-indigo-600 via-indigo-600 to-violet-600 text-xs text-white shadow-md shadow-indigo-600/20 hover:from-indigo-700 hover:to-violet-700"
             >
-              Sign in
+              Authenticate Platform Session
+              <ArrowRight className="h-4 w-4" />
             </SubmitButton>
           </FormWrapper>
-        )}
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

@@ -92,11 +92,13 @@ function SessionCountdown({ expiresAt }: { expiresAt: string }) {
   );
 }
 
-type SupportSessionColumnId = "session" | "tenant" | "reason" | "status" | "started" | "actions";
+type SupportSessionColumnId =
+  "session" | "tenant" | "impersonated" | "reason" | "status" | "started" | "actions";
 
 const SUPPORT_SESSION_COLUMNS: TableColumnDef<SupportSessionColumnId>[] = [
   { id: "session", label: "Session ID / Operator", canHide: false, defaultVisible: true },
-  { id: "tenant", label: "Customer Tenant ID", canHide: true, defaultVisible: true },
+  { id: "tenant", label: "Customer Tenant", canHide: true, defaultVisible: true },
+  { id: "impersonated", label: "Impersonated Member", canHide: true, defaultVisible: true },
   { id: "reason", label: "Stated Justification", canHide: true, defaultVisible: true },
   { id: "status", label: "Status & Window", canHide: true, defaultVisible: true },
   { id: "started", label: "Started", canHide: true, defaultVisible: true },
@@ -105,7 +107,8 @@ const SUPPORT_SESSION_COLUMNS: TableColumnDef<SupportSessionColumnId>[] = [
 
 const SUPPORT_SESSION_COLUMN_LABELS: Record<SupportSessionColumnId, string> = {
   session: "Session ID / Operator",
-  tenant: "Customer Tenant ID",
+  tenant: "Customer Tenant",
+  impersonated: "Impersonated Member",
   reason: "Stated Justification",
   status: "Status & Window",
   started: "Started",
@@ -169,11 +172,57 @@ export function SupportSessionsTable() {
       case "tenant":
         return (
           <TableCell key="tenant">
-            <code className="text-muted-foreground bg-muted/50 rounded px-1.5 py-0.5 font-mono text-[11px]">
-              {session.tenantId}
-            </code>
+            <div className="flex flex-col">
+              <span className="text-foreground text-xs font-medium">
+                {session.tenantName || "Unknown Tenant"}
+              </span>
+              <span className="text-muted-foreground font-mono text-[11px]">
+                {session.tenantSlug ? `/w/${session.tenantSlug}` : session.tenantId.slice(0, 8)}
+              </span>
+            </div>
           </TableCell>
         );
+      case "impersonated": {
+        const fullName = [session.targetUserFirstName, session.targetUserLastName]
+          .filter(Boolean)
+          .join(" ")
+          .trim();
+        const hasImpersonation =
+          session.mode === "AS_MEMBER" || Boolean(session.targetUserId || session.targetMemberId);
+
+        if (!hasImpersonation) {
+          return (
+            <TableCell key="impersonated">
+              <span className="text-muted-foreground/80 font-mono text-xs italic">
+                Workspace-wide
+              </span>
+            </TableCell>
+          );
+        }
+
+        return (
+          <TableCell key="impersonated">
+            <div className="flex flex-col">
+              <div className="flex items-center gap-1.5">
+                <span className="text-foreground text-xs font-medium">
+                  {fullName ||
+                    session.targetUserEmail ||
+                    (session.targetUserId ? session.targetUserId.slice(0, 8) : "Unknown Member")}
+                </span>
+                <Badge
+                  variant="outline"
+                  className="h-4 border-amber-500/30 bg-amber-500/10 px-1 font-mono text-[9px] text-amber-600 dark:text-amber-400"
+                >
+                  Member
+                </Badge>
+              </div>
+              {session.targetUserEmail && (fullName || session.targetUserFirstName) ? (
+                <span className="text-muted-foreground text-[11px]">{session.targetUserEmail}</span>
+              ) : null}
+            </div>
+          </TableCell>
+        );
+      }
       case "reason":
         return (
           <TableCell key="reason" className="max-w-xs">
@@ -489,6 +538,7 @@ function InitiateSupportSessionDialog({
     try {
       await startSession({
         tenantId: values.tenantId.trim(),
+        mode: values.targetUserId?.trim() ? "AS_MEMBER" : "TENANT_SCOPED",
         targetUserId: values.targetUserId?.trim() || undefined,
         ticketRef: values.ticketRef?.trim() || undefined,
         reason: values.reason.trim(),

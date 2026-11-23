@@ -11,7 +11,6 @@ import { cn } from "@/lib/utils";
 
 export interface FormInputProps extends Omit<InputProps, "prefix"> {
   label?: ReactNode;
-  labelAction?: ReactNode;
   error?: string;
   hint?: string;
   description?: string;
@@ -32,7 +31,6 @@ export function FormInput({
   id,
   name,
   label,
-  labelAction,
   error,
   hint,
   description,
@@ -83,7 +81,7 @@ export function FormInput({
 
   return (
     <div className={cn("grid gap-1.5", containerClassName)}>
-      {label || badge || labelAction ? (
+      {label || badge ? (
         <div className="flex flex-wrap items-center justify-between gap-x-2">
           {label ? (
             <Label htmlFor={fieldId} className={cn(error && "text-destructive", labelClassName)}>
@@ -91,7 +89,6 @@ export function FormInput({
               {required ? <span className="text-destructive ml-1">*</span> : null}
             </Label>
           ) : null}
-          {labelAction}
           {badge ? (
             <Badge variant="secondary" className={cn("px-1.5 py-0 text-[10px]", badgeClassName)}>
               {badge}

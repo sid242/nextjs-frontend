@@ -6,8 +6,8 @@ import { AUTH_ROUTES } from "@/config/routes";
 import { PlatformLoginForm } from "@/features/platform";
 
 export const metadata = {
-  title: "Platform Console Sign In",
-  description: "Sign in with a platform staff account.",
+  title: "Platform Console Login | SaaS Operator Access",
+  description: "Secure authentication surface for internal SaaS platform operators.",
 };
 
 export default async function PlatformLoginPage({
@@ -18,22 +18,26 @@ export default async function PlatformLoginPage({
   const { next } = await searchParams;
 
   return (
-    <div className="bg-background flex min-h-dvh flex-col">
-      <header className="border-border/80 border-b">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-5 sm:px-8">
-          <Link
-            href={AUTH_ROUTES.LOGIN}
-            className="text-muted-foreground hover:text-foreground inline-flex min-h-10 items-center gap-2 text-sm font-medium"
-          >
-            <ArrowLeft aria-hidden="true" className="size-4" />
-            Customer sign-in
-          </Link>
-          <ThemeToggle />
-        </div>
-      </header>
-      <main id="main" className="grid flex-1 place-items-center px-5 py-10 sm:px-8">
+    <div className="bg-background flex min-h-dvh flex-col justify-between p-4 sm:p-8">
+      <div className="mx-auto flex w-full max-w-5xl items-center justify-between">
+        <Link
+          href={AUTH_ROUTES.LOGIN}
+          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-2 text-xs font-medium transition-colors"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Switch to Customer Tenant Login
+        </Link>
+        <ThemeToggle />
+      </div>
+
+      <div className="py-12">
         <PlatformLoginForm next={typeof next === "string" ? next : undefined} />
-      </main>
+      </div>
+
+      <div className="text-muted-foreground/60 mx-auto max-w-sm text-center font-mono text-xs">
+        Restricted to verified internal personnel. All login attempts and IP addresses are recorded
+        to the platform security audit trail.
+      </div>
     </div>
   );
 }
