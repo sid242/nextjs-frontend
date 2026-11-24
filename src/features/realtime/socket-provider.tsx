@@ -48,7 +48,13 @@ async function getFirstTicket(
  *  - React StrictMode double-mount and logout: everything is torn down in the cleanup
  * Realtime is an enhancement: if it fails the app still works through normal refetching.
  */
-export function SocketProvider({ children }: { children: ReactNode }) {
+export function SocketProvider({
+  children,
+  support = false,
+}: {
+  children: ReactNode;
+  support?: boolean;
+}) {
   const queryClient = useQueryClient();
   const workspaceSlug = useParams<{ tenantSlug?: string }>()?.tenantSlug;
 
@@ -95,6 +101,10 @@ export function SocketProvider({ children }: { children: ReactNode }) {
 
       instance.on("disconnect", (reason) => {
         if (disposed) return;
+        if (support && reason === "io server disconnect") {
+          setStatus("unauthorized");
+          return;
+        }
         setStatus("reconnecting");
         if (reason === "io server disconnect") instance.connect();
       });
@@ -106,7 +116,12 @@ export function SocketProvider({ children }: { children: ReactNode }) {
           return;
         }
         void (async () => {
-          if (authRetries++ < MAX_AUTH_RETRIES && (await refreshSession()) === "ok" && !disposed) {
+          if (
+            !support &&
+            authRetries++ < MAX_AUTH_RETRIES &&
+            (await refreshSession()) === "ok" &&
+            !disposed
+          ) {
             instance.connect();
             return;
           }
@@ -126,7 +141,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       setSocket(null);
       setStatus("idle");
     };
-  }, [queryClient, workspaceSlug]);
+  }, [queryClient, workspaceSlug, support]);
 
   return <>{children}</>;
 }

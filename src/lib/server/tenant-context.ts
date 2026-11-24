@@ -1,13 +1,13 @@
 import "server-only";
 
-import { classifyHost, normalizeHost } from "@/lib/tenancy/host";
-import { resolveTenantByHost, resolveTenantBySlug } from "@/lib/tenancy/resolve";
+import { classifyHost } from "@/lib/tenancy/host";
+import { resolveTenantByHost } from "@/lib/tenancy/resolve";
 
 /**
- * Derives the tenant ID for API calls strictly from the request Host or Referer.
+ * Derives the tenant slug for API calls from the request Host or Referer.
  * Never trusts any client/browser-supplied x-tenant-id header.
  */
-export async function tenantIdFromRequest(req: Request): Promise<string | undefined> {
+export async function tenantIdentifierFromRequest(req: Request): Promise<string | undefined> {
   const host =
     (process.env.TRUST_PROXY === "true" ? req?.headers?.get?.("x-forwarded-host") : null) ??
     req?.headers?.get?.("host");
@@ -20,7 +20,7 @@ export async function tenantIdFromRequest(req: Request): Promise<string | undefi
   if (hostInfo?.classification === "subdomain" || hostInfo?.classification === "custom") {
     try {
       const resolution = await resolveTenantByHost(host);
-      return resolution?.tenantId ?? undefined;
+      return resolution?.kind === "tenant" ? resolution.slug : undefined;
     } catch {
       return undefined;
     }
@@ -33,8 +33,8 @@ export async function tenantIdFromRequest(req: Request): Promise<string | undefi
 
     try {
       const refererUrl = new URL(referer);
-      const reqHostNormalized = normalizeHost(host);
-      const refererHostNormalized = normalizeHost(refererUrl?.host);
+      const reqHostNormalized = host.trim().toLowerCase();
+      const refererHostNormalized = refererUrl.host.toLowerCase();
 
       // Validate referer origin must match the request host
       if (reqHostNormalized !== refererHostNormalized) {
@@ -44,9 +44,8 @@ export async function tenantIdFromRequest(req: Request): Promise<string | undefi
       // Parse /w/{slug} from the Referer pathname
       const match = refererUrl?.pathname?.match?.(/^\/w\/([^/]+)/);
       if (match?.[1]) {
-        const slug = decodeURIComponent(match[1]);
-        const resolution = await resolveTenantBySlug(slug);
-        return resolution?.tenantId ?? undefined;
+        const slug = decodeURIComponent(match[1]).toLowerCase();
+        return /^[a-z0-9-]{1,63}$/.test(slug) ? slug : undefined;
       }
     } catch {
       return undefined;

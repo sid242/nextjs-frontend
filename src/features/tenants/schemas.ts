@@ -7,6 +7,7 @@ export const tenantSchema = z.object({
   id: z.string(),
   name: z.string().min(1, "Tenant name is required"),
   slug: z.string().min(1),
+  canonicalBase: z.string().url().optional(),
   plan: tenantPlanSchema.default("PRO"),
   logoUrl: z.string().nullable().optional(),
   createdAt: z.string(),

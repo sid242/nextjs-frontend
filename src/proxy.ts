@@ -1,7 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { PLATFORM_ROUTES } from "@/config/routes";
-import { ACCESS_COOKIE, PLATFORM_STAFF_COOKIE, REFRESH_COOKIE } from "@/lib/auth/constants";
+import {
+  ACCESS_COOKIE,
+  PLATFORM_STAFF_COOKIE,
+  REFRESH_COOKIE,
+  SUPPORT_SESSION_COOKIE,
+} from "@/lib/auth/constants";
 import { decodeJwt } from "@/lib/auth/jwt";
 import {
   isAuthPage,
@@ -204,6 +209,10 @@ export async function proxy(req: NextRequest) {
   const hasAccess = Boolean(accessCookie && isTokenNonExpired(accessCookie));
   const hasRefresh = Boolean(refreshCookie && isTokenNonExpired(refreshCookie));
   const hasPlatformStaff = Boolean(staffCookie && isTokenNonExpired(staffCookie));
+  const supportSessionId = req.cookies.get(SUPPORT_SESSION_COOKIE)?.value;
+  const claims = accessCookie && supportSessionId ? decodeJwt(accessCookie) : null;
+  const isSupportVisit =
+    hasPlatformStaff && claims?.typ === "SUPPORT" && claims.sess === supportSessionId;
 
   const rawHost =
     (process.env.TRUST_PROXY === "true" ? req?.headers?.get?.("x-forwarded-host") : null) ??
@@ -284,6 +293,9 @@ export async function proxy(req: NextRequest) {
 
   // ─── 3. Host class platform ───────────────────────────────────────
   if (hostInfo?.classification === "platform") {
+    if (hasPlatformStaff && supportSessionId && !hasAccess && isProtectedPath(pathname)) {
+      return NextResponse.redirect(new URL(PLATFORM_ROUTES.SUPPORT_SESSIONS, req.url));
+    }
     // 3a. /w/{slug}/... path routing
     const wPlatformMatch = pathname?.match?.(/^\/w\/([^/]+)(\/.*)?$/);
     if (wPlatformMatch && !pathname?.startsWith?.("/api/")) {
@@ -310,6 +322,7 @@ export async function proxy(req: NextRequest) {
 
         // Effective mode !== 'path' (canonical elsewhere) -> 307 to canonical
         if (
+          !isSupportVisit &&
           !isIpAddress(hostInfo?.hostname) &&
           slugResult?.canonicalBase &&
           slugResult?.urlMode &&

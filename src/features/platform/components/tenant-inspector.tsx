@@ -50,6 +50,7 @@ import { formatDate, initials } from "@/lib/format";
 import { resolveStorageUrl } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 
+import { enterSupportWorkspace } from "../api";
 import { hasPlatformPermission, PLATFORM_PERMISSION_KEYS } from "../permissions";
 import {
   useActivateTenant,
@@ -190,23 +191,7 @@ export function TenantInspector({ tenantId }: TenantInspectorProps) {
       });
 
       if (res?.sessionId) {
-        const token = res.accessToken ?? res.token;
-        const tenantSlug = res.tenantSlug ?? tenant.slug;
-        const enterRes = await fetch("/api/platform/support-session/enter", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sessionId: res.sessionId,
-            tenantId: res.tenantId ?? tenant.id,
-            tenantSlug,
-            slug: tenantSlug,
-            accessToken: token,
-          }),
-        });
-
-        const enterData = await enterRes.json().catch(() => null);
-        const destination =
-          enterData?.redirectUrl ?? (tenantSlug ? `/w/${tenantSlug}/dashboard` : "/dashboard");
+        const destination = await enterSupportWorkspace(res.sessionId);
 
         toast.success(
           `Entering ${tenant.name} as ${modalState.targetMember?.name ?? modalState.targetMember?.email ?? "tenant user"}…`,

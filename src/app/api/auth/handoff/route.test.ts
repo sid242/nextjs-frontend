@@ -74,7 +74,7 @@ describe("Handoff Route (/api/auth/handoff)", () => {
     expect(res.status).toBe(303);
     const location = res.headers.get("location");
     // Open redirect is defused to safe fallback (/dashboard)
-    expect(location).toBe("http://acme.example.com/dashboard");
+    expect(location).toBe("/dashboard");
 
     // Cookies are set
     const setCookie = res.headers.get("set-cookie");
@@ -108,6 +108,6 @@ describe("Handoff Route (/api/auth/handoff)", () => {
     const res = await GET(req);
     expect(res.status).toBe(303);
     const location = res.headers.get("location");
-    expect(location).toBe("http://acme.example.com/settings/billing");
+    expect(location).toBe("/settings/billing");
   });
 });

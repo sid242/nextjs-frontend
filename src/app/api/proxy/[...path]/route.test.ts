@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ACCESS_COOKIE, PLATFORM_STAFF_COOKIE } from "@/lib/auth/constants";
 import * as backendModule from "@/lib/server/backend";
+import { clearResolveCache, resolveTenantBySlug } from "@/lib/tenancy/resolve";
 
 import { GET, HEAD, POST } from "./route";
 
@@ -15,6 +16,7 @@ vi.mock("@/lib/server/backend", () => ({
 describe("BFF Generic Proxy Route & Security Hardening", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearResolveCache();
   });
 
   describe("Finding 2: Route-aware credential selection when both cookies are present", () => {
@@ -229,19 +231,47 @@ describe("BFF Generic Proxy Route & Security Hardening", () => {
   });
 
   describe("Tenant Header Isolation & Client Spoofing Prevention", () => {
-    it("overwrites client-supplied forged x-tenant-id with backend-resolved tenantId", async () => {
-      // Mock first call for resolveTenantBySlug ("legit-acme")
-      vi.mocked(backendModule.backendFetch).mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            success: true,
-            data: { tenantId: "legit-tenant-123", slug: "legit-acme", status: "ACTIVE" },
-          }),
-          { status: 200, headers: { "content-type": "application/json" } },
-        ),
+    it("ties the file event stream lifetime to the browser request", async () => {
+      const upstream = vi.mocked(backendModule.backendFetch);
+      upstream.mockResolvedValueOnce(
+        new Response(":connected\n\n", {
+          headers: { "content-type": "text/event-stream", "x-accel-buffering": "no" },
+        }),
       );
+      const request = new NextRequest("http://localhost:3000/api/proxy/files/events/stream", {
+        headers: { cookie: `${ACCESS_COOKIE}=customer-token` },
+      });
+      const response = await GET(request, {
+        params: Promise.resolve({ path: ["files", "events", "stream"] }),
+      });
 
-      // Mock second call for the actual upstream proxy request
+      expect(upstream.mock.lastCall?.[1]?.signal).toBe(request.signal);
+      expect(response.headers.get("x-accel-buffering")).toBe("no");
+    });
+
+    it("forwards the workspace slug even when a page cached an earlier ID", async () => {
+      const resolve = (tenantId: string) =>
+        Response.json({ data: { tenantId, slug: "example-workspace", status: "ACTIVE" } });
+      const upstream = vi.mocked(backendModule.backendFetch);
+      upstream.mockResolvedValueOnce(resolve("previous-tenant"));
+      await resolveTenantBySlug("example-workspace");
+      upstream.mockResolvedValueOnce(Response.json({ data: [] }));
+
+      const request = new NextRequest("http://localhost:3000/api/proxy/files", {
+        headers: {
+          host: "localhost:3000",
+          referer: "http://localhost:3000/w/example-workspace/files",
+          cookie: `${ACCESS_COOKIE}=customer-token`,
+        },
+      });
+      const response = await GET(request, { params: Promise.resolve({ path: ["files"] }) });
+
+      expect(response.status).toBe(200);
+      expect(upstream.mock.lastCall?.[1]?.headers?.["x-tenant-id"]).toBe("example-workspace");
+      expect(upstream.mock.calls).toHaveLength(2);
+    });
+
+    it("overwrites a client-supplied tenant ID with the workspace slug from the same-origin path", async () => {
       vi.mocked(backendModule.backendFetch).mockResolvedValueOnce(
         new Response(JSON.stringify({ data: { success: true } }), {
           status: 200,
@@ -271,7 +301,7 @@ describe("BFF Generic Proxy Route & Security Hardening", () => {
         .mocked(backendModule.backendFetch)
         .mock.calls.find((call) => call[0] === "/files");
       expect(proxyCall).toBeDefined();
-      expect(proxyCall?.[1]?.headers?.["x-tenant-id"]).toBe("legit-tenant-123");
+      expect(proxyCall?.[1]?.headers?.["x-tenant-id"]).toBe("legit-acme");
     });
 
     it("omits x-tenant-id header entirely when tenant context is unresolved", async () => {

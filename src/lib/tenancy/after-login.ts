@@ -73,7 +73,7 @@ function resolveMembershipDestination(
   return {
     type: "handoff",
     tenantId: membership?.tenantId,
-    targetHost,
+    targetHost: new URL(membership.canonicalBase).host,
     next: next ?? TENANT_PATHS.DASHBOARD,
   };
 }

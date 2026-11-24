@@ -13,6 +13,7 @@ import {
   Timer,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 import { ColumnConfigDropdown } from "@/components/molecules/column-config-dropdown";
 import {
@@ -48,6 +49,7 @@ import { getErrorMessage } from "@/lib/api/errors";
 import { formatDate } from "@/lib/format";
 import { useSearchQueryParams, useTableColumns, type TableColumnDef } from "@/lib/hooks";
 
+import { enterSupportWorkspace } from "../api";
 import { PLATFORM_PERMISSION_KEYS } from "../permissions";
 import { useEndSupportSession, useStartSupportSession, useSupportSessions } from "../queries";
 import {
@@ -271,22 +273,11 @@ export function SupportSessionsTable() {
                   variant="outline"
                   size="sm"
                   onClick={async () => {
-                    const enterRes = await fetch("/api/platform/support-session/enter", {
-                      method: "POST",
-                      headers: { "content-type": "application/json" },
-                      body: JSON.stringify({
-                        sessionId: session.id,
-                        tenantId: session.tenantId,
-                        tenantSlug: session.tenantSlug,
-                        slug: session.tenantSlug,
-                      }),
-                    });
-                    const enterData = await enterRes.json().catch(() => null);
-                    const destination =
-                      enterData?.redirectUrl ??
-                      (session.tenantSlug ? `/w/${session.tenantSlug}/dashboard` : "/dashboard");
-
-                    window.location.assign(destination);
+                    try {
+                      window.location.assign(await enterSupportWorkspace(session.id));
+                    } catch (error) {
+                      toast.error(getErrorMessage(error, "Could not enter this support session."));
+                    }
                   }}
                   className="h-7 gap-1 border-emerald-500/30 text-xs text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400"
                 >
