@@ -7,7 +7,7 @@ import { verificationCodeSchema } from "@/lib/auth/verification-code";
 // ==========================================
 
 export const staffMemberSchema = z.object({
-  id: z.string().guid(),
+  id: z.string().uuid(),
   email: z.string().email(),
   displayName: z.string(),
   avatarUrl: z.string().nullable().optional(),
@@ -15,7 +15,7 @@ export const staffMemberSchema = z.object({
   department: z.string().nullable().optional(),
   jobTitle: z.string().nullable().optional(),
   status: z.enum(["INVITED", "ACTIVE", "SUSPENDED", "DEACTIVATED"]),
-  roleId: z.string().guid(),
+  roleId: z.string().uuid(),
   roleKey: z.string().nullable().optional(),
   roleName: z.string().nullable().optional(),
   lastLoginAt: z.string().nullable().optional(),
@@ -29,12 +29,12 @@ export type StaffMember = z.infer<typeof staffMemberSchema>;
 export const inviteStaffSchema = z.object({
   email: z.string().trim().email("Enter a valid staff email"),
   displayName: z.string().trim().min(2, "Name must be at least 2 characters"),
-  roleId: z.string().guid("Please select a platform role"),
+  roleId: z.string().uuid("Please select a platform role"),
   employeeCode: z.string().trim().max(50).optional(),
   department: z.string().trim().max(100).optional(),
   jobTitle: z.string().trim().max(100).optional(),
   invitationMessage: z.string().trim().max(1000).optional(),
-  expiresInHours: z.coerce.number<number>().int().min(1).max(168).optional(),
+  expiresInHours: z.coerce.number().int().min(1).max(168).optional(),
 });
 
 export type InviteStaffInput = z.infer<typeof inviteStaffSchema>;
@@ -43,7 +43,7 @@ export const createStaffSchema = z.object({
   email: z.string().trim().email("Enter a valid staff email"),
   displayName: z.string().trim().min(2, "Name must be at least 2 characters"),
   password: z.string().min(8, "Password must be at least 8 characters"),
-  roleId: z.string().guid("Please select a platform role"),
+  roleId: z.string().uuid("Please select a platform role"),
 });
 
 export type CreateStaffInput = z.infer<typeof createStaffSchema>;
@@ -51,7 +51,7 @@ export type CreateStaffInput = z.infer<typeof createStaffSchema>;
 export const updateStaffSchema = z.object({
   displayName: z.string().trim().min(2).optional(),
   status: z.enum(["ACTIVE", "SUSPENDED", "DEACTIVATED"]).optional(),
-  roleId: z.string().guid().optional(),
+  roleId: z.string().uuid().optional(),
 });
 
 export type UpdateStaffInput = z.infer<typeof updateStaffSchema>;
@@ -61,7 +61,7 @@ export type UpdateStaffInput = z.infer<typeof updateStaffSchema>;
 // ==========================================
 
 export const platformUserSchema = z.object({
-  id: z.string().guid(),
+  id: z.string().uuid(),
   email: z.string().email(),
   firstName: z.string().default(""),
   lastName: z.string().default(""),
@@ -80,7 +80,7 @@ export type PlatformUser = z.infer<typeof platformUserSchema>;
 // ==========================================
 
 export const platformRoleSchema = z.object({
-  id: z.string().guid(),
+  id: z.string().uuid(),
   key: z.string(),
   name: z.string(),
   description: z.string().nullable().optional(),
@@ -119,7 +119,7 @@ export const updatePlatformRoleSchema = z.object({
 export type UpdatePlatformRoleInput = z.infer<typeof updatePlatformRoleSchema>;
 
 export const platformPermissionSchema = z.object({
-  id: z.string().guid(),
+  id: z.string().uuid(),
   key: z.string(),
   name: z.string(),
   description: z.string(),
@@ -134,17 +134,17 @@ export type PlatformPermission = z.infer<typeof platformPermissionSchema>;
 // ==========================================
 
 export const supportSessionSchema = z.object({
-  id: z.string().guid(),
-  staffId: z.string().guid(),
+  id: z.string().uuid(),
+  staffId: z.string().uuid(),
   staffEmail: z.string().nullable().optional(),
   staffDisplayName: z.string().nullable().optional(),
-  tenantId: z.string().guid(),
+  tenantId: z.string().uuid(),
   tenantName: z.string().nullable().optional(),
   tenantSlug: z.string().nullable().optional(),
   mode: z.enum(["TENANT_SCOPED", "AS_MEMBER"]).optional(),
   scope: z.enum(["READ_ONLY", "ASSIST", "FULL", "FULL_ADMIN"]).or(z.string()).optional(),
-  targetUserId: z.string().guid().nullable().optional(),
-  targetMemberId: z.string().guid().nullable().optional(),
+  targetUserId: z.string().uuid().nullable().optional(),
+  targetMemberId: z.string().uuid().nullable().optional(),
   targetUserEmail: z.string().nullable().optional(),
   targetUserFirstName: z.string().nullable().optional(),
   targetUserLastName: z.string().nullable().optional(),
@@ -159,13 +159,13 @@ export const supportSessionSchema = z.object({
 export type PlatformSupportSession = z.infer<typeof supportSessionSchema>;
 
 export const startSupportSessionSchema = z.object({
-  tenantId: z.string().guid("Valid customer tenant ID required"),
+  tenantId: z.string().uuid("Valid customer tenant ID required"),
   mode: z.enum(["TENANT_SCOPED", "AS_MEMBER"]).optional(),
   scope: z.enum(["READ_ONLY", "FULL"]).optional(),
   targetUserId: z.string().optional(),
   reason: z.string().trim().min(5, "Support reason must be at least 5 characters"),
   ticketRef: z.string().trim().optional(),
-  durationMinutes: z.coerce.number<number>().int().min(5).max(120),
+  durationMinutes: z.coerce.number().int().min(5).max(120),
   acknowledgement: z.boolean().optional(),
 });
 
@@ -202,8 +202,8 @@ export interface PlatformTenantMember {
 // ==========================================
 
 export const platformAuditLogSchema = z.object({
-  id: z.string().guid(),
-  actorStaffId: z.string().guid().nullable().optional(),
+  id: z.string().uuid(),
+  actorStaffId: z.string().uuid().nullable().optional(),
   staffDisplayName: z.string().nullable().optional(),
   staffEmail: z.string().nullable().optional(),
   action: z.string(),
@@ -271,7 +271,7 @@ export interface StaffAuthProfile {
 // ==========================================
 
 export const platformTenantSchema = z.object({
-  id: z.string().guid(),
+  id: z.string().uuid(),
   name: z.string(),
   slug: z.string(),
   legalName: z.string().nullable().optional(),
@@ -308,8 +308,8 @@ export const platformTenantDetailSchema = platformTenantSchema.extend({
   metadata: z.record(z.string(), z.unknown()).nullable().optional(),
   subscription: z
     .object({
-      id: z.string().guid(),
-      planId: z.string().guid(),
+      id: z.string().uuid(),
+      planId: z.string().uuid(),
       planName: z.string().nullable().optional(),
       planCode: z.string().nullable().optional(),
       status: z.string(),
@@ -363,7 +363,7 @@ export const provisionTenantSchema = z.object({
   ownerFirstName: z.string().trim().max(50).optional(),
   ownerLastName: z.string().trim().max(50).optional(),
   plan: z.string().trim().min(1, "Subscription tier is required"),
-  trialDays: z.coerce.number<number>().int().min(0).max(365).optional(),
+  trialDays: z.coerce.number().int().min(0).max(365).optional(),
   databaseMode: z.enum(["shared", "dedicated"]),
   notes: z.string().trim().max(500).optional(),
   branding: z
@@ -378,7 +378,7 @@ export const provisionTenantSchema = z.object({
   databaseConfig: z
     .object({
       databaseName: z.string().trim().max(63).optional(),
-      poolLimit: z.coerce.number<number>().int().min(1).max(50).optional(),
+      poolLimit: z.coerce.number().int().min(1).max(50).optional(),
       databaseKey: z.string().trim().max(100).optional(),
       connectionUrl: z.string().trim().url().or(z.literal("")).optional(),
     })
@@ -403,7 +403,7 @@ export const suspendTenantSchema = z.object({
 export type SuspendTenantInput = z.infer<typeof suspendTenantSchema>;
 
 export const updatePlatformTenantSubscriptionSchema = z.object({
-  planId: z.string().guid().optional(),
+  planId: z.string().uuid().optional(),
   seatCount: z.number().int().min(1).optional(),
   status: z.enum(["ACTIVE", "TRIALING", "PAST_DUE", "CANCELED", "EXPIRED"]).optional(),
   cancelAtPeriodEnd: z.boolean().optional(),
@@ -425,7 +425,7 @@ export const tenantDatabaseHealthSchema = z.object({
 });
 
 export const tenantDatabaseItemSchema = z.object({
-  id: z.string().guid(),
+  id: z.string().uuid(),
   name: z.string(),
   slug: z.string(),
   tenantCode: z.string().nullable().optional(),
@@ -460,8 +460,8 @@ export const tenantDatabaseItemSchema = z.object({
 export type TenantDatabaseItem = z.infer<typeof tenantDatabaseItemSchema>;
 
 export const tenantDbOperationSchema = z.object({
-  id: z.string().guid(),
-  tenantId: z.string().guid(),
+  id: z.string().uuid(),
+  tenantId: z.string().uuid(),
   kind: z.enum([
     "PROVISION",
     "MIGRATE_SCHEMA",
@@ -494,10 +494,10 @@ export const tenantDbOperationSchema = z.object({
 export type TenantDbOperation = z.infer<typeof tenantDbOperationSchema>;
 
 export const listTenantDatabasesQuerySchema = z.object({
-  page: z.coerce.number<number>().int().min(1).optional(),
-  limit: z.coerce.number<number>().int().min(1).max(100).optional(),
+  page: z.coerce.number().int().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
   search: z.string().trim().optional(),
-  tenantId: z.string().guid().optional(),
+  tenantId: z.string().uuid().optional(),
   strategy: z.enum(["shared", "dedicated", "ALL"]).optional(),
   provisioningStatus: z
     .enum(["ACTIVE", "PENDING", "PROVISIONING", "FAILED", "SUSPENDED", "DEACTIVATED", "ALL"])
@@ -526,8 +526,8 @@ export const executeTenantDatabaseOperationSchema = z.object({
   reason: z.string().trim().min(5, "Reason must be at least 5 characters").max(500),
   backupConfirmed: z.boolean().optional(),
   discardDedicatedData: z.boolean().optional(),
-  approvedByStaffId: z.string().guid().optional(),
-  poolLimit: z.coerce.number<number>().int().min(1).max(50).optional(),
+  approvedByStaffId: z.string().uuid().optional(),
+  poolLimit: z.coerce.number().int().min(1).max(50).optional(),
   customDatabaseName: z.string().trim().max(63).optional(),
   connectionUrl: z.string().trim().url().or(z.literal("")).optional(),
 });

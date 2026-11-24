@@ -3,8 +3,8 @@ import { z } from "zod";
 export const auditLogsFilterSchema = z.object({
   page: z.number().int().min(1).default(1),
   limit: z.number().int().min(1).max(100).default(50),
-  actorUserId: z.string().guid().optional(),
-  effectiveUserId: z.string().guid().optional(),
+  actorUserId: z.string().uuid().optional(),
+  effectiveUserId: z.string().uuid().optional(),
   action: z.string().optional(),
   resourceType: z.string().optional(),
   resourceId: z.string().optional(),
