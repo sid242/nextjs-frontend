@@ -12,17 +12,17 @@ export const invoiceLineItemSchema = z.object({
 export type InvoiceLineItem = z.infer<typeof invoiceLineItemSchema>;
 
 export const invoiceSchema = z.object({
-  id: z.string().uuid(),
-  tenantId: z.string().uuid(),
-  subscriptionId: z.string().uuid().nullable().optional(),
-  planId: z.string().uuid().nullable().optional(),
+  id: z.string().guid(),
+  tenantId: z.string().guid(),
+  subscriptionId: z.string().guid().nullable().optional(),
+  planId: z.string().guid().nullable().optional(),
   invoiceNumber: z.string(),
   status: invoiceStatusSchema,
   amountCents: z.number().int(),
   taxCents: z.number().int(),
   totalCents: z.number().int(),
-  subtotalMinor: z.number().int().default(0).optional(),
-  discountMinor: z.number().int().default(0).optional(),
+  subtotalMinor: z.number().int().optional(),
+  discountMinor: z.number().int().optional(),
   taxBreakdown: z
     .array(
       z.object({
@@ -42,8 +42,8 @@ export const invoiceSchema = z.object({
     })
     .nullable()
     .optional(),
-  creditedMinor: z.number().int().default(0).optional(),
-  attemptCount: z.number().int().default(0).optional(),
+  creditedMinor: z.number().int().optional(),
+  attemptCount: z.number().int().optional(),
   nextAttemptAt: z.string().nullable().optional(),
   invoiceYear: z.number().int().nullable().optional(),
   invoiceSeq: z.number().int().nullable().optional(),
@@ -94,9 +94,9 @@ export const paymentStatusSchema = z.enum([
 export type PaymentStatus = z.infer<typeof paymentStatusSchema>;
 
 export const paymentSchema = z.object({
-  id: z.string().uuid(),
-  tenantId: z.string().uuid(),
-  subscriptionId: z.string().uuid().nullable().optional(),
+  id: z.string().guid(),
+  tenantId: z.string().guid(),
+  subscriptionId: z.string().guid().nullable().optional(),
   provider: z.string(),
   providerOrderId: z.string().nullable().optional(),
   providerPaymentId: z.string().nullable().optional(),
@@ -126,7 +126,7 @@ export const listPaymentsQuerySchema = z.object({
   page: z.number().int().optional(),
   limit: z.number().int().optional(),
   status: z.string().optional(),
-  tenantId: z.string().uuid().optional(),
+  tenantId: z.string().guid().optional(),
 });
 export type ListPaymentsQuery = z.infer<typeof listPaymentsQuerySchema>;
 

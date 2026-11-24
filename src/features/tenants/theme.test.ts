@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { tenantBrandingSchema } from "./schemas";
+import { tenantBrandingSchema, updateTenantBrandingSchema } from "./schemas";
 import {
   BRANDING_PRESETS,
   computeTenantThemeTokens,
@@ -12,6 +12,10 @@ import {
 } from "./theme";
 
 describe("Theme Engine & Color Calculations", () => {
+  it("does not fill omitted fields when updating branding", () => {
+    expect(updateTenantBrandingSchema.parse({ logoUrl: null })).toEqual({ logoUrl: null });
+  });
+
   it("parses valid hex colors to RGB correctly", () => {
     expect(hexToRgb("#ffffff")).toEqual({ r: 255, g: 255, b: 255 });
     expect(hexToRgb("#000000")).toEqual({ r: 0, g: 0, b: 0 });

@@ -15,10 +15,10 @@ export const createLeadSchema = z.object({
   phone: z.string().max(30).optional(),
   company: z.string().max(100).optional(),
   status: leadStatusSchema,
-  value: z.coerce.number().int().min(0),
+  value: z.coerce.number<number>().int().min(0),
   departmentId: z.string().max(50).optional(),
   regionId: z.string().max(50).optional(),
-  assignedMemberId: z.string().uuid().optional().or(z.literal("")),
+  assignedMemberId: z.string().guid().optional().or(z.literal("")),
   isConfidential: z.boolean(),
   notes: z.string().max(2000).optional(),
 });

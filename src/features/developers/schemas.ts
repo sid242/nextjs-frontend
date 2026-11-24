@@ -61,12 +61,12 @@ export const createApiKeySchema = z.object({
   name: z.string().trim().min(1, "Key name is required").max(100, "Maximum 100 characters"),
   scopes: z.array(z.string()).min(1, "Select at least one scope"),
   rateLimitPerMin: z.coerce
-    .number()
+    .number<number>()
     .int()
     .min(10, "Minimum 10 req/min")
     .max(1000, "Maximum 1000 req/min"),
   allowedIps: z.string().trim().optional(),
-  expiresInDays: z.coerce.number().int().min(0).max(730),
+  expiresInDays: z.coerce.number<number>().int().min(0).max(730),
 });
 
 export type CreateApiKeyValues = z.infer<typeof createApiKeySchema>;
