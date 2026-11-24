@@ -1,9 +1,21 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
 
+import { ROUTES } from "@/config/routes";
 import { ACCESS_COOKIE, PLATFORM_STAFF_COOKIE, SUPPORT_SESSION_COOKIE } from "@/lib/auth/constants";
 import { backendFetch } from "@/lib/server/backend";
 import { assertSameOrigin, forwardedHeaders } from "@/lib/server/request";
 import { errorResponse } from "@/lib/server/response";
+
+const sessionSchema = z.object({ sessionId: z.string().guid() });
+const upstreamSchema = z.object({
+  data: z.object({
+    token: z.string().min(1),
+    tenantId: z.string().guid(),
+    tenantSlug: z.string().regex(/^[a-z0-9-]+$/),
+    expiresAt: z.string().datetime({ offset: true }),
+  }),
+});
 
 export const dynamic = "force-dynamic";
 
@@ -14,94 +26,50 @@ export async function POST(req: NextRequest) {
   const staffToken = req.cookies.get(PLATFORM_STAFF_COOKIE)?.value;
   if (!staffToken) return errorResponse(401, "UNAUTHORIZED", "Not signed in as platform staff");
 
-  const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
-  const sessionId = body?.sessionId;
-  let accessToken = (body?.accessToken || body?.token) as string | undefined;
-  let tenantId = body?.tenantId as string | undefined;
-  let slug = (body?.slug || body?.tenantSlug) as string | undefined;
+  const body = sessionSchema.safeParse(await req.json().catch(() => null));
+  if (!body.success)
+    return errorResponse(400, "INVALID_SESSION_ID", "A valid session ID is required");
 
-  if (!sessionId || typeof sessionId !== "string") {
-    return errorResponse(400, "INVALID_SESSION_ID", "sessionId is required");
-  }
-
-  // If no accessToken was provided, call upstream backend to enter the session and generate the token
-  if (!accessToken) {
-    try {
-      const upstream = await backendFetch(`/platform/support-sessions/${sessionId}/enter`, {
-        method: "POST",
-        token: staffToken,
-        headers: forwardedHeaders(req),
-      });
-
-      if (upstream.ok) {
-        const data = (await upstream.json().catch(() => null)) as {
-          data?: {
-            token?: string;
-            accessToken?: string;
-            tenantSlug?: string;
-            tenantId?: string;
-          };
-          token?: string;
-          tenantSlug?: string;
-          tenantId?: string;
-        } | null;
-
-        const payload = (data?.data ?? data) as {
-          token?: string;
-          accessToken?: string;
-          tenantSlug?: string;
-          tenantId?: string;
-        } | null;
-        accessToken = payload?.token ?? payload?.accessToken;
-        if (!slug && payload?.tenantSlug) slug = payload.tenantSlug;
-        if (!tenantId && payload?.tenantId) tenantId = payload.tenantId;
-      }
-    } catch {
-      // Fallback
+  try {
+    const { sessionId } = body.data;
+    const upstream = await backendFetch(`/platform/support-sessions/${sessionId}/enter`, {
+      method: "POST",
+      token: staffToken,
+      headers: forwardedHeaders(req),
+    });
+    if (!upstream.ok) {
+      return errorResponse(
+        upstream.status,
+        "SUPPORT_ENTRY_DENIED",
+        "Could not enter this support session",
+      );
     }
-  }
 
-  const secure = process.env.NODE_ENV === "production" && process.env.COOKIE_SECURE !== "false";
-  const redirectUrl = slug ? `/w/${slug}/dashboard` : "/dashboard";
-  const res = NextResponse.json({ ok: true, redirectUrl });
+    const result = upstreamSchema.safeParse(await upstream.json());
+    if (!result.success) {
+      return errorResponse(502, "INVALID_SUPPORT_SESSION", "Invalid support session response");
+    }
 
-  res.cookies.set(SUPPORT_SESSION_COOKIE, sessionId, {
-    httpOnly: true,
-    secure,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 2 * 60 * 60, // 2 hours
-  });
+    const { token, tenantId, tenantSlug, expiresAt } = result.data.data;
+    const remainingMs = Date.parse(expiresAt) - Date.now();
+    if (remainingMs <= 0)
+      return errorResponse(401, "SUPPORT_EXPIRED", "Support session has expired");
 
-  if (accessToken && typeof accessToken === "string") {
-    res.cookies.set(ACCESS_COOKIE, accessToken, {
+    const response = NextResponse.json({ redirectUrl: ROUTES.tenant(tenantSlug).DASHBOARD });
+    const cookie = {
       httpOnly: true,
-      secure,
+      secure: process.env.NODE_ENV === "production" && process.env.COOKIE_SECURE !== "false",
       sameSite: "lax",
       path: "/",
-      maxAge: 2 * 60 * 60,
-    });
-  }
+    } as const;
+    response.cookies.set(SUPPORT_SESSION_COOKIE, sessionId, { ...cookie, maxAge: 2 * 60 * 60 });
+    const maxAge = Math.ceil(remainingMs / 1000);
+    response.cookies.set(ACCESS_COOKIE, token, { ...cookie, maxAge });
+    response.cookies.set("active_tenant_id", tenantId, { ...cookie, httpOnly: false, maxAge });
+    response.cookies.set("ctx_slug", tenantSlug, { ...cookie, maxAge });
 
-  if (tenantId) {
-    res.cookies.set("active_tenant_id", tenantId, {
-      httpOnly: false,
-      secure,
-      sameSite: "lax",
-      path: "/",
-      maxAge: 2 * 60 * 60,
-    });
+    return response;
+  } catch {
+    return errorResponse(503, "UPSTREAM_UNAVAILABLE", "Service temporarily unavailable");
   }
-
-  if (slug) {
-    res.cookies.set("ctx_slug", slug, {
-      httpOnly: true,
-      secure,
-      sameSite: "lax",
-      path: "/",
-      maxAge: 2 * 60 * 60,
-    });
-  }
-
-  return res;
 }

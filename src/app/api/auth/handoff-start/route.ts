@@ -3,6 +3,7 @@ import "server-only";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { ACCESS_COOKIE } from "@/lib/auth/constants";
+import { safeNextPath } from "@/lib/auth/paths";
 import { backendFetch } from "@/lib/server/backend";
 import { assertSameOrigin, forwardedHeaders } from "@/lib/server/request";
 import { errorResponse } from "@/lib/server/response";
@@ -18,13 +19,9 @@ export async function POST(req: NextRequest) {
     return errorResponse(401, "UNAUTHORIZED", "Not signed in");
   }
 
-  const body = (await req?.json?.().catch(() => null)) as {
-    tenantId?: string;
-    targetHost?: string;
-    next?: string;
-  } | null;
+  const body = (await req?.json?.().catch(() => null)) as Record<string, unknown> | null;
 
-  if (!body?.tenantId || !body?.targetHost) {
+  if (typeof body?.tenantId !== "string" || typeof body?.targetHost !== "string") {
     return errorResponse(400, "BAD_REQUEST", "tenantId and targetHost are required");
   }
 
@@ -57,10 +54,14 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let finalHandoffUrl = data?.data?.handoffUrl;
-  if (body?.next) {
-    finalHandoffUrl += `&next=${encodeURIComponent(body.next)}`;
+  if (!URL.canParse(data.data.handoffUrl)) {
+    return errorResponse(502, "HANDOFF_FAILED", "Invalid handoff destination");
+  }
+  const finalHandoffUrl = new URL(data.data.handoffUrl);
+  if (typeof body.next === "string") {
+    const targetPath = safeNextPath(body.next, "");
+    if (targetPath) finalHandoffUrl.searchParams.set("next", targetPath);
   }
 
-  return NextResponse.json({ handoffUrl: finalHandoffUrl }, { status: 200 });
+  return NextResponse.json({ handoffUrl: finalHandoffUrl.toString() });
 }

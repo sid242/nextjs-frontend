@@ -1,0 +1,148 @@
+name: Foundation browser tests
+
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      backend_ref:
+        description: Backend branch or commit to pair with this frontend
+        default: main
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  browser:
+    name: Browser tests with ${{ matrix.modules }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - modules: leads
+            expected_leads: "true"
+            module_config: leads
+          - modules: core
+            expected_leads: "false"
+            module_config: ""
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: fixture
+          POSTGRES_PASSWORD: fixture
+          POSTGRES_DB: foundation_e2e_${{ matrix.modules }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready --health-interval 5s
+          --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s
+          --health-timeout 5s --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://fixture:fixture@127.0.0.1:5432/foundation_e2e_${{ matrix.modules }}
+      REDIS_URL: redis://127.0.0.1:6379
+      BFF_SHARED_SECRET: local-foundation-browser-fixture-bff
+      JWT_ACCESS_SECRET: local-foundation-browser-fixture-access
+      JWT_REFRESH_SECRET: local-foundation-browser-fixture-refresh
+      JWT_PLATFORM_SECRET: local-foundation-browser-fixture-platform
+      JWT_SUPPORT_SECRET: local-foundation-browser-fixture-support
+      ENCRYPTION_KEY: local-foundation-browser-fixture-encryption
+      HOST: 127.0.0.1
+      PORT: "3009"
+      S3_BUCKET: foundation-browser-fixture
+      AWS_EC2_METADATA_DISABLED: "true"
+      APP_PROTOCOL: http
+      APP_BASE_DOMAIN: localhost:3001
+      PLATFORM_HOST: localhost:3001
+      CORS_ORIGINS: http://localhost:3001
+      FRONTEND_URL: http://localhost:3001
+      API_URL: http://127.0.0.1:3009/api/v1
+      SOCKET_URL: http://127.0.0.1:3009
+      NEXT_PUBLIC_APP_BASE_DOMAIN: localhost:3001
+      FOUNDATION_EXPECT_LEADS: ${{ matrix.expected_leads }}
+      FOUNDATION_MODULES: ${{ matrix.module_config }}
+      NEXT_TELEMETRY_DISABLED: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: frontend
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: sid242/nodejs-backend
+          ref: ${{ inputs.backend_ref || 'main' }}
+          path: backend
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            backend/package-lock.json
+      - run: npm ci
+        working-directory: frontend
+      - run: npm ci
+        working-directory: backend
+      - name: Prepare fresh browser fixtures
+        working-directory: backend
+        env:
+          NODE_ENV: test
+        run: |
+          if [[ -f src/scripts/foundation-e2e-fixtures.ts ]]; then
+            node --import tsx src/scripts/foundation-e2e-fixtures.ts
+            echo "FOUNDATION_EXTENDED_FIXTURES=true" >> "$GITHUB_ENV"
+          else
+            node --import tsx src/db/migrate-all.ts
+            node --import tsx src/db/seed/demo.ts
+          fi
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - name: Start both applications and run browser tests
+        shell: bash
+        run: |
+          log_dir="$RUNNER_TEMP/foundation-logs"
+          mkdir -p "$log_dir"
+          (
+            cd backend
+            exec env NODE_ENV=test node --import tsx src/server.ts
+          ) > "$log_dir/api.log" 2>&1 &
+          api_pid=$!
+          (
+            cd backend
+            exec env NODE_ENV=test node --import tsx src/worker.ts
+          ) > "$log_dir/worker.log" 2>&1 &
+          worker_pid=$!
+          cd frontend
+          node node_modules/next/dist/bin/next dev --hostname 127.0.0.1 --port 3001 > "$log_dir/web.log" 2>&1 &
+          web_pid=$!
+          trap 'kill "$api_pid" "$worker_pid" "$web_pid" 2>/dev/null || true' EXIT
+
+          for attempt in {1..60}; do
+            if curl --fail --silent --max-time 2 http://localhost:3001/api/ready >/dev/null; then
+              npm run test:e2e
+              exit $?
+            fi
+            kill -0 "$api_pid" "$worker_pid" "$web_pid"
+            sleep 2
+          done
+          echo "Foundation applications did not become ready"
+          exit 1
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: foundation-${{ matrix.modules }}-diagnostics
+          path: |
+            ${{ runner.temp }}/foundation-logs
+            frontend/test-results

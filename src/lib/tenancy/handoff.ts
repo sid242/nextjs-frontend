@@ -1,4 +1,5 @@
-import { ROUTES } from "@/config/routes";
+import { ROUTES, TENANT_PATHS } from "@/config/routes";
+import { safeNextPath } from "@/lib/auth/paths";
 
 import { isIpAddress, normalizeHost } from "./host";
 
@@ -51,43 +52,34 @@ export async function switchWorkspaceOrHandoff({
   next,
   onLocalNavigate,
 }: {
-  tenant: { id: string; slug: string };
+  tenant: { id: string; slug: string; canonicalBase?: string };
   currentHost?: string;
   next?: string;
   onLocalNavigate?: (destination: string) => void;
 }): Promise<void> {
-  const host = normalizeHost(
-    currentHost ?? (typeof window !== "undefined" ? window?.location?.host : ""),
+  const host = (currentHost ?? window.location.host).toLowerCase();
+  const canonical = tenant.canonicalBase ? new URL(tenant.canonicalBase) : undefined;
+  const dashboard = ROUTES.tenant(tenant.slug).DASHBOARD;
+  const canonicalPath = canonical?.pathname.replace(/\/+$/, "") ?? "";
+  const destination = safeNextPath(
+    next,
+    canonical ? canonicalPath + TENANT_PATHS.DASHBOARD : dashboard,
   );
-  const destination = next || ROUTES.tenant(tenant?.slug).DASHBOARD;
+  const localPathMode = Boolean(canonicalPath) && isIpAddress(normalizeHost(host));
 
-  if (tenant?.slug) {
-    setWorkspaceContextCookie(tenant.slug);
-  }
-
-  if (isIpAddress(host)) {
-    onLocalNavigate?.(destination);
+  if (canonical && canonical.host.toLowerCase() !== host && !localPathMode) {
+    const handoffUrl = await initiateSessionHandoff({
+      tenantId: tenant.id,
+      targetHost: canonical.host,
+      next: destination,
+    });
+    if (!handoffUrl || new URL(handoffUrl).origin !== canonical.origin) {
+      throw new Error("Could not hand off to the workspace");
+    }
+    window.location.assign(handoffUrl);
     return;
   }
 
-  const handoffUrl = await initiateSessionHandoff({
-    tenantId: tenant?.id,
-    targetHost: host,
-    next: destination,
-  });
-
-  if (handoffUrl && typeof window !== "undefined") {
-    try {
-      const targetUrl = new URL(handoffUrl);
-      const targetHost = normalizeHost(targetUrl?.host);
-      if (targetHost && targetHost !== host) {
-        window.location.href = handoffUrl;
-        return;
-      }
-    } catch {
-      /* ignore URL parsing failure */
-    }
-  }
-
+  setWorkspaceContextCookie(tenant.slug);
   onLocalNavigate?.(destination);
 }

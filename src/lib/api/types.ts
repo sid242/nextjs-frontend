@@ -1,4 +1,5 @@
 export interface User {
+  support?: { id: string; tenantSlug?: string; scope: string; expiresAt: string };
   id: string;
   email: string;
   firstName: string;
