@@ -7,6 +7,54 @@ export const dynamic = "force-dynamic";
 
 const cacheHeaders = { "Cache-Control": "private, no-store" };
 
+function isAllowedStorageHost(signedHost: string, upstreamHost: string, req: NextRequest): boolean {
+  const cleanSigned = signedHost.toLowerCase().trim();
+  const signedHostname = cleanSigned.split(":")[0] ?? "";
+  if (!signedHostname) return false;
+
+  const upstreamHostname = upstreamHost.toLowerCase().split(":")[0] ?? "";
+
+  // Upstream host match (e.g. 127.0.0.1:9000)
+  if (cleanSigned === upstreamHost.toLowerCase()) return true;
+  if (signedHostname === upstreamHostname) return true;
+
+  // Localhost, loopback, or .localhost
+  if (
+    signedHostname === "localhost" ||
+    signedHostname === "127.0.0.1" ||
+    signedHostname === "0.0.0.0" ||
+    signedHostname.endsWith(".localhost")
+  ) {
+    return true;
+  }
+
+  // Host from request headers
+  const reqHost =
+    req.headers.get("x-client-host") ??
+    req.headers.get("x-forwarded-host") ??
+    req.headers.get("host") ??
+    req.nextUrl.host ??
+    "";
+  const reqHostname = (reqHost.split(",")[0] ?? "").trim().split(":")[0]?.toLowerCase() ?? "";
+  if (reqHostname && signedHostname === reqHostname) return true;
+
+  // In development, also accept private RFC 1918 LAN IPs and explicit ALLOWED_DEV_ORIGINS
+  if (process.env.NODE_ENV !== "production") {
+    if (/^(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(signedHostname)) {
+      return true;
+    }
+    const devOrigins = (process.env.ALLOWED_DEV_ORIGINS ?? "")
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean);
+    if (devOrigins.some((orig) => orig.includes(signedHostname))) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 function resolveStorageTarget(req: NextRequest, path: string[]) {
   const endpoint = process.env.S3_ENDPOINT ?? "http://127.0.0.1:9000";
   if (path.length === 0) return null;
@@ -28,18 +76,12 @@ function resolveStorageTarget(req: NextRequest, path: string[]) {
     return null;
 
   const authority = path[0]?.toLowerCase() ?? "";
-  const port = upstream.port ? `:${upstream.port}` : "";
-  const allowedHosts = [
-    upstream.host,
-    ...["localhost", "127.0.0.1", req.nextUrl.hostname].map(
-      (hostname) => hostname.toLowerCase() + port,
-    ),
-  ];
-  const hasAuthority = authority.includes(":") || allowedHosts.includes(authority);
+  const hasAuthority =
+    authority.includes(":") || isAllowedStorageHost(authority, upstream.host, req);
   const signedHost = hasAuthority ? authority : upstream.host;
   const objectPath = hasAuthority ? path.slice(1) : path;
   if (
-    !allowedHosts.includes(signedHost) ||
+    !isAllowedStorageHost(signedHost, upstream.host, req) ||
     !objectPath.length ||
     objectPath.some((segment) => !segment || segment === "." || segment === "..")
   ) {

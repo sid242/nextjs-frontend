@@ -139,7 +139,7 @@ function buildCsp(nonce: string, rawHost?: string | null): string {
     // style-src permits 'unsafe-inline' specifically for Unlayer visual email builder iframe runtime
     // and dynamic tenant brand theme CSS generated client-side/SSR in tenant-theme-provider.tsx.
     // Script execution is strictly guarded via CSP nonce and strict-dynamic in production.
-    "style-src 'self' 'unsafe-inline' https://editor.unlayer.com https://*.unlayer.com",
+    "style-src 'self' 'unsafe-inline' https://editor.unlayer.com https://*.unlayer.com https://fonts.googleapis.com",
     `img-src ${storageMedia.join(" ")}`,
     "font-src 'self' data: https://editor.unlayer.com https://*.unlayer.com https://fonts.gstatic.com",
     `connect-src ${connect.join(" ")}`,
@@ -149,7 +149,7 @@ function buildCsp(nonce: string, rawHost?: string | null): string {
     `object-src 'self' blob: ${storageMedia.join(" ")}`,
     "base-uri 'self'",
     "form-action 'self'",
-    "frame-ancestors 'none'",
+    ...(isDev ? [] : ["frame-ancestors 'none'"]),
     ...(isDev ? [] : ["upgrade-insecure-requests"]),
   ].join("; ");
 }

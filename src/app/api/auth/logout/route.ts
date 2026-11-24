@@ -24,3 +24,16 @@ export async function POST(req: NextRequest) {
     new NextResponse(null, { status: 204, headers: { "Cache-Control": "no-store" } }),
   );
 }
+
+export async function GET(req: NextRequest) {
+  const refreshToken = req.cookies.get(REFRESH_COOKIE)?.value;
+  if (refreshToken) {
+    // Best effort: revoke server-side. Even if this fails we still clear the cookies below.
+    await backendFetch("/auth/logout", {
+      method: "POST",
+      json: { refreshToken },
+      headers: forwardedHeaders(req),
+    }).catch(() => undefined);
+  }
+  return clearAuthCookies(NextResponse.redirect(new URL("/login", req.url)));
+}

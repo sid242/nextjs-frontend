@@ -3,6 +3,7 @@
 // Public API of the auth feature. Everything else in this folder is private.
 export * from "./schemas";
 export { authKeys } from "./keys";
+export { logout } from "./api";
 
 export { LoginForm } from "./components/login-form";
 export { RegisterForm } from "./components/register-form";

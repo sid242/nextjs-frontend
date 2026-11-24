@@ -2,11 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useQueryClient } from "@tanstack/react-query";
 import {
+  AlertCircleIcon,
   ArrowRightIcon,
   Building2Icon,
   Loader2Icon,
   PlusIcon,
+  RotateCwIcon,
   ShieldCheckIcon,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -15,13 +18,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PLATFORM_ROUTES } from "@/config/routes";
+import { logout } from "@/features/auth";
 import { useTenants, type Tenant } from "@/features/tenants";
 import { resetAllStores } from "@/lib/stores/reset";
 import { switchWorkspaceOrHandoff } from "@/lib/tenancy/handoff";
 
 export default function SelectWorkspacePage() {
-  const { data: tenants, isLoading } = useTenants();
+  const { data: tenants, isLoading, isError, refetch } = useTenants();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const queryClient = useQueryClient();
 
   const handleSelect = async (tenant: Tenant) => {
     if (!tenant?.id) return;
@@ -41,6 +47,19 @@ export default function SelectWorkspacePage() {
     }
   };
 
+  const handleSignOut = async () => {
+    try {
+      setIsSigningOut(true);
+      await logout();
+    } catch {
+      // Best-effort logout; clear local session state regardless
+    } finally {
+      queryClient.clear();
+      resetAllStores();
+      window.location.assign("/login");
+    }
+  };
+
   return (
     <div className="flex min-h-[70vh] items-center justify-center p-4">
       <Card className="w-full max-w-lg shadow-lg">
@@ -57,6 +76,18 @@ export default function SelectWorkspacePage() {
               <Loader2Icon className="text-primary size-8 animate-spin" />
               <p className="mt-3 text-sm">Loading your workspaces…</p>
             </div>
+          ) : isError ? (
+            <div className="text-muted-foreground flex flex-col items-center justify-center py-8 text-center">
+              <AlertCircleIcon className="text-destructive mb-2 size-8" />
+              <p className="text-foreground text-sm font-medium">Failed to load workspaces</p>
+              <p className="text-muted-foreground mt-1 text-xs">
+                An error occurred while fetching your workspaces. Please try again.
+              </p>
+              <Button variant="outline" size="sm" onClick={() => refetch()} className="mt-4 gap-2">
+                <RotateCwIcon className="size-3.5" />
+                Retry
+              </Button>
+            </div>
           ) : tenants && (tenants?.length ?? 0) > 0 ? (
             <div className="space-y-2">
               {tenants?.map?.((tenant) => {
@@ -65,7 +96,7 @@ export default function SelectWorkspacePage() {
                   <button
                     key={tenant?.id}
                     type="button"
-                    disabled={Boolean(selectedId)}
+                    disabled={Boolean(selectedId) || isSigningOut}
                     onClick={() => handleSelect(tenant)}
                     className="hover:bg-muted/60 flex w-full items-center justify-between rounded-lg border p-4 text-left transition disabled:opacity-50"
                   >
@@ -123,8 +154,14 @@ export default function SelectWorkspacePage() {
                 New Workspace
               </Link>
             </Button>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/api/auth/logout">Sign Out</Link>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleSignOut}
+              disabled={isSigningOut || Boolean(selectedId)}
+            >
+              {isSigningOut ? <Loader2Icon className="mr-2 size-4 animate-spin" /> : null}
+              Sign Out
             </Button>
           </div>
         </CardContent>
