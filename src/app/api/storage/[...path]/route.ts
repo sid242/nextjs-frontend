@@ -8,10 +8,8 @@ export const dynamic = "force-dynamic";
 const cacheHeaders = { "Cache-Control": "private, no-store" };
 
 function resolveStorageTarget(req: NextRequest, path: string[]) {
-  const endpoint =
-    process.env.S3_ENDPOINT ??
-    (process.env.NODE_ENV === "production" ? undefined : "http://127.0.0.1:9000");
-  if (!endpoint || path.length === 0) return null;
+  const endpoint = process.env.S3_ENDPOINT ?? "http://127.0.0.1:9000";
+  if (path.length === 0) return null;
 
   let upstream: URL;
   try {
@@ -67,6 +65,9 @@ function unavailable() {
  * and dev tunnels can seamlessly load and upload S3 assets without direct port 9000 access.
  */
 export async function GET(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
+  if (process.env.NODE_ENV === "production") {
+    return new NextResponse("Not Found", { status: 404, headers: cacheHeaders });
+  }
   const { path } = await params;
   const target = resolveStorageTarget(req, path);
   if (!target) return new NextResponse("Not Found", { status: 404, headers: cacheHeaders });
@@ -110,6 +111,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ path
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
+  if (process.env.NODE_ENV === "production") {
+    return new NextResponse("Not Found", { status: 404, headers: cacheHeaders });
+  }
   const blocked = assertSameOrigin(req);
   if (blocked) return blocked;
   const { path } = await params;

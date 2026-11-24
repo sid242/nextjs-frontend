@@ -19,6 +19,15 @@ describe("Storage Gateway Route Handler (/api/storage/[...path])", () => {
     vi.unstubAllEnvs();
   });
 
+  it("disables upload and download in production even with a configured endpoint", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const url = "http://localhost:3000/api/storage/app-uploads-local";
+    const context = { params: Promise.resolve({ path: ["app-uploads-local"] }) };
+    expect((await GET(new NextRequest(url), context)).status).toBe(404);
+    expect((await POST(new NextRequest(url, { method: "POST" }), context)).status).toBe(404);
+    expect(upstream).not.toHaveBeenCalled();
+  });
+
   it("handles POST with upstream 204 No Content without crashing on null body", async () => {
     upstream.mockResolvedValue({
       status: 204,

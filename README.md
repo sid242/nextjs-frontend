@@ -179,7 +179,7 @@ To test the frontend on physical mobile devices (Android Chrome, iOS Safari) con
 4. **BFF Architecture & Real-Time Flow:**
    - **REST APIs:** All REST API calls flow through the same-origin BFF (`/api/proxy/*`), so the browser uses the same host (`http://192.168.1.45:3001`) and sends host-only HttpOnly session cookies. The Next.js server forwards requests to the backend using `API_URL` (`http://localhost:3009/api/v1`).
    - **Real-Time Sockets:** In development mode, `/api/auth/socket-token` automatically adapts the Socket.IO connection URL from `localhost` to the client's LAN host (`http://192.168.1.45:3009`), allowing the mobile device to establish direct WebSocket connections with the backend.
-   - **File Uploads:** Local MinIO presigned URLs use the same-origin storage gateway, so the device only needs access to the frontend. Set the frontend's server-only `S3_ENDPOINT` when the backend uses a non-default MinIO port or when running a production build with MinIO. Cloud S3 URLs go directly to the configured provider.
+   - **File Uploads:** During development, local MinIO presigned URLs use the same-origin storage gateway. Set the frontend's server-only `S3_ENDPOINT` when the backend uses a non-default MinIO port. Production builds use a browser-reachable storage endpoint and disable the gateway.
 5. **Firewall & Troubleshooting:**
    - Ensure the computer's firewall allows incoming connections on port `3001` (Next.js) and port `3009` (Express backend) on the Private network.
    - Verify that your Wi-Fi router does not enable AP/Client Isolation (which prevents devices on the same Wi-Fi network from communicating).
