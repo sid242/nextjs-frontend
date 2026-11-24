@@ -12,10 +12,10 @@ export const invoiceLineItemSchema = z.object({
 export type InvoiceLineItem = z.infer<typeof invoiceLineItemSchema>;
 
 export const invoiceSchema = z.object({
-  id: z.string().guid(),
-  tenantId: z.string().guid(),
-  subscriptionId: z.string().guid().nullable().optional(),
-  planId: z.string().guid().nullable().optional(),
+  id: z.string().uuid(),
+  tenantId: z.string().uuid(),
+  subscriptionId: z.string().uuid().nullable().optional(),
+  planId: z.string().uuid().nullable().optional(),
   invoiceNumber: z.string(),
   status: invoiceStatusSchema,
   amountCents: z.number().int(),
@@ -94,9 +94,9 @@ export const paymentStatusSchema = z.enum([
 export type PaymentStatus = z.infer<typeof paymentStatusSchema>;
 
 export const paymentSchema = z.object({
-  id: z.string().guid(),
-  tenantId: z.string().guid(),
-  subscriptionId: z.string().guid().nullable().optional(),
+  id: z.string().uuid(),
+  tenantId: z.string().uuid(),
+  subscriptionId: z.string().uuid().nullable().optional(),
   provider: z.string(),
   providerOrderId: z.string().nullable().optional(),
   providerPaymentId: z.string().nullable().optional(),
@@ -126,7 +126,7 @@ export const listPaymentsQuerySchema = z.object({
   page: z.number().int().optional(),
   limit: z.number().int().optional(),
   status: z.string().optional(),
-  tenantId: z.string().guid().optional(),
+  tenantId: z.string().uuid().optional(),
 });
 export type ListPaymentsQuery = z.infer<typeof listPaymentsQuerySchema>;
 
