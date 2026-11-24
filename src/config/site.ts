@@ -80,7 +80,7 @@ export const navSections: NavSection[] = [
           },
         ],
       },
-      WORKSPACE_MODULES.leads.navigation,
+      ...Object.values(WORKSPACE_MODULES).map(({ navigation }) => navigation),
       {
         title: "Files",
         href: "/files",

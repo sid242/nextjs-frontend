@@ -7,6 +7,7 @@ export const tenantSchema = z.object({
   id: z.string(),
   name: z.string().min(1, "Tenant name is required"),
   slug: z.string().min(1),
+  canonicalBase: z.string().url().optional(),
   plan: tenantPlanSchema.default("PRO"),
   logoUrl: z.string().nullable().optional(),
   createdAt: z.string(),
@@ -86,8 +87,8 @@ export const tenantBrandingSchema = z.object({
   authHeadline: z.string().max(150).nullable().optional(),
   authSubtitle: z.string().max(300).nullable().optional(),
   authCoverUrl: z.string().nullable().optional(),
-  authLayout: z.enum(["SPLIT", "CARD"]).default("SPLIT").nullable().optional(),
-  hideWatermark: z.boolean().default(false).optional(),
+  authLayout: z.enum(["SPLIT", "CARD"]).nullable().optional(),
+  hideWatermark: z.boolean().optional(),
   customDomain: z.string().nullable().optional(),
   customDomainStatus: customDomainStatusSchema.nullable().optional(),
   customDomainVerifiedAt: z.string().nullable().optional(),
@@ -96,7 +97,15 @@ export const tenantBrandingSchema = z.object({
 });
 export type TenantBranding = z.infer<typeof tenantBrandingSchema>;
 
-export const updateTenantBrandingSchema = tenantBrandingSchema.partial();
+export const updateTenantBrandingSchema = tenantBrandingSchema
+  .extend({
+    companyName: tenantBrandingSchema.shape.companyName.removeDefault(),
+    primaryColor: tenantBrandingSchema.shape.primaryColor.removeDefault(),
+    accentColor: tenantBrandingSchema.shape.accentColor.removeDefault(),
+    fontFamily: tenantBrandingSchema.shape.fontFamily.removeDefault(),
+    sidebarTheme: tenantBrandingSchema.shape.sidebarTheme.removeDefault(),
+  })
+  .partial();
 export type UpdateTenantBrandingInput = z.infer<typeof updateTenantBrandingSchema>;
 
 export const createTenantSchema = z.object({
@@ -185,7 +194,7 @@ export const addMemberSchema = z.object({
   department: z.string().optional(),
   message: z.string().optional(),
   groupIds: z.array(z.string()).optional(),
-  expiresInHours: z.coerce.number().int().min(1).max(720).default(48).optional(),
+  expiresInHours: z.coerce.number().int().min(1).max(720).optional(),
 });
 export type AddMemberInput = z.infer<typeof addMemberSchema>;
 

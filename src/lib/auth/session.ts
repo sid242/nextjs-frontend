@@ -4,10 +4,16 @@ import { cache } from "react";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { PLATFORM_ROUTES } from "@/config/routes";
 import type { User } from "@/lib/api/types";
 import { backendFetch } from "@/lib/server/backend";
 
-import { ACCESS_COOKIE, IMPERSONATOR_BACKUP_COOKIE } from "./constants";
+import {
+  ACCESS_COOKIE,
+  IMPERSONATOR_BACKUP_COOKIE,
+  PLATFORM_STAFF_COOKIE,
+  SUPPORT_SESSION_COOKIE,
+} from "./constants";
 
 export const getAccessToken = cache(
   async () => (await cookies()).get(ACCESS_COOKIE)?.value ?? null,
@@ -20,7 +26,9 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
   const token = await getAccessToken();
   if (!token) return null;
   const res = await backendFetch("/users/me", { token });
-  if (res.status === 401) return null;
+  if (res.status === 401 || (res.status === 403 && (await cookies()).has(SUPPORT_SESSION_COOKIE))) {
+    return null;
+  }
   if (!res.ok) throw new Error(`Could not load session (${res.status})`);
   const body = (await res.json()) as { data?: User } | User;
   return ("data" in body && body.data ? body.data : body) as User;
@@ -33,6 +41,10 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
 export async function requireUser(): Promise<User> {
   const user = await getCurrentUser();
   if (!user) {
+    const session = await cookies();
+    if (session.has(SUPPORT_SESSION_COOKIE) && session.has(PLATFORM_STAFF_COOKIE)) {
+      redirect(PLATFORM_ROUTES.SUPPORT_SESSIONS);
+    }
     const path = (await headers()).get("x-pathname") ?? "/dashboard";
     redirect(`/api/auth/refresh?next=${encodeURIComponent(path)}`);
   }

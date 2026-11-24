@@ -64,6 +64,11 @@ export const TENANT_PERMISSIONS = {
   ADDRESSES_WRITE: "addresses:write",
   ADDRESSES_DELETE: "addresses:delete",
 
+  // Email Templates
+  EMAIL_TEMPLATES_READ: "email-templates:read",
+  EMAIL_TEMPLATES_WRITE: "email-templates:write",
+  EMAIL_TEMPLATES_DELETE: "email-templates:delete",
+
   // Developers, API Keys & Webhooks
   API_KEYS_READ: "api-keys:read",
   API_KEYS_WRITE: "api-keys:write",

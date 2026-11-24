@@ -1,173 +1,151 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { assertSameOrigin } from "@/lib/server/request";
+import { requestStorage } from "@/lib/server/storage-upstream";
+
 export const dynamic = "force-dynamic";
 
-function getStorageBaseUrl(): string {
-  const envEndpoint = process.env.S3_ENDPOINT;
-  if (envEndpoint) {
-    try {
-      const parsed = new URL(envEndpoint);
-      return parsed.origin;
-    } catch {
-      /* ignore */
-    }
+const cacheHeaders = { "Cache-Control": "private, no-store" };
+
+function resolveStorageTarget(req: NextRequest, path: string[]) {
+  const endpoint = process.env.S3_ENDPOINT ?? "http://127.0.0.1:9000";
+  if (path.length === 0) return null;
+
+  let upstream: URL;
+  try {
+    upstream = new URL(endpoint);
+  } catch {
+    return null;
   }
-  return "http://127.0.0.1:9000";
+  if (
+    !["http:", "https:"].includes(upstream.protocol) ||
+    upstream.username ||
+    upstream.password ||
+    upstream.pathname !== "/" ||
+    upstream.search ||
+    upstream.hash
+  )
+    return null;
+
+  const authority = path[0]?.toLowerCase() ?? "";
+  const port = upstream.port ? `:${upstream.port}` : "";
+  const allowedHosts = [
+    upstream.host,
+    ...["localhost", "127.0.0.1", req.nextUrl.hostname].map(
+      (hostname) => hostname.toLowerCase() + port,
+    ),
+  ];
+  const hasAuthority = authority.includes(":") || allowedHosts.includes(authority);
+  const signedHost = hasAuthority ? authority : upstream.host;
+  const objectPath = hasAuthority ? path.slice(1) : path;
+  if (
+    !allowedHosts.includes(signedHost) ||
+    !objectPath.length ||
+    objectPath.some((segment) => !segment || segment === "." || segment === "..")
+  ) {
+    return null;
+  }
+
+  // Preserve the host used for signing while connecting to the configured origin.
+  upstream.pathname = "/" + objectPath.map(encodeURIComponent).join("/");
+  upstream.search = req.nextUrl.search;
+  return {
+    url: upstream.toString(),
+    headers: { host: signedHost },
+  };
 }
 
-function getAllowedStorageHosts(): Set<string> {
-  const allowed = new Set<string>(["localhost", "localhost:9000", "127.0.0.1", "127.0.0.1:9000"]);
-
-  const envEndpoint = process.env.S3_ENDPOINT;
-  if (envEndpoint) {
-    try {
-      const parsed = new URL(envEndpoint);
-      if (parsed.host) allowed.add(parsed.host.toLowerCase());
-      if (parsed.hostname) allowed.add(parsed.hostname.toLowerCase());
-    } catch {
-      /* ignore */
-    }
-  }
-
-  return allowed;
-}
-
-function isAllowedStorageHost(host: string): boolean {
-  const normalized = host.toLowerCase().trim();
-  const allowedHosts = getAllowedStorageHosts();
-  if (allowedHosts.has(normalized)) {
-    return true;
-  }
-  const hostname = normalized.split(":")[0] ?? "";
-  return allowedHosts.has(hostname);
-}
-
-function resolveStorageTarget(rawPath: string[], search: string): string {
-  if (rawPath.length === 0) {
-    throw new Error("Empty storage path");
-  }
-
-  const firstSegment = decodeURIComponent(rawPath[0] ?? "");
-  // If first segment looks like a host (e.g. contains a dot or colon)
-  if (firstSegment.includes(".") || firstSegment.includes(":")) {
-    if (isAllowedStorageHost(firstSegment) && rawPath.length > 1) {
-      const relativePath = rawPath.slice(1).map(decodeURIComponent).join("/");
-      return `http://${firstSegment}/${relativePath}${search}`;
-    }
-    throw new Error(`Storage host "${firstSegment}" is not permitted`);
-  }
-
-  // Legacy fallback: direct bucket path like ["app-uploads-local", ...]
-  const relativePath = rawPath.map(decodeURIComponent).join("/");
-  return `${getStorageBaseUrl()}/${relativePath}${search}`;
+function unavailable() {
+  return new NextResponse("Storage unavailable", { status: 502, headers: cacheHeaders });
 }
 
 /**
  * Same-origin gateway to local development MinIO object storage.
  * Ensures that remote LAN devices (e.g. mobile testing at 192.168.x.x), subdomains,
  * and dev tunnels can seamlessly load and upload S3 assets without direct port 9000 access.
- *
- * Disabled completely in production to prevent SSRF and unauthorized internal proxying.
  */
 export async function GET(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   if (process.env.NODE_ENV === "production") {
-    return new NextResponse("Not Found", { status: 404 });
+    return new NextResponse("Not Found", { status: 404, headers: cacheHeaders });
   }
-
   const { path } = await params;
-  if (!path || path.length === 0) {
-    return new NextResponse("Not Found", { status: 404 });
-  }
+  const target = resolveStorageTarget(req, path);
+  if (!target) return new NextResponse("Not Found", { status: 404, headers: cacheHeaders });
 
-  let targetUrl: string;
   try {
-    targetUrl = resolveStorageTarget(path, req.nextUrl.search);
-  } catch (err: unknown) {
-    return new NextResponse(err instanceof Error ? err.message : "Invalid storage path", {
-      status: 400,
+    const upstreamRes = await requestStorage(target.url, {
+      method: "GET",
+      headers: target.headers,
+      signal: req.signal,
     });
-  }
-
-  try {
-    const upstreamRes = await fetch(targetUrl);
     if (upstreamRes.status === 304) {
-      return new NextResponse(null, { status: 304 });
+      return new NextResponse(null, { status: 304, headers: cacheHeaders });
     }
+    if (upstreamRes.status >= 300 && upstreamRes.status < 400) return unavailable();
     if (!upstreamRes.ok) {
-      return new NextResponse(upstreamRes.statusText, { status: upstreamRes.status });
+      await upstreamRes.body?.cancel();
+      return new NextResponse(upstreamRes.statusText, {
+        status: upstreamRes.status,
+        headers: cacheHeaders,
+      });
     }
 
     const contentType = upstreamRes.headers.get("content-type") || "application/octet-stream";
     const contentDisposition = upstreamRes.headers.get("content-disposition");
-    const body = await upstreamRes.arrayBuffer();
-
     const responseHeaders = new Headers({
       "Content-Type": contentType,
-      "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
+      "X-Content-Type-Options": "nosniff",
+      ...cacheHeaders,
     });
     if (contentDisposition) {
       responseHeaders.set("Content-Disposition", contentDisposition);
     }
 
-    return new NextResponse(body, {
+    return new NextResponse(upstreamRes.body, {
       status: 200,
       headers: responseHeaders,
     });
-  } catch (err: unknown) {
-    console.error("[Storage GET Gateway Error]:", err);
-    return new NextResponse(err instanceof Error ? err.message : "Failed to fetch storage asset", {
-      status: 502,
-    });
+  } catch {
+    return unavailable();
   }
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   if (process.env.NODE_ENV === "production") {
-    return new NextResponse("Not Found", { status: 404 });
+    return new NextResponse("Not Found", { status: 404, headers: cacheHeaders });
   }
-
+  const blocked = assertSameOrigin(req);
+  if (blocked) return blocked;
   const { path } = await params;
-  if (!path || path.length === 0) {
-    return new NextResponse("Not Found", { status: 404 });
-  }
-
-  let targetUrl: string;
-  try {
-    targetUrl = resolveStorageTarget(path, req.nextUrl.search);
-  } catch (err: unknown) {
-    return new NextResponse(err instanceof Error ? err.message : "Invalid storage path", {
-      status: 400,
-    });
-  }
+  const target = resolveStorageTarget(req, path);
+  if (!target) return new NextResponse("Not Found", { status: 404, headers: cacheHeaders });
 
   try {
     const contentType = req.headers.get("content-type") || "";
     const body = await req.arrayBuffer();
 
-    const upstreamRes = await fetch(targetUrl, {
+    const upstreamRes = await requestStorage(target.url, {
       method: "POST",
       headers: {
+        ...target.headers,
         ...(contentType ? { "content-type": contentType } : {}),
+        "content-length": String(body.byteLength),
       },
       body,
+      signal: req.signal,
     });
 
+    if (upstreamRes.status >= 300 && upstreamRes.status < 400 && upstreamRes.status !== 304) {
+      return unavailable();
+    }
     const isNullBodyStatus =
       upstreamRes.status === 204 || upstreamRes.status === 205 || upstreamRes.status === 304;
 
-    const responseHeaders = new Headers();
-    upstreamRes.headers.forEach((val, key) => {
-      const lowerKey = key.toLowerCase();
-      if (
-        isNullBodyStatus &&
-        (lowerKey === "content-type" ||
-          lowerKey === "content-length" ||
-          lowerKey === "transfer-encoding")
-      ) {
-        return;
-      }
-      responseHeaders.set(key, val);
-    });
+    const responseHeaders = new Headers(cacheHeaders);
+    for (const name of ["etag", "x-amz-request-id"]) {
+      const value = upstreamRes.headers.get(name);
+      if (value) responseHeaders.set(name, value);
+    }
 
     if (isNullBodyStatus) {
       return new NextResponse(null, {
@@ -185,11 +163,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pat
       status: upstreamRes.status,
       headers: responseHeaders,
     });
-  } catch (err: unknown) {
-    console.error("[Storage POST Gateway Error]:", err);
-    return new NextResponse(
-      err instanceof Error ? err.message : "Failed to upload asset to storage",
-      { status: 502 },
-    );
+  } catch {
+    return unavailable();
   }
 }

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   ArrowRightIcon,
   Building2Icon,
@@ -10,16 +9,17 @@ import {
   PlusIcon,
   ShieldCheckIcon,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PLATFORM_ROUTES } from "@/config/routes";
 import { useTenants, type Tenant } from "@/features/tenants";
+import { resetAllStores } from "@/lib/stores/reset";
 import { switchWorkspaceOrHandoff } from "@/lib/tenancy/handoff";
 
 export default function SelectWorkspacePage() {
-  const router = useRouter();
   const { data: tenants, isLoading } = useTenants();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -30,12 +30,12 @@ export default function SelectWorkspacePage() {
       await switchWorkspaceOrHandoff({
         tenant,
         onLocalNavigate: (destination) => {
-          router?.replace?.(destination);
-          router?.refresh?.();
+          resetAllStores();
+          window.location.replace(destination);
         },
       });
     } catch {
-      router?.replace?.(`/w/${tenant?.slug}/dashboard`);
+      toast.error("Could not open the workspace. Try again.");
     } finally {
       setSelectedId(null);
     }

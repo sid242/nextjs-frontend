@@ -87,7 +87,8 @@ export default function TeamPage() {
         email,
         role,
       });
-      const showDevTokens = process.env.NEXT_PUBLIC_SHOW_DEV_TOKENS === "true";
+      const showDevTokens =
+        process.env.NODE_ENV !== "production" && process.env.NEXT_PUBLIC_SHOW_DEV_TOKENS === "true";
       if (showDevTokens && result?.inviteUrl) {
         toast.success(`Invitation sent to ${email}`, {
           description: "Developer testing invite link generated.",

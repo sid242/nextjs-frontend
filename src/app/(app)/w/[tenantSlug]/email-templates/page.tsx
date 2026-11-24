@@ -21,12 +21,17 @@ export default function EmailTemplatesPage() {
             title="Email Templates & Delivery"
             description="Create, customize, and manage responsive email templates, monitor delivery logs, and manage recipient suppressions."
           />
-          <Button asChild className="h-10 shrink-0 gap-2 rounded-xl px-4 font-semibold shadow-xs">
-            <Link href={tenantHref("/email-templates/new")}>
-              <PlusIcon className="size-4" />
-              <span>New Email Template</span>
-            </Link>
-          </Button>
+          <TenantPermissionGate
+            permission={TENANT_PERMISSIONS.EMAIL_TEMPLATES_WRITE}
+            hideInsteadOfBanner
+          >
+            <Button asChild className="h-10 shrink-0 gap-2 rounded-xl px-4 font-semibold shadow-xs">
+              <Link href={tenantHref("/email-templates/new")}>
+                <PlusIcon className="size-4" />
+                <span>New Email Template</span>
+              </Link>
+            </Button>
+          </TenantPermissionGate>
         </div>
 
         <Tabs defaultValue="templates" className="w-full">

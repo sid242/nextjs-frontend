@@ -9,13 +9,13 @@ export const permissionSchema = z.object({
   code: z.string().optional(),
   name: z.string(),
   description: z.string().optional().nullable(),
-  scope: z.enum(["TENANT", "PLATFORM"]).default("TENANT").optional(),
+  scope: z.enum(["TENANT", "PLATFORM"]).optional(),
   resource: z.string().optional().nullable(),
   action: z.string().optional(),
   category: z.string().optional().nullable(),
-  riskLevel: permissionRiskLevelSchema.default("LOW").optional(),
-  isSystem: z.boolean().default(true).optional(),
-  isAssignable: z.boolean().default(true).optional(),
+  riskLevel: permissionRiskLevelSchema.optional(),
+  isSystem: z.boolean().optional(),
+  isAssignable: z.boolean().optional(),
 });
 export type Permission = z.infer<typeof permissionSchema>;
 
@@ -36,12 +36,12 @@ export const roleSchema = z.object({
   name: z.string(),
   code: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
-  scope: z.enum(["TENANT", "PLATFORM"]).default("TENANT").optional(),
-  isActive: z.boolean().default(true).optional(),
+  scope: z.enum(["TENANT", "PLATFORM"]).optional(),
+  isActive: z.boolean().optional(),
   isSystem: z.boolean().default(false),
   permissions: z.array(z.string()),
   assignedUsersCount: z.number().optional(),
-  assignedGroupsCount: z.number().default(0).optional(),
+  assignedGroupsCount: z.number().optional(),
   usersCount: z.number().default(0),
   userCount: z.number().optional(),
   createdAt: z.string().optional(),
@@ -60,9 +60,9 @@ export const createRoleSchema = z.object({
     .optional()
     .or(z.literal("")),
   description: z.string().trim().max(255).optional().or(z.literal("")),
-  scope: z.enum(["TENANT", "PLATFORM"]).default("TENANT").optional(),
+  scope: z.enum(["TENANT", "PLATFORM"]).optional(),
   permissions: z.array(z.string()).min(1, "Select at least one permission"),
-  isActive: z.boolean().default(true).optional(),
+  isActive: z.boolean().optional(),
 });
 export type CreateRoleInput = z.infer<typeof createRoleSchema>;
 

@@ -48,6 +48,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { hasTenantPermission, TENANT_PERMISSIONS, useTenantContext } from "@/features/tenants";
 import { formatDate } from "@/lib/format";
 import {
   useDebouncedCallback,
@@ -97,6 +98,16 @@ export function TemplatesTable() {
   const { get, getNumber, setParam, setParams } = useSearchQueryParams();
   const [searchInput, setSearchInput] = useState<string>(() => get("q") ?? "");
   const [versionDrawerTemplate, setVersionDrawerTemplate] = useState<EmailTemplate | null>(null);
+
+  const { data: tenantContext } = useTenantContext();
+  const canWrite = hasTenantPermission(
+    tenantContext?.permissions,
+    TENANT_PERMISSIONS.EMAIL_TEMPLATES_WRITE,
+  );
+  const canDelete = hasTenantPermission(
+    tenantContext?.permissions,
+    TENANT_PERMISSIONS.EMAIL_TEMPLATES_DELETE,
+  );
 
   const syncSearchParam = useDebouncedCallback((val: string) => {
     setParams({ q: val.trim() || null, page: null }, { mode: "replace", scroll: false });
@@ -322,29 +333,37 @@ export function TemplatesTable() {
                   <EyeIcon className="text-muted-foreground size-3.5" />
                   <span>View &amp; Preview</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleTestSend(tpl)} className="gap-2">
-                  <SendIcon className="text-primary size-3.5" />
-                  <span>Test Send</span>
-                </DropdownMenuItem>
+                {canWrite && (
+                  <DropdownMenuItem onClick={() => handleTestSend(tpl)} className="gap-2">
+                    <SendIcon className="text-primary size-3.5" />
+                    <span>Test Send</span>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={() => setVersionDrawerTemplate(tpl)} className="gap-2">
                   <HistoryIcon className="text-muted-foreground size-3.5" />
                   <span>Version History</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => router.push(tenantHref(`/email-templates/${tpl?.id}/edit`))}
-                  className="gap-2"
-                >
-                  <EditIcon className="text-muted-foreground size-3.5" />
-                  <span>Edit in Studio</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => handleDelete(tpl?.id, tpl?.name)}
-                  className="text-destructive focus:text-destructive gap-2"
-                >
-                  <Trash2Icon className="size-3.5" />
-                  <span>Delete</span>
-                </DropdownMenuItem>
+                {canWrite && (
+                  <DropdownMenuItem
+                    onClick={() => router.push(tenantHref(`/email-templates/${tpl?.id}/edit`))}
+                    className="gap-2"
+                  >
+                    <EditIcon className="text-muted-foreground size-3.5" />
+                    <span>Edit in Studio</span>
+                  </DropdownMenuItem>
+                )}
+                {canDelete && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => handleDelete(tpl?.id, tpl?.name)}
+                      className="text-destructive focus:text-destructive gap-2"
+                    >
+                      <Trash2Icon className="size-3.5" />
+                      <span>Delete</span>
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </TableCell>
@@ -492,14 +511,14 @@ export function TemplatesTable() {
                 <RotateCcwIcon className="size-3.5" />
                 <span>Reset Filters</span>
               </Button>
-            ) : (
+            ) : canWrite ? (
               <Button asChild variant="outline" size="sm" className="mt-2 gap-1.5 rounded-xl">
                 <Link href={tenantHref("/email-templates/new")}>
                   <PlusIcon className="size-3.5" />
                   <span>Create Template</span>
                 </Link>
               </Button>
-            )}
+            ) : null}
           </div>
         ) : (
           <>

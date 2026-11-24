@@ -21,8 +21,8 @@ export const invoiceSchema = z.object({
   amountCents: z.number().int(),
   taxCents: z.number().int(),
   totalCents: z.number().int(),
-  subtotalMinor: z.number().int().default(0).optional(),
-  discountMinor: z.number().int().default(0).optional(),
+  subtotalMinor: z.number().int().optional(),
+  discountMinor: z.number().int().optional(),
   taxBreakdown: z
     .array(
       z.object({
@@ -42,8 +42,8 @@ export const invoiceSchema = z.object({
     })
     .nullable()
     .optional(),
-  creditedMinor: z.number().int().default(0).optional(),
-  attemptCount: z.number().int().default(0).optional(),
+  creditedMinor: z.number().int().optional(),
+  attemptCount: z.number().int().optional(),
   nextAttemptAt: z.string().nullable().optional(),
   invoiceYear: z.number().int().nullable().optional(),
   invoiceSeq: z.number().int().nullable().optional(),

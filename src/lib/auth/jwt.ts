@@ -1,4 +1,6 @@
 export interface JwtClaims {
+  typ?: string;
+  sess?: string;
   sub?: string;
   role?: string;
   exp?: number;
