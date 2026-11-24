@@ -5,7 +5,7 @@ export const ssoStatusSchema = z.enum(["DISABLED", "ACTIVE"]);
 export const scimTokenStatusSchema = z.enum(["ACTIVE", "REVOKED"]);
 
 export const tenantSsoConfigSchema = z.object({
-  tenantId: z.string().guid(),
+  tenantId: z.string().uuid(),
   providerType: ssoProviderTypeSchema.default("SAML"),
   status: ssoStatusSchema.default("DISABLED"),
   idpEntityId: z.string().nullable().optional(),
@@ -39,7 +39,7 @@ export const updateTenantSsoConfigSchema = z.object({
   oidcDiscoveryUrl: z.string().url("Must be a valid URL").optional().nullable(),
   enforceSso: z.boolean().default(false),
   allowedDomains: z.array(z.string().trim().toLowerCase()).default([]),
-  defaultRoleId: z.string().guid().optional().nullable(),
+  defaultRoleId: z.string().uuid().optional().nullable(),
   jitProvisioning: z.boolean().default(true),
 });
 
@@ -52,7 +52,7 @@ export const testSsoConnectionSchema = z.object({
 });
 
 export const scimTokenSchema = z.object({
-  id: z.string().guid(),
+  id: z.string().uuid(),
   name: z.string(),
   tokenPrefix: z.string(),
   status: scimTokenStatusSchema,

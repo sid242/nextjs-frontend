@@ -7,11 +7,11 @@ import { backendFetch } from "@/lib/server/backend";
 import { assertSameOrigin, forwardedHeaders } from "@/lib/server/request";
 import { errorResponse } from "@/lib/server/response";
 
-const sessionSchema = z.object({ sessionId: z.string().guid() });
+const sessionSchema = z.object({ sessionId: z.string().uuid() });
 const upstreamSchema = z.object({
   data: z.object({
     token: z.string().min(1),
-    tenantId: z.string().guid(),
+    tenantId: z.string().uuid(),
     tenantSlug: z.string().regex(/^[a-z0-9-]+$/),
     expiresAt: z.string().datetime({ offset: true }),
   }),
