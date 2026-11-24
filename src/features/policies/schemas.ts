@@ -16,7 +16,7 @@ export const createPolicySchema = z.object({
       return false;
     }
   }, "Conditions must be valid JSON"),
-  priority: z.coerce.number().int(),
+  priority: z.number().int(),
   isActive: z.boolean(),
 });
 

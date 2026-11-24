@@ -194,7 +194,7 @@ export const addMemberSchema = z.object({
   department: z.string().optional(),
   message: z.string().optional(),
   groupIds: z.array(z.string()).optional(),
-  expiresInHours: z.coerce.number().int().min(1).max(720).optional(),
+  expiresInHours: z.number().int().min(1).max(720).optional(),
 });
 export type AddMemberInput = z.infer<typeof addMemberSchema>;
 
@@ -205,7 +205,7 @@ export type UpdateMemberRoleInput = z.infer<typeof updateMemberRoleSchema>;
 
 export const tenantEmailConfigSchema = z.object({
   host: z.string().min(1, "SMTP Host is required"),
-  port: z.coerce.number().int().min(1).max(65535).default(587),
+  port: z.number().int().min(1).max(65535).default(587),
   secure: z.boolean().default(false),
   user: z.string().min(1, "SMTP Username is required"),
   password: z.string().optional(),
@@ -220,7 +220,7 @@ export type TenantEmailConfig = z.infer<typeof tenantEmailConfigSchema>;
 export const testEmailSchema = z.object({
   targetEmail: z.string().email("Valid recipient email is required"),
   host: z.string().optional(),
-  port: z.coerce.number().int().optional(),
+  port: z.number().int().optional(),
   secure: z.boolean().optional(),
   user: z.string().optional(),
   password: z.string().optional(),

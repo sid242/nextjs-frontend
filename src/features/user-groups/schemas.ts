@@ -50,13 +50,13 @@ export const updateGroupSchema = z.object({
 export type UpdateGroupValues = z.infer<typeof updateGroupSchema>;
 
 export const addMembersSchema = z.object({
-  memberIds: z.array(z.string().uuid("Invalid member ID")).min(1, "Select at least one member"),
+  memberIds: z.array(z.string().guid("Invalid member ID")).min(1, "Select at least one member"),
 });
 
 export type AddMembersValues = z.infer<typeof addMembersSchema>;
 
 export const bindRoleSchema = z.object({
-  roleIds: z.array(z.string().uuid("Invalid role ID")).min(1, "Please select at least one role"),
+  roleIds: z.array(z.string().guid("Invalid role ID")).min(1, "Please select at least one role"),
   reason: z.string().trim().max(255).optional(),
 });
 

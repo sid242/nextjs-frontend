@@ -3,13 +3,13 @@ import { z } from "zod";
 export const planEntitlementsSchema = z.object({
   id: z.string().uuid().optional(),
   planId: z.string().uuid().optional(),
-  maxMembers: z.coerce.number().int().min(1),
-  maxProjects: z.coerce.number().int().min(1),
-  maxStorageMb: z.coerce.number().int().min(100),
+  maxMembers: z.number().int().min(1),
+  maxProjects: z.number().int().min(1),
+  maxStorageMb: z.number().int().min(100),
   hasCustomRoles: z.boolean(),
   hasAdvancedAnalytics: z.boolean(),
   hasPrioritySupport: z.boolean(),
-  hasAuditRetentionDays: z.coerce.number().int().min(1),
+  hasAuditRetentionDays: z.number().int().min(1),
 });
 
 export type PlanEntitlements = z.infer<typeof planEntitlementsSchema>;
@@ -136,7 +136,7 @@ export const createPlanSchema = z.object({
     .regex(/^[A-Z0-9_]+$/, "Key must be uppercase alphanumeric with underscores"),
   name: z.string().trim().min(2, "Plan name must be at least 2 characters").max(100),
   description: z.string().trim().max(500).optional(),
-  priceCents: z.coerce.number().int().min(0, "Price cannot be negative"),
+  priceCents: z.number().int().min(0, "Price cannot be negative"),
   currency: z.string().trim().length(3),
   billingInterval: z.enum(["MONTHLY", "ANNUAL", "LIFETIME"]),
   isActive: z.boolean(),
@@ -148,7 +148,7 @@ export type CreatePlanInput = z.infer<typeof createPlanSchema>;
 
 export const changeSubscriptionSchema = z.object({
   planKey: z.string().trim().min(1, "Select a target plan"),
-  seatCount: z.coerce.number().int().min(1).max(1000),
+  seatCount: z.number().int().min(1).max(1000),
 });
 
 export type ChangeSubscriptionInput = z.infer<typeof changeSubscriptionSchema>;
@@ -156,7 +156,7 @@ export type ChangeSubscriptionInput = z.infer<typeof changeSubscriptionSchema>;
 export const updatePlanSchema = z.object({
   name: z.string().trim().min(2, "Plan name must be at least 2 characters").max(100),
   description: z.string().trim().max(500).optional(),
-  priceCents: z.coerce.number().int().min(0, "Price cannot be negative"),
+  priceCents: z.number().int().min(0, "Price cannot be negative"),
   currency: z.string().trim().length(3),
   billingInterval: z.enum(["MONTHLY", "ANNUAL", "LIFETIME"]),
   isActive: z.boolean(),
@@ -174,7 +174,7 @@ export const assignSubscriptionSchema = z.object({
   trialEndsAt: z.string().optional(),
   billingInterval: z.enum(["MONTHLY", "ANNUAL", "LIFETIME"]),
   billingEmail: z.string().email("Invalid billing email").optional().or(z.literal("")),
-  seatCount: z.coerce.number().int().min(1, "Minimum 1 seat"),
+  seatCount: z.number().int().min(1, "Minimum 1 seat"),
   prorate: z.boolean(),
   internalNotes: z.string().trim().max(1000).optional(),
 });
@@ -186,8 +186,8 @@ export const planFiltersSchema = z.object({
   status: z.enum(["all", "active", "inactive"]).default("all"),
   billingInterval: z.enum(["ALL", "MONTHLY", "ANNUAL", "LIFETIME"]).default("ALL"),
   currency: z.string().optional(),
-  minPrice: z.coerce.number().optional(),
-  maxPrice: z.coerce.number().optional(),
+  minPrice: z.number().optional(),
+  maxPrice: z.number().optional(),
   entitlement: z.string().optional(),
 });
 
