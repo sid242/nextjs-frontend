@@ -34,7 +34,7 @@ export const inviteStaffSchema = z.object({
   department: z.string().trim().max(100).optional(),
   jobTitle: z.string().trim().max(100).optional(),
   invitationMessage: z.string().trim().max(1000).optional(),
-  expiresInHours: z.coerce.number().int().min(1).max(168).default(168).optional(),
+  expiresInHours: z.coerce.number().int().min(1).max(168).optional(),
 });
 
 export type InviteStaffInput = z.infer<typeof inviteStaffSchema>;
@@ -166,7 +166,7 @@ export const startSupportSessionSchema = z.object({
   reason: z.string().trim().min(5, "Support reason must be at least 5 characters"),
   ticketRef: z.string().trim().optional(),
   durationMinutes: z.coerce.number().int().min(5).max(120),
-  acknowledgement: z.boolean().default(true).optional(),
+  acknowledgement: z.boolean().optional(),
 });
 
 export type StartSupportSessionInput = z.infer<typeof startSupportSessionSchema>;
@@ -210,7 +210,7 @@ export const platformAuditLogSchema = z.object({
   targetType: z.string().nullable().optional(),
   targetId: z.string().nullable().optional(),
   tenantId: z.string().nullable().optional(),
-  metadata: z.record(z.unknown()).nullable().optional(),
+  metadata: z.record(z.string(), z.unknown()).nullable().optional(),
   requestId: z.string().nullable().optional(),
   ipAddress: z.string().nullable().optional(),
   userAgent: z.string().nullable().optional(),
@@ -305,7 +305,7 @@ export type PlatformTenant = z.infer<typeof platformTenantSchema>;
 
 export const platformTenantDetailSchema = platformTenantSchema.extend({
   schemaVersion: z.string().optional(),
-  metadata: z.record(z.unknown()).nullable().optional(),
+  metadata: z.record(z.string(), z.unknown()).nullable().optional(),
   subscription: z
     .object({
       id: z.string().uuid(),
@@ -353,8 +353,8 @@ export const provisionTenantSchema = z.object({
   country: z.string().trim().optional(),
   region: z.string().trim().max(100).optional(),
   timezone: z.string().trim().min(1, "Timezone is required"),
-  locale: z.string().trim().default("en-US").optional(),
-  currency: z.string().trim().default("USD").optional(),
+  locale: z.string().trim().optional(),
+  currency: z.string().trim().optional(),
   supportEmail: z.string().trim().email("Enter a valid support email").optional().or(z.literal("")),
   supportPhone: z.string().trim().max(30).optional(),
   billingEmail: z.string().trim().email("Enter a valid billing email").optional().or(z.literal("")),
@@ -476,12 +476,12 @@ export const tenantDbOperationSchema = z.object({
   requestedByStaffId: z.string().nullable().optional(),
   approvedByStaffId: z.string().nullable().optional(),
   reason: z.string(),
-  params: z.record(z.unknown()).nullable().optional(),
+  params: z.record(z.string(), z.unknown()).nullable().optional(),
   progress: z
     .object({
       currentStep: z.string().optional(),
       percent: z.number().optional(),
-      tables: z.record(z.object({ copied: z.number(), total: z.number() })).optional(),
+      tables: z.record(z.string(), z.object({ copied: z.number(), total: z.number() })).optional(),
     })
     .nullable()
     .optional(),
@@ -494,8 +494,8 @@ export const tenantDbOperationSchema = z.object({
 export type TenantDbOperation = z.infer<typeof tenantDbOperationSchema>;
 
 export const listTenantDatabasesQuerySchema = z.object({
-  page: z.coerce.number().int().min(1).default(1).optional(),
-  limit: z.coerce.number().int().min(1).max(100).default(20).optional(),
+  page: z.coerce.number().int().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
   search: z.string().trim().optional(),
   tenantId: z.string().uuid().optional(),
   strategy: z.enum(["shared", "dedicated", "ALL"]).optional(),
@@ -524,8 +524,8 @@ export const executeTenantDatabaseOperationSchema = z.object({
   targetVersion: z.string().trim().max(50).optional(),
   maintenanceWindow: z.string().trim().max(100).optional(),
   reason: z.string().trim().min(5, "Reason must be at least 5 characters").max(500),
-  backupConfirmed: z.boolean().default(false).optional(),
-  discardDedicatedData: z.boolean().default(false).optional(),
+  backupConfirmed: z.boolean().optional(),
+  discardDedicatedData: z.boolean().optional(),
   approvedByStaffId: z.string().uuid().optional(),
   poolLimit: z.coerce.number().int().min(1).max(50).optional(),
   customDatabaseName: z.string().trim().max(63).optional(),

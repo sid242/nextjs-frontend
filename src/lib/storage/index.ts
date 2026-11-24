@@ -115,6 +115,7 @@ export const clientCookie = {
  */
 export function resolveStorageUrl(url?: string | null): string {
   if (!url) return "";
+  if (process.env.NODE_ENV === "production") return url;
   if (url.startsWith("/api/storage/")) return url;
   if (url.startsWith("data:") || url.startsWith("blob:")) return url;
 

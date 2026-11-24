@@ -179,7 +179,7 @@ To test the frontend on physical mobile devices (Android Chrome, iOS Safari) con
 4. **BFF Architecture & Real-Time Flow:**
    - **REST APIs:** All REST API calls flow through the same-origin BFF (`/api/proxy/*`), so the browser uses the same host (`http://192.168.1.45:3001`) and sends host-only HttpOnly session cookies. The Next.js server forwards requests to the backend using `API_URL` (`http://localhost:3009/api/v1`).
    - **Real-Time Sockets:** In development mode, `/api/auth/socket-token` automatically adapts the Socket.IO connection URL from `localhost` to the client's LAN host (`http://192.168.1.45:3009`), allowing the mobile device to establish direct WebSocket connections with the backend.
-   - **File Uploads:** S3 presigned POST uploads are initiated directly from the mobile browser. Ensure the local MinIO or S3 endpoint is reachable from the mobile device if using local storage.
+   - **File Uploads:** During development, local MinIO presigned URLs use the same-origin storage gateway. Set the frontend's server-only `S3_ENDPOINT` when the backend uses a non-default MinIO port. Production builds use a browser-reachable storage endpoint and disable the gateway.
 5. **Firewall & Troubleshooting:**
    - Ensure the computer's firewall allows incoming connections on port `3001` (Next.js) and port `3009` (Express backend) on the Private network.
    - Verify that your Wi-Fi router does not enable AP/Client Isolation (which prevents devices on the same Wi-Fi network from communicating).
@@ -223,4 +223,8 @@ npm run test:e2e
 
 The browser suite signs in with the backend demo staff, owner and viewer fixtures. It submits a synthetic member import with invite email delivery disabled. Override the demo identities with the `FOUNDATION_STAFF_EMAIL`, `FOUNDATION_OWNER_EMAIL`, `FOUNDATION_VIEWER_EMAIL`, `FOUNDATION_OWNER_SLUG` and `FOUNDATION_FIXTURE_PASSWORD` variables when using different local fixtures. Set `FOUNDATION_BROWSER_CHANNEL=msedge` to use an installed Edge browser.
 
+After running the companion backend's `foundation-e2e-fixtures.ts` command, set `FOUNDATION_EXTENDED_FIXTURES=true` for the Playwright run. Use a `localhost` frontend URL and the same host and port in the backend's `APP_BASE_DOMAIN`. The extended cases cover same-host switching, subdomain handoff, support exit, and realtime file stream revocation.
+
 Repeat the suite with the backend using `FOUNDATION_MODULES=` and set `FOUNDATION_EXPECT_LEADS=false` for the browser runner. Use the same frontend build in both configurations. Keep navigation and direct-route gates driven by the backend capability response and the user's permissions.
+
+The **Foundation browser tests** GitHub Actions workflow runs the browser checks in isolated PostgreSQL and Redis jobs for both module configurations. Pull requests pair with the backend's `main` branch. To verify coordinated branches, run the workflow manually with the companion backend branch or commit in `backend_ref`. The browser suite temporarily suspends and restores the viewer fixture to verify session access after a membership change.

@@ -2,7 +2,9 @@ import { type ReactNode } from "react";
 import { cookies, headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
+import { AUTH_ROUTES, PLATFORM_ROUTES } from "@/config/routes";
 import { ACCESS_COOKIE, PLATFORM_STAFF_COOKIE, SUPPORT_SESSION_COOKIE } from "@/lib/auth/constants";
+import { decodeJwt } from "@/lib/auth/jwt";
 import { backendFetch } from "@/lib/server/backend";
 import { TenantUrlProvider, type TenantUrlContextValue } from "@/lib/tenancy";
 import { resolveTenantBySlug } from "@/lib/tenancy/resolve";
@@ -22,13 +24,20 @@ export default async function TenantSlugLayout({ children, params }: TenantSlugL
   const accessToken = cookieStore.get(ACCESS_COOKIE)?.value;
   const supportSessionId = cookieStore.get(SUPPORT_SESSION_COOKIE)?.value;
   const hasPlatformSession = cookieStore.has(PLATFORM_STAFF_COOKIE);
+  const claims = accessToken && supportSessionId ? decodeJwt(accessToken) : null;
+  const supportVisit =
+    hasPlatformSession && claims?.typ === "SUPPORT" && claims.sess === supportSessionId;
 
-  if (accessToken && !supportSessionId) {
+  if (accessToken) {
     const contextRes = await backendFetch(`/tenants/${tenantSlug}/context`, {
       token: accessToken,
     });
     if (contextRes.status === 403 || contextRes.status === 401) {
-      redirect("/select-workspace");
+      redirect(
+        supportSessionId && hasPlatformSession
+          ? PLATFORM_ROUTES.SUPPORT_SESSIONS
+          : AUTH_ROUTES.SELECT_WORKSPACE,
+      );
     }
     if (contextRes.status === 404) {
       notFound();
@@ -42,7 +51,9 @@ export default async function TenantSlugLayout({ children, params }: TenantSlugL
 
   let contextValue: TenantUrlContextValue;
 
-  if (headerSlug && headerMode && headerCanonical) {
+  if (supportVisit) {
+    contextValue = { slug: tenantSlug, mode: "path", canonicalBase: "/" };
+  } else if (headerSlug && headerMode && headerCanonical) {
     contextValue = {
       slug: headerSlug,
       mode: headerMode,

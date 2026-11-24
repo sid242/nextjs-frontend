@@ -2,8 +2,9 @@ import "server-only";
 
 import { NextResponse, type NextRequest } from "next/server";
 
+import { AUTH_ROUTES, ROUTES, TENANT_PATHS } from "@/config/routes";
 import { applyAuthCookies } from "@/lib/auth/cookies";
-import { safeNextPath } from "@/lib/auth/paths";
+import { isPlatformPath, safeNextPath, tenantSlugFromPath } from "@/lib/auth/paths";
 import { backendFetch } from "@/lib/server/backend";
 import { forwardedHeaders } from "@/lib/server/request";
 
@@ -12,12 +13,23 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   const requestUrl = req?.url;
   const failRedirect = () =>
-    NextResponse.redirect(new URL("/login?error=handoff_failed", requestUrl), 303);
+    new NextResponse(null, {
+      status: 303,
+      headers: { Location: AUTH_ROUTES.LOGIN + "?error=handoff_failed" },
+    });
 
   const searchParams = req?.nextUrl?.searchParams;
   const code = searchParams?.get?.("code");
   const next = searchParams?.get?.("next");
-  const host = req?.headers?.get?.("x-forwarded-host") || req?.headers?.get?.("host") || "";
+  const requestHeaders = forwardedHeaders(req);
+  const host =
+    (
+      (process.env.TRUST_PROXY === "true" ? req.headers.get("x-forwarded-host") : null) ??
+      req.headers.get("host") ??
+      req.nextUrl.host
+    )
+      .split(",")[0]
+      ?.trim() ?? "";
 
   if (!code) {
     return failRedirect();
@@ -28,7 +40,7 @@ export async function GET(req: NextRequest) {
     upstream = await backendFetch("/auth/handoff/redeem", {
       method: "POST",
       json: { code, host },
-      headers: forwardedHeaders(req),
+      headers: requestHeaders,
     });
   } catch {
     return failRedirect();
@@ -43,7 +55,7 @@ export async function GET(req: NextRequest) {
       accessToken: string;
       refreshToken: string;
       tenantId?: string;
-      memberships?: Array<{ tenantId: string; slug: string }>;
+      memberships?: Array<{ tenantId: string; slug: string; canonicalBase?: string }>;
     };
   } | null;
 
@@ -52,8 +64,25 @@ export async function GET(req: NextRequest) {
     return failRedirect();
   }
 
-  const redirectTarget = safeNextPath(next);
-  const res = NextResponse.redirect(new URL(redirectTarget, requestUrl), 303);
+  const membership = authData.memberships?.find((item) => item.tenantId === authData.tenantId);
+  const canonical =
+    membership?.canonicalBase && URL.canParse(membership.canonicalBase)
+      ? new URL(membership.canonicalBase)
+      : null;
+  const fallback =
+    membership && canonical && (canonical.host !== host || canonical.pathname.startsWith("/w/"))
+      ? ROUTES.tenant(membership.slug).DASHBOARD
+      : TENANT_PATHS.DASHBOARD;
+  const candidate = safeNextPath(next, fallback);
+  const parsed = new URL(candidate, requestUrl);
+  const nextTenant = tenantSlugFromPath(parsed.pathname);
+  const redirectTarget =
+    isPlatformPath(parsed.pathname) ||
+    (membership && nextTenant !== null && nextTenant !== membership.slug)
+      ? fallback
+      : candidate;
+  // The public request host can differ from the Next.js runtime host behind a proxy.
+  const res = new NextResponse(null, { status: 303, headers: { Location: redirectTarget } });
 
   // Apply auth cookies
   applyAuthCookies(res, {

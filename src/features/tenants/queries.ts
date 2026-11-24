@@ -199,7 +199,10 @@ export function useTenantContext(
   options?: QueryOverrides<TenantContext>,
 ) {
   const storeActiveId = useTenantStore((s) => s.activeTenantId);
-  const resolvedTenantId = tenantId !== undefined ? tenantId : storeActiveId;
+  const tenantUrl = useTenantUrl();
+  const params = useParams<{ tenantSlug?: string }>();
+  const resolvedTenantId =
+    tenantId !== undefined ? tenantId : (tenantUrl?.slug ?? params?.tenantSlug ?? storeActiveId);
   return useAppQuery<TenantContext>(tenantContextQueryOptions(resolvedTenantId ?? ""), options);
 }
 

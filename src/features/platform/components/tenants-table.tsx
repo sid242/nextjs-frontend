@@ -16,6 +16,7 @@ import {
   Search,
   ShieldAlert,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { ColumnConfigDropdown } from "@/components/molecules/column-config-dropdown";
 import { TablePagination } from "@/components/molecules/table-pagination";
@@ -66,6 +67,7 @@ import {
   type TableColumnDef,
 } from "@/lib/hooks";
 
+import { enterSupportWorkspace } from "../api";
 import { hasPlatformPermission, PLATFORM_PERMISSION_KEYS } from "../permissions";
 import {
   useActivateTenant,
@@ -260,27 +262,13 @@ export function TenantsTable() {
         durationMinutes: 30,
       });
       if (res?.sessionId) {
-        const tenantSlug = res.tenantSlug ?? modalState.tenant.slug;
-        const enterRes = await fetch("/api/platform/support-session/enter", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sessionId: res.sessionId,
-            tenantId: res.tenantId ?? modalState.tenant.id,
-            tenantSlug,
-            slug: tenantSlug,
-            accessToken: res.accessToken ?? res.token,
-          }),
-        });
-        const enterData = await enterRes.json().catch(() => null);
-        const destination =
-          enterData?.redirectUrl ?? (tenantSlug ? `/w/${tenantSlug}/dashboard` : "/dashboard");
+        const destination = await enterSupportWorkspace(res.sessionId);
         setModalState({ type: null, tenant: null, reason: "" });
 
         window.location.assign(destination);
       }
     } catch {
-      /* handled */
+      toast.error("Could not enter this support session.");
     }
   };
 

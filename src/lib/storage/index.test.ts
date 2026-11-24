@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { clientCookie, clientStorage, resolveStorageUrl } from "./index";
 
@@ -108,6 +108,16 @@ describe("clientStorage in Browser environment", () => {
 });
 
 describe("resolveStorageUrl", () => {
+  it("uses the supplied storage URL directly in production", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    try {
+      const url = "http://localhost:9000/app-uploads-local/file.pdf";
+      expect(resolveStorageUrl(url)).toBe(url);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it("encodes LAN and local hosts into the storage route path", () => {
     const url = "http://192.168.1.25:9000/app-uploads-local/file.pdf?sig=abc";
     expect(resolveStorageUrl(url)).toBe(

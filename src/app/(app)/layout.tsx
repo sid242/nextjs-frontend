@@ -1,5 +1,4 @@
 import { type ReactNode } from "react";
-import { cookies } from "next/headers";
 
 import { AppShell } from "@/components/organisms/app-shell";
 import { AnnouncementBanner } from "@/features/announcements";
@@ -9,20 +8,22 @@ import { SupportSessionBanner } from "@/features/platform";
 import { CookieBanner } from "@/features/privacy";
 import { ConnectionStatus, SocketProvider } from "@/features/realtime";
 import { TenantSidebarNav, TenantSwitcher, TenantThemeProvider } from "@/features/tenants";
-import { SUPPORT_SESSION_COOKIE } from "@/lib/auth/constants";
 import { isImpersonating, requireUser } from "@/lib/auth/session";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const user = await requireUser(); // refreshes the session or redirects to /login
   const impersonating = await isImpersonating();
-  const cookieStore = await cookies();
-  const supportSessionId = cookieStore.get(SUPPORT_SESSION_COOKIE)?.value;
 
   const topBanner = (
     <>
       <AnnouncementBanner />
-      {supportSessionId ? (
-        <SupportSessionBanner sessionId={supportSessionId} />
+      {user.support ? (
+        <SupportSessionBanner
+          sessionId={user.support.id}
+          tenantSlug={user.support.tenantSlug}
+          scope={user.support.scope}
+          expiresAt={user.support.expiresAt}
+        />
       ) : impersonating ? (
         <ImpersonationBanner userName={`${user.firstName} ${user.lastName}`.trim()} />
       ) : null}
@@ -30,12 +31,12 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   );
 
   return (
-    <SocketProvider>
+    <SocketProvider support={Boolean(user.support)}>
       <TenantThemeProvider>
         <AppShell
           userMenu={<UserMenu user={user} />}
           userProfile={<UserProfileFooter user={user} />}
-          tenantSwitcher={<TenantSwitcher />}
+          tenantSwitcher={user.support ? undefined : <TenantSwitcher />}
           notifications={<NotificationBell />}
           headerSlot={<ConnectionStatus />}
           topBanner={topBanner}

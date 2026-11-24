@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 import type {
   CreatePolicyInput,
   ListPoliciesFilter,
@@ -5,6 +7,7 @@ import type {
   UpdatePolicyInput,
 } from "@/features/policies";
 import { api, platformAuthApi } from "@/lib/api/http";
+import { safeNextPath } from "@/lib/auth/paths";
 import { buildQueryString } from "@/lib/utils";
 
 import type {
@@ -36,6 +39,19 @@ import type {
   UpdatePlatformTenantSubscriptionInput,
   UpdateStaffInput,
 } from "./schemas";
+
+export async function enterSupportWorkspace(sessionId: string): Promise<string> {
+  const response = await fetch("/api/platform/support-session/enter", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ sessionId }),
+  });
+  if (!response.ok) throw new Error("Could not enter this support session");
+  const data = z.object({ redirectUrl: z.string() }).parse(await response.json());
+  const destination = safeNextPath(data.redirectUrl, "");
+  if (!destination) throw new Error("Invalid support session destination");
+  return destination;
+}
 
 export interface PaginatedResult<T> {
   items: T[];

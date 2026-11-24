@@ -32,10 +32,17 @@ export function TenantPermissionGate({
 }: TenantPermissionGateProps) {
   const tenantHref = useTenantHref();
   const params = useParams();
-  const hasPlatformSession = useTenantUrl()?.hasPlatformSession === true;
+  const tenantUrl = useTenantUrl();
+  const hasPlatformSession = tenantUrl?.hasPlatformSession === true;
   const slugFromParam = typeof params?.tenantSlug === "string" ? params.tenantSlug : undefined;
   const { activeTenant, isLoading: tenantLoading } = useActiveTenant();
-  const { data: context, isLoading: contextLoading } = useTenantContext(activeTenant?.id ?? null);
+  const slug = tenantUrl?.slug ?? slugFromParam;
+  const {
+    data: context,
+    isLoading: contextLoading,
+    isError,
+    refetch,
+  } = useTenantContext(slug ?? activeTenant?.id ?? null);
   const isAllowed = hasTenantPermission(context?.permissions, permission);
   const { data: staff } = usePlatformMe({
     enabled:
@@ -55,6 +62,17 @@ export function TenantPermissionGate({
       <div className="space-y-4 p-6">
         <Skeleton className="h-8 w-64" />
         <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
+  if (isError) {
+    if (hideInsteadOfBanner) return null;
+    return (
+      <div role="alert" className="space-y-3 rounded-2xl border p-6">
+        <p>Could not verify access to this workspace.</p>
+        <Button type="button" variant="outline" onClick={() => void refetch()}>
+          Try again
+        </Button>
       </div>
     );
   }

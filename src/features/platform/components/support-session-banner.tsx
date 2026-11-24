@@ -1,17 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LogOut, ShieldAlert } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { PLATFORM_ROUTES } from "@/config/routes";
 
 interface SupportSessionBannerProps {
-  sessionId?: string;
+  sessionId: string;
   tenantSlug?: string;
   staffName?: string;
   scope?: string;
-  expiresAt?: string | number;
+  expiresAt: string;
 }
 
 export function SupportSessionBanner({
@@ -22,20 +22,41 @@ export function SupportSessionBanner({
   expiresAt,
 }: SupportSessionBannerProps) {
   const [isPending, setIsPending] = useState(false);
+  const [exitError, setExitError] = useState(false);
+  const expiration = Date.parse(expiresAt);
+
+  useEffect(() => {
+    if (!Number.isFinite(expiration)) return;
+    const returnToPlatform = () => window.location.replace(PLATFORM_ROUTES.SUPPORT_SESSIONS);
+    const timer = window.setTimeout(returnToPlatform, Math.max(0, expiration - Date.now()));
+    const controller = new AbortController();
+    const poll = window.setInterval(() => {
+      void fetch("/api/proxy/users/me", { signal: controller.signal })
+        .then((response) => {
+          if (response.status === 401 || response.status === 403) returnToPlatform();
+        })
+        .catch(() => {});
+    }, 15_000);
+    return () => {
+      window.clearTimeout(timer);
+      window.clearInterval(poll);
+      controller.abort();
+    };
+  }, [expiration]);
 
   const handleEndSession = async () => {
     setIsPending(true);
+    setExitError(false);
     try {
       const res = await fetch("/api/platform/support-session/exit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId }),
       });
-      const data = await res.json().catch(() => null);
-      const destination = data?.redirectUrl ?? PLATFORM_ROUTES.TENANTS;
-
-      window.location.assign(destination);
+      if (!res.ok) throw new Error("Unable to end the support session");
+      window.location.replace(PLATFORM_ROUTES.SUPPORT_SESSIONS);
     } catch {
+      setExitError(true);
       setIsPending(false);
     }
   };
@@ -76,11 +97,20 @@ export function SupportSessionBanner({
               </>
             ) : null}
           </span>
-          {isReadOnly && (
+          {scope && (
             <span className="rounded-md border border-amber-500/40 bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-200">
-              READ-ONLY MODE
+              {isReadOnly ? "READ-ONLY MODE" : scope.replaceAll("_", " ")}
             </span>
           )}
+          {Number.isFinite(expiration) && (
+            <span>
+              Expires{" "}
+              <time dateTime={expiresAt}>
+                {new Date(expiration).toISOString().slice(11, 16)} UTC
+              </time>
+            </span>
+          )}
+          {exitError && <span role="alert">Unable to end the session. Try again.</span>}
         </div>
 
         <Button

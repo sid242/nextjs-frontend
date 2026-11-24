@@ -1,9 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { PLATFORM_ROUTES } from "@/config/routes";
 import { ACCESS_COOKIE, PLATFORM_STAFF_COOKIE, SUPPORT_SESSION_COOKIE } from "@/lib/auth/constants";
 import { decodeJwt } from "@/lib/auth/jwt";
 import { backendFetch } from "@/lib/server/backend";
 import { assertSameOrigin, forwardedHeaders } from "@/lib/server/request";
+import { errorResponse } from "@/lib/server/response";
 
 export const dynamic = "force-dynamic";
 
@@ -11,61 +13,48 @@ export async function POST(req: NextRequest) {
   const blocked = assertSameOrigin(req);
   if (blocked) return blocked;
 
-  const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
-
+  const sessionId = req.cookies.get(SUPPORT_SESSION_COOKIE)?.value;
   const staffToken = req.cookies.get(PLATFORM_STAFF_COOKIE)?.value;
   const accessToken = req.cookies.get(ACCESS_COOKIE)?.value;
+  const claims = accessToken ? decodeJwt(accessToken) : null;
+  const body = (await req.json().catch(() => null)) as { sessionId?: string } | null;
+  if (sessionId && body?.sessionId !== sessionId) {
+    return errorResponse(409, "SUPPORT_SESSION_CHANGED", "Another session is active");
+  }
 
-  const decoded = accessToken ? (decodeJwt(accessToken) as Record<string, unknown> | null) : null;
-  const sessionFromToken = decoded?.sess as string | undefined;
-
-  const sessionId =
-    (typeof body?.sessionId === "string" && body.sessionId.trim() ? body.sessionId.trim() : null) ??
-    req.cookies.get(SUPPORT_SESSION_COOKIE)?.value ??
-    sessionFromToken;
-
-  const tokenToUse = staffToken || accessToken;
-
-  if (sessionId && tokenToUse) {
+  if (sessionId && staffToken && claims?.typ === "SUPPORT" && claims.sess === sessionId) {
     try {
-      const upstream = await backendFetch(`/platform/support-sessions/${sessionId}/end`, {
-        method: "POST",
-        token: tokenToUse,
-        headers: forwardedHeaders(req),
-        json: {
-          outcome: "Platform operator concluded delegated session via portal banner",
+      const upstream = await backendFetch(
+        `/platform/support-sessions/${encodeURIComponent(sessionId)}/end`,
+        {
+          method: "POST",
+          token: staffToken,
+          headers: forwardedHeaders(req),
+          json: { outcome: "Operator exited the delegated workspace" },
         },
-      });
-      if (!upstream.ok) {
-        console.error(
-          "Failed to end support session on backend:",
+      );
+      if (!upstream.ok && ![401, 404].includes(upstream.status)) {
+        return errorResponse(
           upstream.status,
-          await upstream.text().catch(() => ""),
+          "SUPPORT_EXIT_FAILED",
+          "Could not end this support session",
         );
       }
-    } catch (err) {
-      console.error("Error ending support session:", err);
+    } catch {
+      return errorResponse(503, "UPSTREAM_UNAVAILABLE", "Service temporarily unavailable");
     }
   }
 
-  const secure = process.env.NODE_ENV === "production" && process.env.COOKIE_SECURE !== "false";
-  const res = NextResponse.json({ ok: true, redirectUrl: "/platform/tenants" });
-
-  res.cookies.set(SUPPORT_SESSION_COOKIE, "", {
-    httpOnly: true,
-    secure,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 0,
+  const response = NextResponse.json({
+    redirectUrl: staffToken ? PLATFORM_ROUTES.SUPPORT_SESSIONS : PLATFORM_ROUTES.LOGIN,
   });
-
-  res.cookies.set(ACCESS_COOKIE, "", {
-    httpOnly: true,
-    secure,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 0,
-  });
-
-  return res;
+  if (sessionId) {
+    response.cookies.delete(SUPPORT_SESSION_COOKIE);
+    if (!accessToken || (claims?.typ === "SUPPORT" && claims.sess === sessionId)) {
+      for (const name of [ACCESS_COOKIE, "active_tenant_id", "ctx_slug"]) {
+        response.cookies.delete(name);
+      }
+    }
+  }
+  return response;
 }

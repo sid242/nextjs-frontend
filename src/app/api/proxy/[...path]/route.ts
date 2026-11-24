@@ -10,7 +10,7 @@ import {
 } from "@/lib/server/platform-auth";
 import { assertSameOrigin, forwardedHeaders } from "@/lib/server/request";
 import { errorResponse } from "@/lib/server/response";
-import { tenantIdFromRequest } from "@/lib/server/tenant-context";
+import { tenantIdentifierFromRequest } from "@/lib/server/tenant-context";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +20,7 @@ const PASSTHROUGH_HEADERS = [
   "content-type",
   "retry-after",
   "x-request-id",
+  "x-accel-buffering",
   "ratelimit",
   "ratelimit-policy",
 ];
@@ -109,13 +110,14 @@ async function handler(req: NextRequest, { params }: Ctx) {
   }
 
   let upstream: Response;
-  const tenantId = await tenantIdFromRequest(req);
+  const tenantId = isPlatformRoute ? undefined : await tenantIdentifierFromRequest(req);
   try {
     upstream = await backendFetch(upstreamPath, {
       method: req?.method,
       token,
       search: req?.nextUrl?.search ?? "",
       body: body || undefined,
+      ...(upstreamPath === "/files/events/stream" ? { signal: req.signal } : {}),
       headers: {
         ...forwardedHeaders(req),
         "content-type": body ? "application/json" : undefined,

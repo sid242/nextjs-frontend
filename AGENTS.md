@@ -12,7 +12,7 @@ Welcome agent! This file defines the core architecture, operational constraints,
 - **UI Components**: Radix UI primitives + shadcn/ui design tokens
 - **Data Fetching**: TanStack Query v5 + Axios (client) / `backendFetch` (server)
 - **Client State**: Zustand v5 (UI state only)
-- **Forms & Validation**: React Hook Form + Zod v3
+- **Forms & Validation**: React Hook Form + Zod v4
 - **Realtime**: Socket.IO client v4
 - **Testing**: Vitest v3
 - **Tooling**: ESLint v9 (flat config), Prettier v3, Husky v9, lint-staged v17, Commitlint v21
