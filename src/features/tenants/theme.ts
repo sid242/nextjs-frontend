@@ -230,6 +230,38 @@ const DEFAULT_RADIUS = "0.5rem";
 const DEFAULT_FONT = "Inter";
 const DEFAULT_SIDEBAR_THEME: "DARK" | "LIGHT" | "BRAND" = "DARK";
 
+export const HEX_COLOR_REGEX = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+export const CSS_RADIUS_REGEX = /^(0|[0-9]+(?:\.[0-9]+)?(?:rem|px|em|%))$/;
+export const CSS_SELECTOR_REGEX = /^[:a-zA-Z0-9_.-]+$/;
+
+function sanitizeHexColor(color: unknown, fallback: string): string {
+  if (typeof color === "string" && HEX_COLOR_REGEX.test(color.trim())) {
+    return color.trim();
+  }
+  return fallback;
+}
+
+function sanitizeBorderRadius(radius: unknown, fallback: string): string {
+  if (typeof radius === "string" && CSS_RADIUS_REGEX.test(radius.trim())) {
+    return radius.trim();
+  }
+  return fallback;
+}
+
+function sanitizeFontFamily(font: unknown, fallback: string): string {
+  if (typeof font === "string" && Object.prototype.hasOwnProperty.call(GOOGLE_FONTS, font.trim())) {
+    return font.trim();
+  }
+  return fallback;
+}
+
+function sanitizeSelector(selector: string, fallback = ":root"): string {
+  if (typeof selector === "string" && CSS_SELECTOR_REGEX.test(selector.trim())) {
+    return selector.trim();
+  }
+  return fallback;
+}
+
 export interface TenantThemeInput {
   primaryColor?: string | null;
   secondaryColor?: string | null;
@@ -247,18 +279,21 @@ export interface TenantThemeInput {
  * Computes runtime CSS variables with automated WCAG AA/AAA contrast matching for light & dark modes.
  */
 export function computeTenantThemeTokens(branding?: TenantThemeInput | null): ComputedThemeTokens {
-  const primary = branding?.primaryColor?.trim() || DEFAULT_PRIMARY;
-  const secondary = branding?.secondaryColor?.trim() || DEFAULT_SECONDARY;
-  const accent = branding?.accentColor?.trim() || DEFAULT_ACCENT;
-  const darkPrimary = branding?.primaryDarkColor?.trim() || primary;
-  const darkSecondary =
-    branding?.secondaryDarkColor?.trim() ||
-    (branding?.secondaryColor?.trim() ? secondary : DEFAULT_SECONDARY_DARK);
-  const darkAccent = branding?.accentDarkColor?.trim() || accent;
-  const radius = branding?.borderRadius?.trim() || DEFAULT_RADIUS;
-  const fontFamily = branding?.fontFamily?.trim() || DEFAULT_FONT;
+  const primary = sanitizeHexColor(branding?.primaryColor, DEFAULT_PRIMARY);
+  const secondary = sanitizeHexColor(branding?.secondaryColor, DEFAULT_SECONDARY);
+  const accent = sanitizeHexColor(branding?.accentColor, DEFAULT_ACCENT);
+  const darkPrimary = sanitizeHexColor(branding?.primaryDarkColor, primary);
+  const darkSecondary = sanitizeHexColor(
+    branding?.secondaryDarkColor,
+    branding?.secondaryColor && HEX_COLOR_REGEX.test(branding.secondaryColor.trim())
+      ? secondary
+      : DEFAULT_SECONDARY_DARK,
+  );
+  const darkAccent = sanitizeHexColor(branding?.accentDarkColor, accent);
+  const radius = sanitizeBorderRadius(branding?.borderRadius, DEFAULT_RADIUS);
+  const fontFamily = sanitizeFontFamily(branding?.fontFamily, DEFAULT_FONT);
   const rawSidebarTheme =
-    (branding?.sidebarTheme?.trim() as "DARK" | "LIGHT" | "BRAND") || DEFAULT_SIDEBAR_THEME;
+    (branding?.sidebarTheme as "DARK" | "LIGHT" | "BRAND") || DEFAULT_SIDEBAR_THEME;
   const sidebarTheme = ["DARK", "LIGHT", "BRAND"].includes(rawSidebarTheme)
     ? rawSidebarTheme
     : "DARK";
@@ -353,10 +388,11 @@ export function generateTenantThemeCss(
   branding?: TenantThemeInput | null,
   selector = ":root",
 ): string {
+  const safeSelector = sanitizeSelector(selector, ":root");
   const tokens = computeTenantThemeTokens(branding);
 
   return `
-    ${selector} {
+    ${safeSelector} {
       --primary: ${tokens.primary};
       --primary-foreground: ${tokens.primaryForeground};
       --secondary: ${tokens.secondary};
@@ -375,8 +411,8 @@ export function generateTenantThemeCss(
       font-family: var(--font-tenant);
     }
 
-    .dark ${selector},
-    ${selector}.dark {
+    .dark ${safeSelector},
+    ${safeSelector}.dark {
       --primary: ${tokens.darkPrimary};
       --primary-foreground: ${tokens.darkPrimaryForeground};
       --secondary: ${tokens.darkSecondary};
