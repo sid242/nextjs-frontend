@@ -112,4 +112,37 @@ describe("Theme Engine & Color Calculations", () => {
     expect(valid.fontFamily).toBe("Roboto");
     expect(valid.sidebarTheme).toBe("BRAND");
   });
+
+  it("sanitizes malicious color, font, radius and selector injection payloads", () => {
+    const maliciousTokens = computeTenantThemeTokens({
+      primaryColor: "blue; } body { display: none } /*",
+      secondaryColor: "#123456789; attack",
+      accentColor: "rgba(0,0,0,1)",
+      borderRadius: "0.5rem; } div { color: red }",
+      fontFamily: 'Inter", sans-serif; } /*',
+      sidebarTheme: "INVALID" as unknown as "DARK",
+    });
+
+    expect(maliciousTokens.primary).toBe("#4F46E5");
+    expect(maliciousTokens.secondary).toBe("#f4f4f5");
+    expect(maliciousTokens.accent).toBe("#06B6D4");
+    expect(maliciousTokens.radius).toBe("0.5rem");
+    expect(maliciousTokens.fontFamily).toBe("Inter");
+    expect(maliciousTokens.sidebarTheme).toBe("DARK");
+
+    const maliciousCss = generateTenantThemeCss(
+      {
+        primaryColor: "red; } * { display: none }",
+        borderRadius: "10px; opacity: 0;",
+      },
+      ":root; * { visibility: hidden; }",
+    );
+
+    expect(maliciousCss).not.toContain("red;");
+    expect(maliciousCss).not.toContain("display: none");
+    expect(maliciousCss).not.toContain("visibility: hidden");
+    expect(maliciousCss).toContain(":root {");
+    expect(maliciousCss).toContain("--primary: #4F46E5;");
+    expect(maliciousCss).toContain("--radius: 0.5rem;");
+  });
 });
