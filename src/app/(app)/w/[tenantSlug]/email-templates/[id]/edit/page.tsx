@@ -7,6 +7,7 @@ import { ArrowLeftIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { TemplateStudio, useEmailTemplate } from "@/features/email-templates";
+import { TENANT_PERMISSIONS, TenantPermissionGate } from "@/features/tenants";
 import { useTenantHref } from "@/lib/tenancy/use-tenant-href";
 
 export default function EditEmailTemplatePage() {
@@ -44,5 +45,9 @@ export default function EditEmailTemplatePage() {
     );
   }
 
-  return <TemplateStudio initialTemplate={template} />;
+  return (
+    <TenantPermissionGate permission={TENANT_PERMISSIONS.EMAIL_TEMPLATES_WRITE}>
+      <TemplateStudio initialTemplate={template} />
+    </TenantPermissionGate>
+  );
 }

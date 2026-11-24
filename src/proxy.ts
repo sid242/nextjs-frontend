@@ -131,6 +131,9 @@ function buildCsp(nonce: string, rawHost?: string | null): string {
   return [
     "default-src 'self'",
     `script-src ${scriptDirectives}`,
+    // style-src permits 'unsafe-inline' specifically for Unlayer visual email builder iframe runtime
+    // and dynamic tenant brand theme CSS generated client-side/SSR in tenant-theme-provider.tsx.
+    // Script execution is strictly guarded via CSP nonce and strict-dynamic in production.
     "style-src 'self' 'unsafe-inline' https://editor.unlayer.com https://*.unlayer.com",
     `img-src ${storageMedia.join(" ")}`,
     "font-src 'self' data: https://editor.unlayer.com https://*.unlayer.com https://fonts.gstatic.com",
