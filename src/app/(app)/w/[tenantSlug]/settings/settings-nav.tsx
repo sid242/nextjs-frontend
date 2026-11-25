@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  BellIcon,
   Building2Icon,
   Code2Icon,
   CreditCardIcon,
@@ -39,6 +40,13 @@ export function SettingsNav() {
       label: "Profile & Account",
       icon: UserIcon,
       active: normalizedPathname === "/settings" || normalizedPathname === "/settings/profile",
+      visible: true,
+    },
+    {
+      href: "/settings/notifications",
+      label: "Notifications & Push",
+      icon: BellIcon,
+      active: normalizedPathname === "/settings/notifications",
       visible: true,
     },
     {

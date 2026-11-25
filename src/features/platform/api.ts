@@ -346,6 +346,8 @@ export async function changePlatformPassword(
 }
 
 export async function logoutPlatformStaff(): Promise<void> {
+  const { unsubscribeBrowserPushOnLogout } = await import("@/features/notifications");
+  await unsubscribeBrowserPushOnLogout("platform");
   return platformAuthApi.post<void>("/logout");
 }
 

@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  BellRing,
   ChevronRight,
   ExternalLink,
   KeyRound,
@@ -406,6 +407,15 @@ export function PlatformShell({ children }: PlatformShellProps) {
                 <DropdownMenuItem onClick={() => setTwoFactorOpen(true)} className="cursor-pointer">
                   <KeyRound className="mr-2 h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                   <span>Security & 2FA</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild className="cursor-pointer">
+                  <Link
+                    href={PLATFORM_ROUTES.SETTINGS_NOTIFICATIONS}
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    <BellRing className="mr-2 h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                    <span>Notifications & Push</span>
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem

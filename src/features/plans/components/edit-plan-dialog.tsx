@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Check, Edit3, Power, PowerOff } from "lucide-react";
 import { useForm } from "react-hook-form";
@@ -28,7 +28,12 @@ import {
 import { getErrorMessage } from "@/lib/api/errors";
 
 import { useUpdatePlan } from "../queries";
-import { updatePlanSchema, type Plan, type UpdatePlanInput } from "../schemas";
+import {
+  PLAN_CURRENCY_OPTIONS,
+  updatePlanSchema,
+  type Plan,
+  type UpdatePlanInput,
+} from "../schemas";
 
 interface EditPlanDialogProps {
   open: boolean;
@@ -90,6 +95,14 @@ export function EditPlanDialog({ open, onOpenChange, plan }: EditPlanDialogProps
       });
     }
   }, [plan, open, methods]);
+
+  const currencyOptions = useMemo(() => {
+    const existingCode = plan?.currency?.trim().toUpperCase();
+    if (!existingCode || PLAN_CURRENCY_OPTIONS.some((o) => o.value === existingCode)) {
+      return [...PLAN_CURRENCY_OPTIONS];
+    }
+    return [{ label: existingCode, value: existingCode }, ...PLAN_CURRENCY_OPTIONS];
+  }, [plan?.currency]);
 
   const onSubmit = async (values: UpdatePlanInput) => {
     if (!plan?.id) return;
@@ -235,6 +248,7 @@ export function EditPlanDialog({ open, onOpenChange, plan }: EditPlanDialogProps
               label="Billing Interval"
               options={intervalOptions}
               returnPrimitiveValue
+              isClearable={false}
               required
             />
           </div>
@@ -249,18 +263,19 @@ export function EditPlanDialog({ open, onOpenChange, plan }: EditPlanDialogProps
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <ControlledInput
               name="priceCents"
-              label="Price (Cents)"
+              label="Price (Minor Units)"
               type="number"
-              placeholder="e.g. 4900 ($49.00)"
+              placeholder="e.g. 4900"
               required
               className="h-9 font-mono text-xs"
             />
-            <ControlledInput
+            <ControlledSelect
               name="currency"
               label="Currency"
-              placeholder="USD"
+              options={currencyOptions}
+              returnPrimitiveValue
+              isClearable={false}
               required
-              className="h-9 font-mono text-xs uppercase"
             />
           </div>
 

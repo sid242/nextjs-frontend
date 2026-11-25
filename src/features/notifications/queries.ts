@@ -7,12 +7,18 @@ import {
   deleteNotification,
   getNotificationPreferences,
   getNotifications,
+  getPushPublicKey,
   getUnreadCount,
+  listPushDevices,
   markAllNotificationsRead,
   markNotificationRead,
+  removePushDevice,
+  sendTestPush,
   updateNotificationPreferences,
+  type PushScope,
 } from "./api";
 import { notificationKeys } from "./keys";
+import { disableBrowserPush, enableBrowserPush } from "./push-client";
 import type { NotificationItem, NotificationPreference } from "./schemas";
 
 export const notificationsQueryOptions = () =>
@@ -112,5 +118,57 @@ export function useUpdateNotificationPreferences() {
     onSuccess: (data) => {
       queryClient.setQueryData(notificationKeys.preferences(), data);
     },
+  });
+}
+
+export function usePushPublicKey(scope: PushScope = "tenant") {
+  return useQuery({
+    queryKey: notificationKeys.pushPublicKey(scope),
+    queryFn: ({ signal }) => getPushPublicKey(scope, signal),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function usePushDevices(scope: PushScope = "tenant") {
+  return useQuery({
+    queryKey: notificationKeys.pushDevices(scope),
+    queryFn: ({ signal }) => listPushDevices(scope, signal),
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useEnableBrowserPush(scope: PushScope = "tenant") {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => enableBrowserPush(scope),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: notificationKeys.pushDevices(scope) });
+    },
+  });
+}
+
+export function useDisableBrowserPush(scope: PushScope = "tenant") {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => disableBrowserPush(scope),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: notificationKeys.pushDevices(scope) });
+    },
+  });
+}
+
+export function useRemovePushDevice(scope: PushScope = "tenant") {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (deviceId: string) => removePushDevice(scope, deviceId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: notificationKeys.pushDevices(scope) });
+    },
+  });
+}
+
+export function useSendTestPush(scope: PushScope = "tenant") {
+  return useMutation({
+    mutationFn: () => sendTestPush(scope),
   });
 }

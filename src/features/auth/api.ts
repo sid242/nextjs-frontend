@@ -1,3 +1,4 @@
+import { unsubscribeBrowserPushOnLogout } from "@/features/notifications";
 import { authApi } from "@/lib/api/http";
 import type { User } from "@/lib/api/types";
 import type { UserMembershipSummary } from "@/lib/tenancy/after-login";
@@ -37,7 +38,11 @@ export type LoginResult =
 export const login = (values: LoginValues) => authApi.post<LoginResult>("/login", values);
 export const register = (values: RegisterValues) =>
   authApi.post<{ user: User }>("/register", values);
-export const logout = () => authApi.post("/logout");
+
+export const logout = async () => {
+  await unsubscribeBrowserPushOnLogout("tenant");
+  return authApi.post("/logout");
+};
 
 // ─── Two-Factor Authentication (2FA) ────────────────────────────────────────────
 

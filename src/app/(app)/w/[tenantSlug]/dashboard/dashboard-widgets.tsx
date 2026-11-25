@@ -20,6 +20,7 @@ import { TENANT_PERMISSIONS } from "@/config/permissions";
 import { TENANT_PATHS } from "@/config/routes";
 import { useTenantSubscription } from "@/features/plans";
 import { hasTenantPermission, useActiveTenant, useTenantContext } from "@/features/tenants";
+import { formatMinorCurrency } from "@/lib/format";
 import { useTenantHref } from "@/lib/tenancy/use-tenant-href";
 
 const shortcuts = [
@@ -59,11 +60,7 @@ export function DashboardWidgets() {
   const seats = usage?.occupiedSeats ?? usage?.activeMembers ?? 0;
   const seatLimit = usage?.maxMembers;
   const capacityPercentage = seatLimit ? Math.min(100, (seats / seatLimit) * 100) : 0;
-  const price = plan
-    ? new Intl.NumberFormat(undefined, { style: "currency", currency: plan.currency }).format(
-        plan.priceCents / 100,
-      )
-    : null;
+  const price = plan ? formatMinorCurrency(plan.priceCents, plan.currency) : null;
   const interval = plan?.billingInterval === "ANNUAL" ? "year" : "month";
 
   if (isPending) {

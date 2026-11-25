@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { formatMinorCurrency } from "@/lib/format";
 
 import type { Plan } from "../schemas";
 
@@ -21,10 +22,15 @@ interface PlanCardProps {
 
 export function PlanCard({ plan, isCurrent, actionSlot }: PlanCardProps) {
   const isEnterprise = plan?.key === "ENTERPRISE";
-  const formattedPrice =
-    plan?.priceCents === 0
-      ? "$0"
-      : `$${((plan?.priceCents ?? 0) / 100).toLocaleString("en-US", { minimumFractionDigits: 0 })}`;
+  const formattedPrice = formatMinorCurrency(plan?.priceCents ?? 0, plan?.currency ?? "USD");
+  const isUnlimitedMembers = plan?.limits?.maxMembers === null;
+  const isUnlimitedStorage = plan?.limits?.maxStorageBytes === null;
+  const storageMb = plan?.entitlements?.maxStorageMb ?? 1024;
+  const storageLabel = isUnlimitedStorage
+    ? "Unlimited"
+    : storageMb >= 1024
+      ? `${(storageMb / 1024).toFixed(0)} GB`
+      : `${storageMb} MB`;
 
   return (
     <Card
@@ -78,7 +84,7 @@ export function PlanCard({ plan, isCurrent, actionSlot }: PlanCardProps) {
                 ? "/ month"
                 : plan?.billingInterval === "ANNUAL"
                   ? "/ year"
-                  : ""}
+                  : " one-time"}
             </span>
           </div>
 
@@ -95,10 +101,16 @@ export function PlanCard({ plan, isCurrent, actionSlot }: PlanCardProps) {
                 <div className="flex items-center gap-2">
                   <Check className="text-primary h-3.5 w-3.5 shrink-0" />
                   <span>
-                    Up to{" "}
-                    <strong className="font-semibold">
-                      {plan?.entitlements?.maxMembers ?? 5} team seats
-                    </strong>
+                    {isUnlimitedMembers ? (
+                      <strong className="font-semibold">Unlimited team seats</strong>
+                    ) : (
+                      <>
+                        Up to{" "}
+                        <strong className="font-semibold">
+                          {plan?.entitlements?.maxMembers ?? 5} team seats
+                        </strong>
+                      </>
+                    )}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -112,10 +124,7 @@ export function PlanCard({ plan, isCurrent, actionSlot }: PlanCardProps) {
                 <div className="flex items-center gap-2">
                   <Check className="text-primary h-3.5 w-3.5 shrink-0" />
                   <span>
-                    <strong className="font-semibold">
-                      {((plan?.entitlements?.maxStorageMb ?? 1024) / 1024).toFixed(0)} GB
-                    </strong>{" "}
-                    secure cloud storage
+                    <strong className="font-semibold">{storageLabel}</strong> secure cloud storage
                   </span>
                 </div>
                 <div className="flex items-center gap-2">

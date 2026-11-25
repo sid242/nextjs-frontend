@@ -27,6 +27,7 @@ import {
 } from "@/features/billing";
 import { hasTenantPermission, useTenantContext } from "@/features/tenants";
 import { getErrorMessage } from "@/lib/api/errors";
+import { formatMinorCurrency } from "@/lib/format";
 
 import { tenantSubscriptionQueryOptions, useChangeSubscription, usePublicPlans } from "../queries";
 import { changeSubscriptionSchema, type ChangeSubscriptionInput, type Plan } from "../schemas";
@@ -70,13 +71,21 @@ export function ChangePlanDialog({ open, onOpenChange, currentPlanKey }: ChangeP
   const isTargetFree = selectedPlanKey === "FREE" || (selectedPlan?.priceCents ?? 0) === 0;
 
   const planOptions = (plans ?? []).map((p: Plan) => {
-    const isFree = (p?.priceCents ?? 0) === 0 || p?.key === "FREE";
-    const monthlyPrice = (p?.priceCents ?? 0) / 100;
+    const targetMinor =
+      billingInterval === "ANNUAL"
+        ? (p?.priceYearlyMinor ??
+          (p?.billingInterval === "ANNUAL" ? (p?.priceCents ?? 0) : (p?.priceCents ?? 0) * 10))
+        : (p?.priceMonthlyMinor ??
+          (p?.billingInterval === "ANNUAL"
+            ? Math.round((p?.priceCents ?? 0) / 10)
+            : (p?.priceCents ?? 0)));
+    const isFree = targetMinor === 0 || p?.key === "FREE";
+    const formattedPrice = formatMinorCurrency(targetMinor, p?.currency ?? "INR");
     const priceDisplay = isFree
       ? "Free"
       : billingInterval === "ANNUAL"
-        ? `₹${(monthlyPrice * 10).toLocaleString()}/yr`
-        : `₹${monthlyPrice.toLocaleString()}/mo`;
+        ? `${formattedPrice}/yr`
+        : `${formattedPrice}/mo`;
 
     return {
       label: `${p?.name} — ${priceDisplay}`,
@@ -171,10 +180,11 @@ export function ChangePlanDialog({ open, onOpenChange, currentPlanKey }: ChangeP
         billingInterval,
       });
 
-      const formattedAmount = new Intl.NumberFormat(undefined, {
-        style: "currency",
-        currency: checkoutData.currency || "INR",
-      }).format((checkoutData.amountMinor || 0) / 100);
+      const formattedAmount = formatMinorCurrency(
+        checkoutData.amountMinor || 0,
+        checkoutData.currency || "INR",
+        { minimumFractionDigits: 2, maximumFractionDigits: 2 },
+      );
 
       setServerOrderInfo({
         amount: formattedAmount,

@@ -32,10 +32,16 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PLATFORM_ROUTES } from "@/config/routes";
 import { getErrorMessage } from "@/lib/api/errors";
+import { formatMinorCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import { useCreatePlan, usePlatformPlans, useUpdatePlan } from "../queries";
-import { createPlanSchema, type CreatePlanInput, type UpdatePlanInput } from "../schemas";
+import {
+  createPlanSchema,
+  PLAN_CURRENCY_OPTIONS,
+  type CreatePlanInput,
+  type UpdatePlanInput,
+} from "../schemas";
 
 interface PlanFormPageProps {
   planId?: string;
@@ -45,13 +51,6 @@ const INTERVAL_OPTIONS = [
   { label: "Monthly (Billed every month)", value: "MONTHLY" },
   { label: "Annual (Billed every 12 months)", value: "ANNUAL" },
   { label: "Lifetime (Single one-off charge)", value: "LIFETIME" },
-];
-
-const CURRENCY_OPTIONS = [
-  { label: "USD - United States Dollar ($)", value: "USD" },
-  { label: "EUR - Euro (€)", value: "EUR" },
-  { label: "GBP - British Pound (£)", value: "GBP" },
-  { label: "CAD - Canadian Dollar (CA$)", value: "CAD" },
 ];
 
 export function PlanFormPage({ planId: propPlanId }: PlanFormPageProps) {
@@ -123,10 +122,21 @@ export function PlanFormPage({ planId: propPlanId }: PlanFormPageProps) {
   const watchedValues = useWatch({ control: methods.control });
   const previewName = watchedValues.name?.trim() || "Untitled Plan";
   const previewPriceCents = Number(watchedValues.priceCents ?? 0);
-  const previewPriceFormatted =
-    previewPriceCents === 0 ? "$0" : `$${(previewPriceCents / 100).toFixed(2)}`;
-  const previewInterval = watchedValues.billingInterval || "MONTHLY";
-  const previewCurrency = watchedValues.currency || "USD";
+  const previewInterval =
+    typeof watchedValues.billingInterval === "string" ? watchedValues.billingInterval : "MONTHLY";
+  const previewCurrency =
+    typeof watchedValues.currency === "string" && watchedValues.currency.trim()
+      ? watchedValues.currency.trim().toUpperCase()
+      : "USD";
+  const previewPriceFormatted = formatMinorCurrency(previewPriceCents, previewCurrency);
+
+  const currencyOptions = useMemo(() => {
+    const existingCode = existingPlan?.currency?.trim().toUpperCase();
+    if (!existingCode || PLAN_CURRENCY_OPTIONS.some((o) => o.value === existingCode)) {
+      return [...PLAN_CURRENCY_OPTIONS];
+    }
+    return [{ label: existingCode, value: existingCode }, ...PLAN_CURRENCY_OPTIONS];
+  }, [existingPlan?.currency]);
   const previewDescription =
     watchedValues.description?.trim() ||
     "Ideal for scaling teams needing high-performance infrastructure and automated collaboration tools.";
@@ -398,16 +408,18 @@ export function PlanFormPage({ planId: propPlanId }: PlanFormPageProps) {
                     <ControlledInput
                       name="priceCents"
                       type="number"
-                      label="Price in Cents"
+                      label="Price (Minor Units)"
                       placeholder="4900"
-                      description="e.g. 4900 = $49.00 USD. Enter 0 for Free tier."
+                      description={`e.g. 4900 = ${formatMinorCurrency(4900, previewCurrency)} ${previewCurrency}. Enter 0 for Free tier.`}
                     />
                   </div>
 
                   <ControlledSelect
                     name="currency"
                     label="Currency"
-                    options={CURRENCY_OPTIONS}
+                    options={currencyOptions}
+                    returnPrimitiveValue
+                    isClearable={false}
                     description="ISO-4217 currency code."
                   />
 
@@ -415,6 +427,8 @@ export function PlanFormPage({ planId: propPlanId }: PlanFormPageProps) {
                     name="billingInterval"
                     label="Billing Recurrence"
                     options={INTERVAL_OPTIONS}
+                    returnPrimitiveValue
+                    isClearable={false}
                     description="Subscription charge interval."
                   />
                 </div>

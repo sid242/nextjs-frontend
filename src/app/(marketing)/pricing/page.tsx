@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePublicPlans } from "@/features/plans";
+import { formatMinorCurrency } from "@/lib/format";
 
 export default function PricingPage() {
   const [isAnnual, setIsAnnual] = useState(false);
@@ -99,8 +100,28 @@ export default function PricingPage() {
         ) : (
           filteredPlans.map((plan) => {
             const isEnterprise = plan?.key === "ENTERPRISE";
-            const basePrice = plan?.priceCents / 100;
-            const effectivePrice = isAnnual ? Math.round(basePrice * 0.8) : basePrice;
+            const monthlyBaseMinor =
+              plan?.priceMonthlyMinor ??
+              (plan?.billingInterval === "ANNUAL"
+                ? Math.round((plan?.priceCents ?? 0) / 12)
+                : (plan?.priceCents ?? 0));
+            const effectiveMinor = isAnnual
+              ? plan?.priceYearlyMinor
+                ? Math.round(plan.priceYearlyMinor / 12)
+                : Math.round(monthlyBaseMinor * 0.8)
+              : monthlyBaseMinor;
+            const formattedEffectivePrice = formatMinorCurrency(
+              effectiveMinor,
+              plan?.currency ?? "USD",
+            );
+            const isUnlimitedMembers = plan?.limits?.maxMembers === null;
+            const isUnlimitedStorage = plan?.limits?.maxStorageBytes === null;
+            const storageMb = plan?.entitlements?.maxStorageMb ?? 1024;
+            const storageDisplay = isUnlimitedStorage
+              ? "Unlimited"
+              : storageMb >= 1024
+                ? `${(storageMb / 1024).toFixed(0)} GB`
+                : `${storageMb} MB`;
 
             return (
               <Card
@@ -134,10 +155,10 @@ export default function PricingPage() {
 
                     <div className="flex items-baseline gap-1 pt-4">
                       <span className="text-3xl font-extrabold tracking-tight">
-                        {effectivePrice === 0 ? "$0" : `$${effectivePrice}`}
+                        {formattedEffectivePrice}
                       </span>
                       <span className="text-muted-foreground text-xs">
-                        {effectivePrice === 0
+                        {effectiveMinor === 0
                           ? "forever"
                           : isAnnual
                             ? "/user/mo (billed annually)"
@@ -154,16 +175,18 @@ export default function PricingPage() {
                       <li className="flex items-center gap-2">
                         <Check className="h-4 w-4 shrink-0 text-emerald-500" />
                         <span>
-                          <strong>{plan?.entitlements?.maxMembers ?? 5}</strong> Team Members
+                          {isUnlimitedMembers ? (
+                            <strong>Unlimited</strong>
+                          ) : (
+                            <strong>{plan?.entitlements?.maxMembers ?? 5}</strong>
+                          )}{" "}
+                          Team Members
                         </span>
                       </li>
                       <li className="flex items-center gap-2">
                         <Check className="h-4 w-4 shrink-0 text-emerald-500" />
                         <span>
-                          <strong>
-                            {((plan?.entitlements?.maxStorageMb ?? 1024) / 1024).toFixed(0)} GB
-                          </strong>{" "}
-                          Storage Quota
+                          <strong>{storageDisplay}</strong> Storage Quota
                         </span>
                       </li>
                       <li className="flex items-center gap-2">
@@ -208,7 +231,7 @@ export default function PricingPage() {
                     variant={isEnterprise ? "default" : "outline"}
                   >
                     <Link href="/register">
-                      {effectivePrice === 0 ? "Start for Free" : "Get Started"}
+                      {effectiveMinor === 0 ? "Start for Free" : "Get Started"}
                     </Link>
                   </Button>
                 </CardFooter>

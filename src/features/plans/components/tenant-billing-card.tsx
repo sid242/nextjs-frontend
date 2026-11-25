@@ -17,6 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { hasTenantPermission, useTenantContext } from "@/features/tenants";
+import { formatMinorCurrency } from "@/lib/format";
 
 import { useTenantSubscription } from "../queries";
 import { CancelSubscriptionDialog } from "./cancel-subscription-dialog";
@@ -69,10 +70,23 @@ export function TenantBillingCard() {
   const isPaidPlan = plan?.key && plan.key !== "FREE" && (plan?.priceCents ?? 0) > 0;
   const isCancelling = subscription?.cancelAtPeriodEnd;
 
+  const intervalLabel =
+    plan?.billingInterval === "ANNUAL"
+      ? " / year"
+      : plan?.billingInterval === "LIFETIME"
+        ? " one-time"
+        : " / month";
   const formattedPrice =
-    plan?.priceCents === 0
+    (plan?.priceCents ?? 0) === 0
       ? "Free"
-      : `₹${((plan?.priceCents ?? 0) / 100).toLocaleString()} / month`;
+      : `${formatMinorCurrency(plan?.priceCents ?? 0, plan?.currency ?? "INR")}${intervalLabel}`;
+  const isUnlimitedStorage = plan?.limits?.maxStorageBytes === null;
+  const storageMb = plan?.entitlements?.maxStorageMb ?? 1024;
+  const storageDisplay = isUnlimitedStorage
+    ? "Unlimited"
+    : storageMb >= 1024
+      ? `${(storageMb / 1024).toFixed(0)} GB`
+      : `${storageMb} MB`;
 
   return (
     <>
@@ -210,9 +224,7 @@ export function TenantBillingCard() {
                 <HardDrive className="text-primary h-3.5 w-3.5" />
                 Cloud Storage Quota
               </div>
-              <div className="font-mono text-base font-bold">
-                {((plan?.entitlements?.maxStorageMb ?? 1024) / 1024).toFixed(0)} GB
-              </div>
+              <div className="font-mono text-base font-bold">{storageDisplay}</div>
               <p className="text-muted-foreground text-[10px]">Encrypted S3 bucket storage</p>
             </div>
 

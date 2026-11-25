@@ -34,7 +34,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getErrorMessage } from "@/lib/api/errors";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatMinorCurrency } from "@/lib/format";
 import { useSearchQueryParams } from "@/lib/hooks";
 
 import { useTenantInvoices } from "../queries";
@@ -56,10 +56,10 @@ const STATUS_CONFIG: Record<
 };
 
 function formatCurrency(cents: number, currency = "USD"): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: currency.toUpperCase(),
-  }).format(cents / 100);
+  return formatMinorCurrency(cents, currency, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 export function InvoicesTable() {

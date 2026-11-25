@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { tenantBillingOverviewSchema } from "./schemas";
+import { catalogPlanSchema, tenantBillingOverviewSchema } from "./schemas";
 
 const plan = {
   id: "809e9454-2afa-4cbf-9b3f-1e027522da50",
@@ -49,5 +49,47 @@ describe("tenantBillingOverviewSchema", () => {
     });
     expect(result?.plan?.priceCents).toBe(0);
     expect(result?.usage.remainingSeats).toBeNull();
+  });
+});
+
+describe("catalogPlanSchema", () => {
+  it("normalizes backend dot-key entitlements, limits, and non-USD currencies", () => {
+    const parsed = catalogPlanSchema.parse({
+      ...plan,
+      key: "ENTERPRISE",
+      name: "Enterprise Scale",
+      currency: "eur",
+      billingInterval: "ANNUAL",
+      priceMonthlyMinor: 9900,
+      priceYearlyMinor: 99900,
+      limits: {
+        maxMembers: null,
+        maxStorageBytes: null,
+        maxCustomRoles: null,
+      },
+      entitlements: {
+        "members.max": 500,
+        "storage.gb": 500,
+        "groups.enabled": true,
+        "api_access.enabled": true,
+        "sso.saml": true,
+        "audit.retention_days": 365,
+      },
+    });
+
+    expect(parsed.currency).toBe("EUR");
+    expect(parsed.priceCents).toBe(99900);
+    expect(parsed.priceMonthlyMinor).toBe(9900);
+    expect(parsed.priceYearlyMinor).toBe(99900);
+    expect(parsed.limits?.maxMembers).toBeNull();
+    expect(parsed.entitlements).toEqual({
+      maxMembers: 500,
+      maxProjects: 10,
+      maxStorageMb: 512000,
+      hasCustomRoles: true,
+      hasAdvancedAnalytics: true,
+      hasPrioritySupport: true,
+      hasAuditRetentionDays: 365,
+    });
   });
 });

@@ -45,11 +45,37 @@ export async function getPlatformPlans(
 }
 
 export async function createPlan(input: CreatePlanInput): Promise<Plan> {
-  return api.post<Plan>("/plans/platform", input);
+  const { priceCents, currency, entitlements, ...rest } = input;
+  const pricePayload =
+    input.billingInterval === "ANNUAL"
+      ? { priceMonthlyMinor: 0, priceYearlyMinor: priceCents }
+      : { priceMonthlyMinor: priceCents, priceYearlyMinor: priceCents * 10 };
+  const limits = {
+    maxMembers: entitlements?.maxMembers ?? null,
+    maxStorageBytes: entitlements?.maxStorageMb ? entitlements.maxStorageMb * 1024 * 1024 : null,
+    maxCustomRoles: entitlements?.hasCustomRoles ? null : 0,
+    urlAccess: { path: true as const, subdomain: true, customDomain: false },
+  };
+  return api.post<Plan>("/billing/platform/plans", {
+    ...rest,
+    ...pricePayload,
+    currency: currency.trim().toUpperCase(),
+    limits,
+    entitlements,
+  });
 }
 
 export async function updatePlan(id: string, input: UpdatePlanInput): Promise<Plan> {
-  return api.patch<Plan>(`/plans/platform/${id}`, input);
+  const { priceCents, currency, ...rest } = input;
+  const pricePayload =
+    input.billingInterval === "ANNUAL"
+      ? { priceYearlyMinor: priceCents }
+      : { priceMonthlyMinor: priceCents };
+  return api.patch<Plan>(`/billing/platform/plans/${id}`, {
+    ...rest,
+    ...pricePayload,
+    currency: currency.trim().toUpperCase(),
+  });
 }
 
 export async function getTenantSubscription(

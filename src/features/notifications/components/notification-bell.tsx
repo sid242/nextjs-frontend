@@ -1,15 +1,19 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircleIcon,
   AlertOctagonIcon,
   BellIcon,
+  BellRingIcon,
   CheckCheckIcon,
   CheckCircle2Icon,
   InfoIcon,
+  SettingsIcon,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,10 +25,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useSocketEvent } from "@/features/realtime";
 import { formatDate } from "@/lib/format";
+import { useTenantHref } from "@/lib/tenancy/use-tenant-href";
 import { cn } from "@/lib/utils";
 
 import { notificationKeys } from "../keys";
-import { useMarkAllNotificationsRead, useMarkNotificationRead, useNotifications } from "../queries";
+import { getActivePushSubscription, getPushSupportStatus } from "../push-client";
+import {
+  useEnableBrowserPush,
+  useMarkAllNotificationsRead,
+  useMarkNotificationRead,
+  useNotifications,
+  usePushPublicKey,
+} from "../queries";
 import type { NotificationType } from "../schemas";
 
 const TYPE_ICONS: Record<NotificationType, typeof InfoIcon> = {
@@ -43,9 +55,39 @@ const TYPE_COLORS: Record<NotificationType, string> = {
 
 export function NotificationBell() {
   const queryClient = useQueryClient();
+  const tenantHref = useTenantHref();
+  const [canQuickEnablePush, setCanQuickEnablePush] = useState(false);
+
   const { data: notifications = [] } = useNotifications();
+  const { data: pushKey } = usePushPublicKey("tenant");
+  const enablePush = useEnableBrowserPush("tenant");
   const markRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
+
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      const status = getPushSupportStatus();
+      if (status !== "default" && status !== "granted") return;
+      const sub = await getActivePushSubscription().catch(() => null);
+      if (active && !sub) {
+        setCanQuickEnablePush(true);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleQuickEnablePush = async () => {
+    try {
+      await enablePush.mutateAsync();
+      setCanQuickEnablePush(false);
+      toast.success("Browser push notifications enabled.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not enable browser push.");
+    }
+  };
 
   useSocketEvent("notification:new", () => {
     void queryClient.invalidateQueries({ queryKey: notificationKeys.all });
@@ -163,6 +205,33 @@ export function NotificationBell() {
               );
             })
           )}
+        </div>
+
+        <div className="bg-muted/30 flex items-center justify-between gap-2 border-t px-3 py-2">
+          {pushKey?.enabled && canQuickEnablePush ? (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="h-7 gap-1.5 text-xs"
+              disabled={enablePush.isPending}
+              onClick={() => void handleQuickEnablePush()}
+            >
+              <BellRingIcon className="h-3.5 w-3.5" />
+              {enablePush.isPending ? "Enabling..." : "Enable Push"}
+            </Button>
+          ) : (
+            <span />
+          )}
+          <DropdownMenuItem asChild className="p-0 focus:bg-transparent">
+            <Link
+              href={tenantHref("/settings/notifications")}
+              className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium"
+            >
+              <SettingsIcon className="h-3.5 w-3.5" />
+              Notification settings
+            </Link>
+          </DropdownMenuItem>
         </div>
       </DropdownMenuContent>
     </DropdownMenu>

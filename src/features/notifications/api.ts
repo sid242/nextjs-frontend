@@ -8,7 +8,14 @@ import type {
   NotificationPreference,
   NotificationSeverity,
   NotificationType,
+  PushDevice,
+  PushPublicKeyConfig,
 } from "./schemas";
+
+export type PushScope = "tenant" | "platform";
+
+const pushBase = (scope: PushScope) =>
+  scope === "platform" ? "/platform/notifications/push" : "/notifications/push";
 
 interface BackendNotificationRecord {
   id: string;
@@ -103,4 +110,56 @@ export async function updateNotificationPreferences(
     { preferences },
   );
   return res?.preferences ?? [];
+}
+
+export async function getPushPublicKey(
+  scope: PushScope = "tenant",
+  signal?: AbortSignal,
+): Promise<PushPublicKeyConfig> {
+  return api.get<PushPublicKeyConfig>(`${pushBase(scope)}/public-key`, { signal });
+}
+
+export async function listPushDevices(
+  scope: PushScope = "tenant",
+  signal?: AbortSignal,
+): Promise<PushDevice[]> {
+  const res = await api.get<{ devices: PushDevice[] }>(`${pushBase(scope)}/subscriptions`, {
+    signal,
+  });
+  return res?.devices ?? [];
+}
+
+export async function subscribePushDevice(
+  scope: PushScope,
+  payload: {
+    endpoint: string;
+    keys: { p256dh: string; auth: string };
+    userAgent?: string;
+    platform?: "web" | "android" | "ios";
+    appVersion?: string;
+  },
+): Promise<{ subscribed: boolean; id: string }> {
+  return api.post<{ subscribed: boolean; id: string }>(`${pushBase(scope)}/subscribe`, payload);
+}
+
+export async function unsubscribePushDevice(
+  scope: PushScope,
+  endpoint: string,
+): Promise<{ unsubscribed: boolean }> {
+  return api.delete<{ unsubscribed: boolean }>(`${pushBase(scope)}/subscribe`, {
+    data: { endpoint },
+  });
+}
+
+export async function removePushDevice(
+  scope: PushScope,
+  deviceId: string,
+): Promise<{ removed: boolean }> {
+  return api.delete<{ removed: boolean }>(`${pushBase(scope)}/subscriptions/${deviceId}`);
+}
+
+export async function sendTestPush(
+  scope: PushScope,
+): Promise<{ queued: boolean; deviceCount: number }> {
+  return api.post<{ queued: boolean; deviceCount: number }>(`${pushBase(scope)}/test`);
 }

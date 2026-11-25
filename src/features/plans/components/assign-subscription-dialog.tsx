@@ -24,6 +24,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { getErrorMessage } from "@/lib/api/errors";
+import { formatMinorCurrency } from "@/lib/format";
 
 import { useAssignSubscription, usePublicPlans } from "../queries";
 import { assignSubscriptionSchema, type AssignSubscriptionInput, type Plan } from "../schemas";
@@ -68,10 +69,19 @@ export function AssignSubscriptionDialog({
     },
   });
 
-  const planOptions = (plans ?? []).map((p: Plan) => ({
-    label: `${p?.name} — $${((p?.priceCents ?? 0) / 100).toFixed(0)}/mo (${p?.key})`,
-    value: p?.key ?? "",
-  }));
+  const planOptions = (plans ?? []).map((p: Plan) => {
+    const intervalSuffix =
+      p?.billingInterval === "ANNUAL"
+        ? "/yr"
+        : p?.billingInterval === "LIFETIME"
+          ? " one-time"
+          : "/mo";
+    const formattedPrice = formatMinorCurrency(p?.priceCents ?? 0, p?.currency ?? "USD");
+    return {
+      label: `${p?.name} — ${formattedPrice}${intervalSuffix} (${p?.key})`,
+      value: p?.key ?? "",
+    };
+  });
 
   const isTrial = useWatch({ control: methods.control, name: "isTrial" });
 

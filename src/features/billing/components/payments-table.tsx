@@ -23,7 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatMinorCurrency } from "@/lib/format";
 
 import { useTenantPayments } from "../queries";
 import type { Payment } from "../schemas";
@@ -47,18 +47,7 @@ const STATUS_CONFIG: Record<
 };
 
 function formatCurrency(minor: number, currency = "INR"): string {
-  const isINR = currency?.toUpperCase?.() === "INR";
-  const amount = (minor ?? 0) / 100;
-
-  try {
-    return new Intl.NumberFormat(isINR ? "en-IN" : "en-US", {
-      style: "currency",
-      currency: currency || "INR",
-      maximumFractionDigits: 2,
-    }).format(amount);
-  } catch {
-    return `${currency} ${amount.toFixed(2)}`;
-  }
+  return formatMinorCurrency(minor, currency, { maximumFractionDigits: 2 });
 }
 
 export function PaymentsTable() {

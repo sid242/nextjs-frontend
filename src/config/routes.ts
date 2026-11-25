@@ -45,6 +45,7 @@ export const PLATFORM_ROUTES = {
   AUDIT_LOGS: "/platform/audit-logs",
   SUPPORT_SESSIONS: "/platform/support-sessions",
   CHAT: "/platform/chat",
+  SETTINGS_NOTIFICATIONS: "/platform/settings/notifications",
 } as const;
 
 /**
@@ -77,6 +78,7 @@ export const TENANT_PATHS = {
   EMAIL_TEMPLATE_EDIT: (id: string) => `/email-templates/${id}/edit` as const,
   SETTINGS: "/settings",
   SETTINGS_PROFILE: "/settings/profile",
+  SETTINGS_NOTIFICATIONS: "/settings/notifications",
   SETTINGS_WORKSPACE: "/settings/workspace",
   SETTINGS_SECURITY: "/settings/security",
   SETTINGS_ACCESS: "/settings/access",
@@ -121,6 +123,7 @@ export const ROUTES = {
       SETTINGS: {
         ROOT: `${base}${TENANT_PATHS.SETTINGS}` as const,
         PROFILE: `${base}${TENANT_PATHS.SETTINGS_PROFILE}` as const,
+        NOTIFICATIONS: `${base}${TENANT_PATHS.SETTINGS_NOTIFICATIONS}` as const,
         WORKSPACE: `${base}${TENANT_PATHS.SETTINGS_WORKSPACE}` as const,
         SECURITY: `${base}${TENANT_PATHS.SETTINGS_SECURITY}` as const,
         ACCESS: `${base}${TENANT_PATHS.SETTINGS_ACCESS}` as const,

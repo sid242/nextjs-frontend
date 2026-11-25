@@ -26,7 +26,7 @@ import {
 import { getErrorMessage } from "@/lib/api/errors";
 
 import { useCreatePlan } from "../queries";
-import { createPlanSchema, type CreatePlanInput } from "../schemas";
+import { createPlanSchema, PLAN_CURRENCY_OPTIONS, type CreatePlanInput } from "../schemas";
 
 interface CreatePlanDialogProps {
   open: boolean;
@@ -138,9 +138,9 @@ export function CreatePlanDialog({ open, onOpenChange }: CreatePlanDialogProps) 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <ControlledInput
               name="priceCents"
-              label="Price (Cents)"
+              label="Price (Minor Units)"
               type="number"
-              placeholder="e.g. 4900 ($49.00)"
+              placeholder="e.g. 4900"
               required
               className="h-9 font-mono text-xs"
             />
@@ -149,14 +149,16 @@ export function CreatePlanDialog({ open, onOpenChange }: CreatePlanDialogProps) 
               label="Billing Interval"
               options={intervalOptions}
               returnPrimitiveValue
+              isClearable={false}
               required
             />
-            <ControlledInput
+            <ControlledSelect
               name="currency"
               label="Currency"
-              placeholder="USD"
+              options={[...PLAN_CURRENCY_OPTIONS]}
+              returnPrimitiveValue
+              isClearable={false}
               required
-              className="h-9 font-mono text-xs uppercase"
             />
           </div>
 

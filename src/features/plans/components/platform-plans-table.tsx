@@ -40,6 +40,7 @@ import { PLATFORM_PERMISSION_KEYS } from "@/config/permissions";
 import { PLATFORM_ROUTES } from "@/config/routes";
 import { PlatformPermissionGate } from "@/features/platform";
 import { getErrorMessage } from "@/lib/api/errors";
+import { formatMinorCurrency } from "@/lib/format";
 import { useSearchQueryParams, useTableColumns, type TableColumnDef } from "@/lib/hooks";
 
 import { usePlatformPlans } from "../queries";
@@ -144,14 +145,14 @@ export function PlatformPlansTable() {
           </TableCell>
         );
       case "pricing": {
-        const isFree = (plan?.priceCents ?? 0) === 0;
-        const formattedPrice = isFree ? "$0" : `$${((plan?.priceCents ?? 0) / 100).toFixed(0)}`;
+        const currency = (plan?.currency || "USD").toUpperCase();
+        const formattedPrice = formatMinorCurrency(plan?.priceCents ?? 0, currency);
         return (
           <TableCell key="pricing" className="py-3.5">
             <div className="flex items-baseline gap-1">
               <span className="text-foreground font-mono text-xs font-bold">{formattedPrice}</span>
               <span className="text-muted-foreground text-[10px]">
-                {plan?.currency ?? "USD"} / {plan?.billingInterval?.toLowerCase()}
+                {currency} / {plan?.billingInterval?.toLowerCase()}
               </span>
             </div>
           </TableCell>
@@ -162,18 +163,27 @@ export function PlatformPlansTable() {
           <TableCell key="capacity" className="py-3.5">
             <div className="text-foreground flex items-center gap-1.5 text-xs font-medium">
               <Users className="text-muted-foreground size-3.5" />
-              <span>{plan?.entitlements?.maxMembers ?? 5} team seats</span>
+              <span>
+                {plan?.limits?.maxMembers === null
+                  ? "Unlimited seats"
+                  : `${plan?.entitlements?.maxMembers ?? 5} team seats`}
+              </span>
             </div>
           </TableCell>
         );
       case "quota": {
+        const isUnlimitedStorage = plan?.limits?.maxStorageBytes === null;
         const storageMb = plan?.entitlements?.maxStorageMb ?? 1024;
-        const storageGb = (storageMb / 1024).toFixed(0);
+        const storageLabel = isUnlimitedStorage
+          ? "Unlimited"
+          : storageMb >= 1024
+            ? `${(storageMb / 1024).toFixed(0)} GB`
+            : `${storageMb} MB`;
         return (
           <TableCell key="quota" className="py-3.5">
             <div className="text-muted-foreground flex items-center gap-1.5 font-mono text-xs">
               <HardDrive className="size-3.5" />
-              <span>{storageGb} GB</span>
+              <span>{storageLabel}</span>
             </div>
           </TableCell>
         );

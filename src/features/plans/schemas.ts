@@ -14,12 +14,99 @@ export const planEntitlementsSchema = z.object({
 
 export type PlanEntitlements = z.infer<typeof planEntitlementsSchema>;
 
+export const PLAN_CURRENCY_OPTIONS = [
+  { label: "INR - Indian Rupee (₹)", value: "INR" },
+  { label: "USD - United States Dollar ($)", value: "USD" },
+  { label: "EUR - Euro (€)", value: "EUR" },
+  { label: "GBP - British Pound (£)", value: "GBP" },
+  { label: "CAD - Canadian Dollar (CA$)", value: "CAD" },
+] as const;
+
+export const planLimitsSchema = z.object({
+  maxMembers: z.number().int().nullable().optional(),
+  maxStorageBytes: z.number().int().nullable().optional(),
+  maxCustomRoles: z.number().int().nullable().optional(),
+});
+
+export type PlanLimits = z.infer<typeof planLimitsSchema>;
+
+function toPositiveInt(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value) && value >= 1) {
+    return Math.round(value);
+  }
+  return undefined;
+}
+
+/**
+ * Normalizes both backend dot-key entitlement maps (e.g. `members.max`, `storage.gb`)
+ * with `Plan.limits` fallbacks and legacy camelCase entitlement records into `PlanEntitlements`.
+ */
+export function normalizePlanEntitlements(
+  rawEntitlements: unknown,
+  rawLimits?: PlanLimits | null,
+): PlanEntitlements | undefined {
+  const direct = planEntitlementsSchema.safeParse(rawEntitlements);
+  if (direct.success) {
+    return direct.data;
+  }
+
+  const record =
+    rawEntitlements && typeof rawEntitlements === "object" && !Array.isArray(rawEntitlements)
+      ? (rawEntitlements as Record<string, unknown>)
+      : {};
+
+  const hasRecordKeys = Object.keys(record).length > 0;
+  if (!hasRecordKeys && !rawLimits) {
+    return undefined;
+  }
+
+  const storageFromGb =
+    typeof record["storage.gb"] === "number" && Number.isFinite(record["storage.gb"])
+      ? Math.round(record["storage.gb"] * 1024)
+      : undefined;
+  const storageFromBytes =
+    typeof rawLimits?.maxStorageBytes === "number" && Number.isFinite(rawLimits.maxStorageBytes)
+      ? Math.round(rawLimits.maxStorageBytes / (1024 * 1024))
+      : undefined;
+
+  const candidate: PlanEntitlements = {
+    maxMembers:
+      toPositiveInt(record.maxMembers) ??
+      toPositiveInt(record["members.max"]) ??
+      toPositiveInt(rawLimits?.maxMembers) ??
+      5,
+    maxProjects: toPositiveInt(record.maxProjects) ?? toPositiveInt(record["projects.max"]) ?? 10,
+    maxStorageMb: Math.max(
+      100,
+      toPositiveInt(record.maxStorageMb) ?? storageFromGb ?? storageFromBytes ?? 1024,
+    ),
+    hasCustomRoles: Boolean(
+      record.hasCustomRoles ??
+      record["groups.enabled"] ??
+      (rawLimits?.maxCustomRoles === null || (rawLimits?.maxCustomRoles ?? 0) > 2),
+    ),
+    hasAdvancedAnalytics: Boolean(
+      record.hasAdvancedAnalytics ?? record["api_access.enabled"] ?? record["audit.export"],
+    ),
+    hasPrioritySupport: Boolean(record.hasPrioritySupport ?? record["sso.saml"]),
+    hasAuditRetentionDays:
+      toPositiveInt(record.hasAuditRetentionDays) ??
+      toPositiveInt(record["audit.retention_days"]) ??
+      30,
+  };
+
+  const normalized = planEntitlementsSchema.safeParse(candidate);
+  return normalized.success ? normalized.data : undefined;
+}
+
 export const planSchema = z.object({
   id: z.string().uuid(),
   key: z.string(),
   name: z.string(),
   description: z.string().nullable().optional(),
   priceCents: z.number().int(),
+  priceMonthlyMinor: z.number().int().optional(),
+  priceYearlyMinor: z.number().int().optional(),
   currency: z.string(),
   billingInterval: z.enum(["MONTHLY", "ANNUAL", "LIFETIME"]),
   isActive: z.boolean(),
@@ -31,6 +118,7 @@ export const planSchema = z.object({
   includedSeats: z.number().int().optional(),
   version: z.number().int().optional(),
   ctaLabel: z.string().nullable().optional(),
+  limits: planLimitsSchema.nullable().optional(),
   entitlements: planEntitlementsSchema.nullable().optional(),
   createdAt: z.string(),
   updatedAt: z.string().optional(),
@@ -42,19 +130,26 @@ const catalogPlanPayloadSchema = planSchema.omit({ priceCents: true, entitlement
   priceCents: z.number().int().optional(),
   priceMonthlyMinor: z.number().int().optional(),
   priceYearlyMinor: z.number().int().optional(),
+  limits: z.unknown().optional(),
   entitlements: z.unknown().optional(),
 });
 
 export const catalogPlanSchema = catalogPlanPayloadSchema.transform(
-  ({ priceCents, priceMonthlyMinor, priceYearlyMinor, entitlements, ...plan }): Plan => {
-    const legacyEntitlements = planEntitlementsSchema.safeParse(entitlements);
+  ({ priceCents, priceMonthlyMinor, priceYearlyMinor, limits, entitlements, ...plan }): Plan => {
+    const parsedLimits = planLimitsSchema.safeParse(limits);
+    const normalizedLimits = parsedLimits.success ? parsedLimits.data : null;
+    const normalizedCurrency = (plan.currency || "USD").trim().toUpperCase();
     return {
       ...plan,
+      currency: normalizedCurrency,
+      priceMonthlyMinor,
+      priceYearlyMinor,
       priceCents:
         priceCents ??
         (plan.billingInterval === "ANNUAL" ? priceYearlyMinor : priceMonthlyMinor) ??
         0,
-      entitlements: legacyEntitlements.success ? legacyEntitlements.data : undefined,
+      limits: normalizedLimits,
+      entitlements: normalizePlanEntitlements(entitlements, normalizedLimits),
     };
   },
 );

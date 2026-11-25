@@ -43,3 +43,21 @@ export const notificationPreferencesSchema = z.object({
   timezone: z.string().default("UTC"),
 });
 export type NotificationPreference = z.infer<typeof notificationPreferencesSchema>;
+
+export const pushDeviceSchema = z.object({
+  id: z.string(),
+  channel: z.enum(["webpush", "fcm", "apns"]),
+  platform: z.string(),
+  appVersion: z.string().nullable().optional(),
+  userAgent: z.string().nullable().optional(),
+  failureCount: z.number().default(0),
+  disabledAt: z.string().nullable().optional(),
+  createdAt: z.string(),
+  lastUsedAt: z.string().nullable().optional(),
+});
+export type PushDevice = z.infer<typeof pushDeviceSchema>;
+
+export interface PushPublicKeyConfig {
+  enabled: boolean;
+  publicKey: string | null;
+}

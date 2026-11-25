@@ -17,6 +17,7 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   title: { default: siteConfig.name, template: `%s · ${siteConfig.name}` },
   description: siteConfig.description,
+  manifest: "/manifest.webmanifest",
 };
 
 export const viewport: Viewport = {
