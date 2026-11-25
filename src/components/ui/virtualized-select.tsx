@@ -336,7 +336,7 @@ export function VirtualizedSelect<T extends string | number = string>({
   const hiddenOptions = selectedOptions?.slice(visibleCount) ?? [];
 
   return (
-    <div ref={assignContainerRef} className="relative w-full">
+    <div ref={assignContainerRef} className="relative w-full max-w-full min-w-0">
       {/* Hidden measurement div for Ant Design style responsive tag calculation */}
       {isMultiSelect && maxTagCount === "responsive" && (
         <div
@@ -372,21 +372,21 @@ export function VirtualizedSelect<T extends string | number = string>({
           }
         }}
         className={cn(
-          "border-input placeholder:text-muted-foreground flex min-h-9 w-full cursor-pointer items-center justify-between rounded-md border bg-transparent px-2.5 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none",
+          "border-input placeholder:text-muted-foreground flex min-h-9 w-full max-w-full min-w-0 cursor-pointer items-center justify-between overflow-hidden rounded-md border bg-transparent px-2.5 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none",
           "focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-[3px]",
           disabled && "cursor-not-allowed opacity-50",
           error && "border-destructive focus-within:ring-destructive/20",
           className,
         )}
       >
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5 overflow-hidden">
           {/* Multi-Select Tags */}
           {isMultiSelect ? (
             <Fragment>
               {visibleOptions?.map((opt) => (
                 <span
                   key={String(opt?.value)}
-                  className="bg-muted text-foreground inline-flex h-6 items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium"
+                  className="bg-muted text-foreground inline-flex h-6 max-w-full min-w-0 items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium"
                 >
                   {opt?.icon}
                   <span className="max-w-30 truncate">{opt?.label}</span>
@@ -463,12 +463,12 @@ export function VirtualizedSelect<T extends string | number = string>({
                   className="placeholder:text-muted-foreground min-w-12.5 flex-1 bg-transparent py-0.5 text-sm outline-none"
                 />
               ) : (selectedOptions?.length ?? 0) === 0 ? (
-                <span className="text-muted-foreground">{placeholder}</span>
+                <span className="text-muted-foreground min-w-0 truncate">{placeholder}</span>
               ) : null}
             </Fragment>
           ) : (
             /* Single Select Display */
-            <div className="flex min-w-0 flex-1 items-center">
+            <div className="flex min-w-0 flex-1 items-center overflow-hidden">
               {isSearchable && isOpen ? (
                 <input
                   ref={searchInputRef}
@@ -479,15 +479,15 @@ export function VirtualizedSelect<T extends string | number = string>({
                   value={searchQuery}
                   onChange={handleSearchInputChange}
                   placeholder={searchPlaceholder}
-                  className="placeholder:text-muted-foreground w-full bg-transparent text-sm outline-none"
+                  className="placeholder:text-muted-foreground w-full min-w-0 bg-transparent text-sm outline-none"
                 />
               ) : (selectedOptions?.length ?? 0) > 0 ? (
-                <span className="flex items-center gap-2 truncate">
+                <span className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
                   {selectedOptions?.[0]?.icon}
-                  <span className="truncate">{selectedOptions?.[0]?.label}</span>
+                  <span className="min-w-0 flex-1 truncate">{selectedOptions?.[0]?.label}</span>
                 </span>
               ) : (
-                <span className="text-muted-foreground truncate">{placeholder}</span>
+                <span className="text-muted-foreground min-w-0 flex-1 truncate">{placeholder}</span>
               )}
             </div>
           )}

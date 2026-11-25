@@ -218,9 +218,9 @@ export function ProfileForm({ user }: { user?: User }) {
       <FormWrapper
         methods={methods}
         onSubmit={(values) => updateProfileMutation?.mutate(values)}
-        className="grid max-w-lg gap-4"
+        className="grid w-full max-w-lg min-w-0 gap-4"
       >
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
           <ControlledInput
             name="firstName"
             label="First Name"
@@ -267,7 +267,7 @@ export function ProfileForm({ user }: { user?: User }) {
           defaultCountryCode="IN"
         />
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
           <ControlledSelect
             name="timezone"
             label="Timezone"

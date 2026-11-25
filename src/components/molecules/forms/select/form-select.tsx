@@ -75,7 +75,7 @@ export function FormSelect<T extends string | number = string>({
   const describedBy = error ? errorId : resolvedHint ? hintId : undefined;
 
   return (
-    <div className={cn("grid gap-1.5", containerClassName)}>
+    <div className={cn("grid min-w-0 gap-1.5", containerClassName)}>
       {label || badge ? (
         <div className="flex items-center justify-between">
           {label ? (
