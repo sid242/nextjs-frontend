@@ -12,7 +12,7 @@ export default function AnalyticsPage() {
 
   return (
     <TenantPermissionGate permission={TENANT_PERMISSIONS.ANALYTICS_READ}>
-      <div className="grid gap-6">
+      <div className="grid min-w-0 gap-6">
         <PageHeader
           title="Analytics & Reports"
           description={`Usage metrics, security health, audit activity, and report exports for ${activeTenant?.name ?? "your organization"}.`}

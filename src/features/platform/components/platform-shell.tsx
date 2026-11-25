@@ -464,7 +464,7 @@ export function PlatformShell({ children }: PlatformShellProps) {
           </header>
 
           {/* Content Body */}
-          <main className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-8">{children}</main>
+          <main className="mx-auto w-full max-w-7xl min-w-0 flex-1 p-4 md:p-8">{children}</main>
         </div>
 
         <PlatformProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />

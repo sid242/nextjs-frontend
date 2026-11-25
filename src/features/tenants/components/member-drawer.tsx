@@ -140,14 +140,14 @@ export function MemberDrawer({
         <Separator className="my-3" />
 
         <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="grid h-8 w-full grid-cols-3">
-            <TabsTrigger value="profile" className="text-xs">
+          <TabsList className="grid h-auto min-h-9 w-full grid-cols-3">
+            <TabsTrigger value="profile" className="px-2 text-xs">
               Profile
             </TabsTrigger>
-            <TabsTrigger value="roles" className="text-xs">
+            <TabsTrigger value="roles" className="px-2 text-xs">
               Role & Access
             </TabsTrigger>
-            <TabsTrigger value="actions" className="text-xs">
+            <TabsTrigger value="actions" className="px-2 text-xs">
               Actions
             </TabsTrigger>
           </TabsList>

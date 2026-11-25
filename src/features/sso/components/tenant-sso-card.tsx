@@ -303,7 +303,7 @@ function TenantSsoCardInner({ tenantId, ssoConfig, subscription }: TenantSsoCard
   const ssoCheckAt = ssoConfig?.lastConnectionTestAt;
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Enterprise setup checklist</CardTitle>
@@ -375,9 +375,9 @@ function TenantSsoCardInner({ tenantId, ssoConfig, subscription }: TenantSsoCard
       {/* Enterprise SSO Configuration Card */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0 space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
                 <CardTitle className="text-base font-semibold">
                   Enterprise Single Sign-On (SSO)
                 </CardTitle>
@@ -410,7 +410,7 @@ function TenantSsoCardInner({ tenantId, ssoConfig, subscription }: TenantSsoCard
             value={formData.providerType}
             onValueChange={(val: string) => updateField("providerType", val as SsoProviderType)}
           >
-            <TabsList className="grid w-64 grid-cols-2">
+            <TabsList className="grid w-full max-w-64 grid-cols-2">
               <TabsTrigger value="SAML" disabled={!isEnterprise}>
                 SAML 2.0
               </TabsTrigger>
@@ -423,8 +423,8 @@ function TenantSsoCardInner({ tenantId, ssoConfig, subscription }: TenantSsoCard
             <TabsContent value="SAML" className="mt-4 space-y-4">
               {/* Service Provider (SP) Configuration details for Okta / Azure AD */}
               {ssoConfig?.acsUrl && (
-                <div className="border-border/50 bg-muted/40 space-y-2 rounded-md border p-3 text-xs">
-                  <div className="text-foreground flex items-center justify-between font-semibold">
+                <div className="border-border/50 bg-muted/40 min-w-0 space-y-2 rounded-md border p-3 text-xs">
+                  <div className="text-foreground flex flex-wrap items-center justify-between gap-2 font-semibold">
                     <span>Service Provider (SP) Configuration for IdP Setup</span>
                     {ssoConfig.metadataUrl && (
                       <a
@@ -438,11 +438,11 @@ function TenantSsoCardInner({ tenantId, ssoConfig, subscription }: TenantSsoCard
                     )}
                   </div>
                   <div className="space-y-1.5 font-mono text-[11px]">
-                    <div className="bg-background/80 flex items-center justify-between rounded border px-2 py-1">
-                      <span className="text-muted-foreground mr-2 font-sans text-xs font-medium">
+                    <div className="bg-background/80 flex min-w-0 items-center justify-between gap-2 rounded border px-2 py-1">
+                      <span className="text-muted-foreground shrink-0 font-sans text-xs font-medium">
                         SP Entity ID:
                       </span>
-                      <span className="truncate">{ssoConfig.spEntityId}</span>
+                      <span className="min-w-0 flex-1 truncate">{ssoConfig.spEntityId}</span>
                       <Button
                         type="button"
                         variant="ghost"
@@ -453,11 +453,11 @@ function TenantSsoCardInner({ tenantId, ssoConfig, subscription }: TenantSsoCard
                         <Copy className="h-3 w-3" />
                       </Button>
                     </div>
-                    <div className="bg-background/80 flex items-center justify-between rounded border px-2 py-1">
-                      <span className="text-muted-foreground mr-2 font-sans text-xs font-medium">
+                    <div className="bg-background/80 flex min-w-0 items-center justify-between gap-2 rounded border px-2 py-1">
+                      <span className="text-muted-foreground shrink-0 font-sans text-xs font-medium">
                         ACS URL:
                       </span>
-                      <span className="truncate">{ssoConfig.acsUrl}</span>
+                      <span className="min-w-0 flex-1 truncate">{ssoConfig.acsUrl}</span>
                       <Button
                         type="button"
                         variant="ghost"
@@ -518,11 +518,11 @@ function TenantSsoCardInner({ tenantId, ssoConfig, subscription }: TenantSsoCard
                   <div className="text-foreground font-semibold">
                     Authorized Redirect URI for OIDC Provider
                   </div>
-                  <div className="bg-background/80 flex items-center justify-between rounded border px-2 py-1 font-mono text-[11px]">
-                    <span className="text-muted-foreground mr-2 font-sans text-xs font-medium">
+                  <div className="bg-background/80 flex min-w-0 items-center justify-between gap-2 rounded border px-2 py-1 font-mono text-[11px]">
+                    <span className="text-muted-foreground shrink-0 font-sans text-xs font-medium">
                       Callback URL:
                     </span>
-                    <span className="truncate">{ssoConfig.oidcCallbackUrl}</span>
+                    <span className="min-w-0 flex-1 truncate">{ssoConfig.oidcCallbackUrl}</span>
                     <Button
                       type="button"
                       variant="ghost"
@@ -586,7 +586,7 @@ function TenantSsoCardInner({ tenantId, ssoConfig, subscription }: TenantSsoCard
               </p>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Input
                 placeholder="acme.com"
                 value={newDomainInput}
@@ -598,7 +598,7 @@ function TenantSsoCardInner({ tenantId, ssoConfig, subscription }: TenantSsoCard
                   }
                 }}
                 disabled={!isEnterprise}
-                className="max-w-xs"
+                className="min-w-0 flex-1 sm:max-w-xs"
               />
               <Button
                 type="button"
@@ -681,7 +681,7 @@ function TenantSsoCardInner({ tenantId, ssoConfig, subscription }: TenantSsoCard
           )}
 
           {/* Action Buttons */}
-          <div className="flex items-center justify-between border-t pt-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-4">
             <Button
               type="button"
               variant="outline"
@@ -707,8 +707,8 @@ function TenantSsoCardInner({ tenantId, ssoConfig, subscription }: TenantSsoCard
       {/* SCIM 2.0 Directory Sync Card */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0 space-y-1">
               <CardTitle className="text-base font-semibold">SCIM 2.0 Directory Sync</CardTitle>
               <CardDescription>
                 Automate member provisioning, profile updates, and deprovisioning directly from
@@ -852,8 +852,8 @@ function TenantSsoCardInner({ tenantId, ssoConfig, subscription }: TenantSsoCard
                 No active SCIM tokens. Generate a token to enable directory sync.
               </div>
             ) : (
-              <div className="overflow-hidden rounded-md border">
-                <table className="w-full text-left text-xs">
+              <div className="overflow-x-auto rounded-md border">
+                <table className="w-full min-w-[600px] text-left text-xs">
                   <thead className="bg-muted/50 text-muted-foreground border-b">
                     <tr>
                       <th className="px-3 py-2 font-medium">Name</th>
@@ -956,7 +956,9 @@ function TenantSsoCardInner({ tenantId, ssoConfig, subscription }: TenantSsoCard
                 </p>
                 <p>
                   2. Set SCIM connector base URL to:{" "}
-                  <code className="text-foreground font-mono text-[11px]">{scimBaseUrl}</code>
+                  <code className="text-foreground font-mono text-[11px] break-all">
+                    {scimBaseUrl}
+                  </code>
                 </p>
                 <p>
                   3. Unique identifier field for users:{" "}
@@ -969,7 +971,9 @@ function TenantSsoCardInner({ tenantId, ssoConfig, subscription }: TenantSsoCard
                 <p>1. In Entra ID Enterprise Applications, select Provisioning &gt; Automatic.</p>
                 <p>
                   2. Set Tenant URL to:{" "}
-                  <code className="text-foreground font-mono text-[11px]">{scimBaseUrl}</code>
+                  <code className="text-foreground font-mono text-[11px] break-all">
+                    {scimBaseUrl}
+                  </code>
                 </p>
                 <p>3. Set Secret Token to your generated SCIM Bearer Token.</p>
                 <p>4. Click Test Connection to verify directory schema synchronization.</p>

@@ -143,6 +143,7 @@ export function useBindTenantGroupRole(tenantId?: string) {
     onSuccess: (_, { groupId }) => {
       queryClient.invalidateQueries({ queryKey: groupKeys.tenantRoles(tenantId, groupId) });
       queryClient.invalidateQueries({ queryKey: groupKeys.tenantPermissions(tenantId, groupId) });
+      queryClient.invalidateQueries({ queryKey: groupKeys.tenantPolicies(tenantId, groupId) });
       queryClient.invalidateQueries({ queryKey: groupKeys.tenantAll(tenantId) });
       queryClient.invalidateQueries({ queryKey: ["tenant", tenantId, "context"] });
       queryClient.invalidateQueries({ queryKey: ["rbac", "tenants", tenantId, "roles"] });
@@ -158,9 +159,50 @@ export function useUnbindTenantGroupRole(tenantId?: string) {
     onSuccess: (_, { groupId }) => {
       queryClient.invalidateQueries({ queryKey: groupKeys.tenantRoles(tenantId, groupId) });
       queryClient.invalidateQueries({ queryKey: groupKeys.tenantPermissions(tenantId, groupId) });
+      queryClient.invalidateQueries({ queryKey: groupKeys.tenantPolicies(tenantId, groupId) });
       queryClient.invalidateQueries({ queryKey: groupKeys.tenantAll(tenantId) });
       queryClient.invalidateQueries({ queryKey: ["tenant", tenantId, "context"] });
       queryClient.invalidateQueries({ queryKey: ["rbac", "tenants", tenantId, "roles"] });
+    },
+  });
+}
+
+export const tenantGroupPoliciesQueryOptions = (tenantId?: string, groupId?: string) =>
+  queryOptions({
+    queryKey: groupKeys.tenantPolicies(tenantId, groupId),
+    queryFn: ({ signal }) => api.getTenantGroupPolicies(groupId!, signal),
+    enabled: Boolean(tenantId && groupId),
+  });
+
+export function useTenantGroupPolicies(tenantId?: string, groupId?: string) {
+  return useQuery(tenantGroupPoliciesQueryOptions(tenantId, groupId));
+}
+
+export function useBindTenantGroupPolicy(tenantId?: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      groupId,
+      input,
+    }: {
+      groupId: string;
+      input: { policyIds: string[]; reason?: string };
+    }) => api.bindTenantGroupPolicy(groupId, input),
+    onSuccess: (_, { groupId }) => {
+      queryClient.invalidateQueries({ queryKey: groupKeys.tenantPolicies(tenantId, groupId) });
+      queryClient.invalidateQueries({ queryKey: groupKeys.tenantAll(tenantId) });
+    },
+  });
+}
+
+export function useUnbindTenantGroupPolicy(tenantId?: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ groupId, policyId }: { groupId: string; policyId: string }) =>
+      api.unbindTenantGroupPolicy(groupId, policyId),
+    onSuccess: (_, { groupId }) => {
+      queryClient.invalidateQueries({ queryKey: groupKeys.tenantPolicies(tenantId, groupId) });
+      queryClient.invalidateQueries({ queryKey: groupKeys.tenantAll(tenantId) });
     },
   });
 }
@@ -258,6 +300,103 @@ export function useRemovePlatformGroupMember() {
       api.removePlatformGroupMember(groupId, staffId),
     onSuccess: (_, { groupId }) => {
       queryClient.invalidateQueries({ queryKey: groupKeys.platformMembers(groupId) });
+      queryClient.invalidateQueries({ queryKey: groupKeys.platformAll });
+    },
+  });
+}
+
+export const platformGroupRolesQueryOptions = (groupId?: string) =>
+  queryOptions({
+    queryKey: groupKeys.platformRoles(groupId),
+    queryFn: ({ signal }) => api.getPlatformGroupRoles(groupId!, signal),
+    enabled: Boolean(groupId),
+  });
+
+export function usePlatformGroupRoles(groupId?: string) {
+  return useQuery(platformGroupRolesQueryOptions(groupId));
+}
+
+export const platformGroupPermissionsQueryOptions = (groupId?: string) =>
+  queryOptions({
+    queryKey: groupKeys.platformPermissions(groupId),
+    queryFn: ({ signal }) => api.getPlatformGroupPermissions(groupId!, signal),
+    enabled: Boolean(groupId),
+  });
+
+export function usePlatformGroupPermissions(groupId?: string) {
+  return useQuery(platformGroupPermissionsQueryOptions(groupId));
+}
+
+export function useBindPlatformGroupRole() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      groupId,
+      input,
+    }: {
+      groupId: string;
+      input: { roleIds: string[]; reason?: string };
+    }) => api.bindPlatformGroupRole(groupId, input),
+    onSuccess: (_, { groupId }) => {
+      queryClient.invalidateQueries({ queryKey: groupKeys.platformRoles(groupId) });
+      queryClient.invalidateQueries({ queryKey: groupKeys.platformPermissions(groupId) });
+      queryClient.invalidateQueries({ queryKey: groupKeys.platformPolicies(groupId) });
+      queryClient.invalidateQueries({ queryKey: groupKeys.platformAll });
+      queryClient.invalidateQueries({ queryKey: ["platform", "me"] });
+    },
+  });
+}
+
+export function useUnbindPlatformGroupRole() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ groupId, roleId }: { groupId: string; roleId: string }) =>
+      api.unbindPlatformGroupRole(groupId, roleId),
+    onSuccess: (_, { groupId }) => {
+      queryClient.invalidateQueries({ queryKey: groupKeys.platformRoles(groupId) });
+      queryClient.invalidateQueries({ queryKey: groupKeys.platformPermissions(groupId) });
+      queryClient.invalidateQueries({ queryKey: groupKeys.platformPolicies(groupId) });
+      queryClient.invalidateQueries({ queryKey: groupKeys.platformAll });
+      queryClient.invalidateQueries({ queryKey: ["platform", "me"] });
+    },
+  });
+}
+
+export const platformGroupPoliciesQueryOptions = (groupId?: string) =>
+  queryOptions({
+    queryKey: groupKeys.platformPolicies(groupId),
+    queryFn: ({ signal }) => api.getPlatformGroupPolicies(groupId!, signal),
+    enabled: Boolean(groupId),
+  });
+
+export function usePlatformGroupPolicies(groupId?: string) {
+  return useQuery(platformGroupPoliciesQueryOptions(groupId));
+}
+
+export function useBindPlatformGroupPolicy() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      groupId,
+      input,
+    }: {
+      groupId: string;
+      input: { policyIds: string[]; reason?: string };
+    }) => api.bindPlatformGroupPolicy(groupId, input),
+    onSuccess: (_, { groupId }) => {
+      queryClient.invalidateQueries({ queryKey: groupKeys.platformPolicies(groupId) });
+      queryClient.invalidateQueries({ queryKey: groupKeys.platformAll });
+    },
+  });
+}
+
+export function useUnbindPlatformGroupPolicy() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ groupId, policyId }: { groupId: string; policyId: string }) =>
+      api.unbindPlatformGroupPolicy(groupId, policyId),
+    onSuccess: (_, { groupId }) => {
+      queryClient.invalidateQueries({ queryKey: groupKeys.platformPolicies(groupId) });
       queryClient.invalidateQueries({ queryKey: groupKeys.platformAll });
     },
   });

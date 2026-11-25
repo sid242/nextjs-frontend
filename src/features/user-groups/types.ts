@@ -1,3 +1,5 @@
+import type { Policy } from "@/features/policies";
+
 export type GroupScope = "PLATFORM" | "TENANT";
 export type GroupStatus = "ACTIVE" | "ARCHIVED";
 
@@ -68,4 +70,16 @@ export interface GroupContributedPermissions {
   groupId: string;
   groupName: string;
   permissions: string[];
+}
+
+export interface InheritedRolePolicy {
+  policy: Policy;
+  roleId: string;
+  roleName: string;
+  roleCode: string | null;
+}
+
+export interface GroupPoliciesResult {
+  directPolicies: Policy[];
+  inheritedRolePolicies: InheritedRolePolicy[];
 }

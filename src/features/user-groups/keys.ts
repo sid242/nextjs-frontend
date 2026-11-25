@@ -13,6 +13,8 @@ export const groupKeys = {
     [...groupKeys.tenantAll(tenantId), "roles", groupId ?? ""] as const,
   tenantPermissions: (tenantId?: string, groupId?: string) =>
     [...groupKeys.tenantAll(tenantId), "permissions", groupId ?? ""] as const,
+  tenantPolicies: (tenantId?: string, groupId?: string) =>
+    [...groupKeys.tenantAll(tenantId), "policies", groupId ?? ""] as const,
 
   // Platform Scoped Keys
   platformAll: ["platform", "groups"] as const,
@@ -22,4 +24,9 @@ export const groupKeys = {
     [...groupKeys.platformAll, "detail", groupId ?? ""] as const,
   platformMembers: (groupId?: string, page = 1) =>
     [...groupKeys.platformAll, "members", groupId ?? "", page] as const,
+  platformRoles: (groupId?: string) => [...groupKeys.platformAll, "roles", groupId ?? ""] as const,
+  platformPermissions: (groupId?: string) =>
+    [...groupKeys.platformAll, "permissions", groupId ?? ""] as const,
+  platformPolicies: (groupId?: string) =>
+    [...groupKeys.platformAll, "policies", groupId ?? ""] as const,
 };

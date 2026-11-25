@@ -560,7 +560,37 @@ export async function getPlatformPolicies(
   signal?: AbortSignal,
 ): Promise<PaginatedResult<Policy>> {
   const qs = buildQueryString(params);
-  return api.get<PaginatedResult<Policy>>(`/platform/policies${qs}`, { signal });
+  const res = await api.get<
+    | Policy[]
+    | {
+        items?: Policy[];
+        data?: Policy[];
+        meta?: { total?: number; page?: number; limit?: number };
+        total?: number;
+        page?: number;
+        limit?: number;
+      }
+  >(`/platform/policies${qs}`, { signal });
+  if (Array.isArray(res)) {
+    return { items: res, total: res.length, page: 1, limit: res.length || 20 };
+  }
+  if (res && Array.isArray(res.items)) {
+    return {
+      items: res.items,
+      total: res.total ?? res.meta?.total ?? res.items.length,
+      page: res.page ?? res.meta?.page ?? 1,
+      limit: res.limit ?? res.meta?.limit ?? 20,
+    };
+  }
+  if (res && Array.isArray(res.data)) {
+    return {
+      items: res.data,
+      total: res.total ?? res.meta?.total ?? res.data.length,
+      page: res.page ?? res.meta?.page ?? 1,
+      limit: res.limit ?? res.meta?.limit ?? 20,
+    };
+  }
+  return { items: [], total: 0, page: 1, limit: 20 };
 }
 
 export async function getPlatformPolicy(policyId: string, signal?: AbortSignal): Promise<Policy> {

@@ -16,7 +16,7 @@ export default async function SettingsLayout({ children }: { children: ReactNode
   await requireUser();
 
   return (
-    <div className="grid gap-6">
+    <div className="grid min-w-0 gap-6">
       <PageHeader
         title="Settings"
         description="Manage your profile credentials, workspace configuration, SMTP email server, and security sessions."
@@ -24,7 +24,7 @@ export default async function SettingsLayout({ children }: { children: ReactNode
 
       <SettingsNav />
 
-      <div>{children}</div>
+      <div className="min-w-0">{children}</div>
     </div>
   );
 }

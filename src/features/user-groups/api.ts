@@ -5,6 +5,7 @@ import type { CreateGroupValues, UpdateGroupValues } from "./schemas";
 import type {
   GroupContributedPermissions,
   GroupFilters,
+  GroupPoliciesResult,
   GroupRole,
   PaginatedResult,
   PlatformGroupMember,
@@ -137,6 +138,31 @@ export async function getTenantGroupPermissions(
   return api.get<GroupContributedPermissions>(`/groups/${groupId}/permissions`, { signal });
 }
 
+export async function getTenantGroupPolicies(
+  groupId: string,
+  signal?: AbortSignal,
+): Promise<GroupPoliciesResult> {
+  return api.get<GroupPoliciesResult>(`/groups/${groupId}/policies`, { signal });
+}
+
+export async function bindTenantGroupPolicy(
+  groupId: string,
+  input: { policyIds: string[]; reason?: string },
+): Promise<{
+  success: boolean;
+  groupId: string;
+  policies: Array<{ id: string; name: string }>;
+}> {
+  return api.post(`/groups/${groupId}/policies`, input);
+}
+
+export async function unbindTenantGroupPolicy(
+  groupId: string,
+  policyId: string,
+): Promise<{ success: boolean }> {
+  return api.delete(`/groups/${groupId}/policies/${policyId}`);
+}
+
 // ============================================================================
 // PLATFORM API FUNCTIONS
 // ============================================================================
@@ -206,4 +232,65 @@ export async function removePlatformGroupMember(
   staffId: string,
 ): Promise<{ success: boolean }> {
   return api.delete<{ success: boolean }>(`/platform/groups/${groupId}/members/${staffId}`);
+}
+
+export async function getPlatformGroupRoles(
+  groupId: string,
+  signal?: AbortSignal,
+): Promise<GroupRole[]> {
+  return api.get<GroupRole[]>(`/platform/groups/${groupId}/roles`, { signal });
+}
+
+export async function bindPlatformGroupRole(
+  groupId: string,
+  input: { roleIds: string[]; reason?: string },
+): Promise<{
+  success: boolean;
+  groupId: string;
+  roleId?: string;
+  roleName?: string;
+  roles?: Array<{ id: string; name: string }>;
+}> {
+  return api.post(`/platform/groups/${groupId}/roles`, input);
+}
+
+export async function unbindPlatformGroupRole(
+  groupId: string,
+  roleId: string,
+): Promise<{ success: boolean }> {
+  return api.delete(`/platform/groups/${groupId}/roles/${roleId}`);
+}
+
+export async function getPlatformGroupPermissions(
+  groupId: string,
+  signal?: AbortSignal,
+): Promise<GroupContributedPermissions> {
+  return api.get<GroupContributedPermissions>(`/platform/groups/${groupId}/permissions`, {
+    signal,
+  });
+}
+
+export async function getPlatformGroupPolicies(
+  groupId: string,
+  signal?: AbortSignal,
+): Promise<GroupPoliciesResult> {
+  return api.get<GroupPoliciesResult>(`/platform/groups/${groupId}/policies`, { signal });
+}
+
+export async function bindPlatformGroupPolicy(
+  groupId: string,
+  input: { policyIds: string[]; reason?: string },
+): Promise<{
+  success: boolean;
+  groupId: string;
+  policies: Array<{ id: string; name: string }>;
+}> {
+  return api.post(`/platform/groups/${groupId}/policies`, input);
+}
+
+export async function unbindPlatformGroupPolicy(
+  groupId: string,
+  policyId: string,
+): Promise<{ success: boolean }> {
+  return api.delete(`/platform/groups/${groupId}/policies/${policyId}`);
 }

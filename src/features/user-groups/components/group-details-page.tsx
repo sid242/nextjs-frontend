@@ -18,6 +18,7 @@ import {
   Search,
   Shield,
   ShieldAlert,
+  ShieldCheck,
   Trash2,
   Users,
   X,
@@ -62,16 +63,24 @@ import {
   useArchiveTenantGroup,
   usePlatformGroup,
   usePlatformGroupMembers,
+  usePlatformGroupPermissions,
+  usePlatformGroupPolicies,
+  usePlatformGroupRoles,
   useRemovePlatformGroupMember,
   useRemoveTenantGroupMember,
   useTenantGroup,
   useTenantGroupMembers,
   useTenantGroupPermissions,
+  useTenantGroupPolicies,
   useTenantGroupRoles,
+  useUnbindPlatformGroupPolicy,
+  useUnbindPlatformGroupRole,
+  useUnbindTenantGroupPolicy,
   useUnbindTenantGroupRole,
 } from "../queries";
 import type { PlatformGroupMember, TenantGroupMember } from "../types";
 import { formatPermissionsSummary } from "../utils";
+import { AssignGroupPoliciesDialog } from "./assign-group-policies-dialog";
 import { AssignGroupRolesDialog } from "./assign-group-roles-dialog";
 import { GroupStatusBadge } from "./group-status-badge";
 
@@ -89,7 +98,7 @@ export function GroupDetailsPage({ scope, groupId, backHref }: GroupDetailsPageP
 
   // Permissions
   const { data: tenantContext } = useTenantContext(isTenant ? activeTenantId : undefined);
-  const { data: platformStaff } = usePlatformMe();
+  const { data: platformStaff } = usePlatformMe({ enabled: !isTenant });
 
   const canEdit = isTenant
     ? hasTenantPermission(tenantContext?.permissions ?? [], TENANT_PERMISSIONS.GROUPS_UPDATE)
@@ -278,32 +287,95 @@ export function GroupDetailsPage({ scope, groupId, backHref }: GroupDetailsPageP
     }
   };
 
-  // Group Role Bindings & Contributed Permissions
+  // Group Role Bindings, Policies & Contributed Permissions
   const canAssignRoles = isTenant
     ? hasTenantPermission(tenantContext?.permissions ?? [], TENANT_PERMISSIONS.GROUPS_ASSIGN_ROLES)
-    : hasPlatformPermission(platformStaff, PLATFORM_PERMISSION_KEYS.GROUPS_UPDATE);
+    : hasPlatformPermission(platformStaff, PLATFORM_PERMISSION_KEYS.GROUPS_UPDATE) ||
+      hasPlatformPermission(platformStaff, PLATFORM_PERMISSION_KEYS.ROLES_MANAGE);
 
-  const { data: groupRoles = [], isLoading: loadingGroupRoles } = useTenantGroupRoles(
-    activeTenantId,
-    groupId,
+  const canAssignPolicies = isTenant
+    ? hasTenantPermission(
+        tenantContext?.permissions ?? [],
+        TENANT_PERMISSIONS.GROUPS_ASSIGN_ROLES,
+      ) || hasTenantPermission(tenantContext?.permissions ?? [], TENANT_PERMISSIONS.POLICIES_UPDATE)
+    : hasPlatformPermission(platformStaff, PLATFORM_PERMISSION_KEYS.GROUPS_UPDATE) ||
+      hasPlatformPermission(platformStaff, PLATFORM_PERMISSION_KEYS.ROLES_MANAGE);
+
+  const { data: tenantGroupRoles = [], isLoading: loadingTenantGroupRoles } = useTenantGroupRoles(
+    isTenant ? activeTenantId : undefined,
+    isTenant ? groupId : undefined,
   );
+  const { data: platformGroupRoles = [], isLoading: loadingPlatformGroupRoles } =
+    usePlatformGroupRoles(!isTenant ? groupId : undefined);
+  const groupRoles = isTenant ? tenantGroupRoles : platformGroupRoles;
+  const loadingGroupRoles = isTenant ? loadingTenantGroupRoles : loadingPlatformGroupRoles;
 
-  const { data: groupPermissionsData, isLoading: loadingGroupPermissions } =
-    useTenantGroupPermissions(activeTenantId, groupId);
+  const { data: tenantGroupPermissionsData, isLoading: loadingTenantGroupPermissions } =
+    useTenantGroupPermissions(
+      isTenant ? activeTenantId : undefined,
+      isTenant ? groupId : undefined,
+    );
+  const { data: platformGroupPermissionsData, isLoading: loadingPlatformGroupPermissions } =
+    usePlatformGroupPermissions(!isTenant ? groupId : undefined);
+  const groupPermissionsData = isTenant ? tenantGroupPermissionsData : platformGroupPermissionsData;
+  const loadingGroupPermissions = isTenant
+    ? loadingTenantGroupPermissions
+    : loadingPlatformGroupPermissions;
+
+  const { data: tenantGroupPoliciesData, isLoading: loadingTenantGroupPolicies } =
+    useTenantGroupPolicies(isTenant ? activeTenantId : undefined, isTenant ? groupId : undefined);
+  const { data: platformGroupPoliciesData, isLoading: loadingPlatformGroupPolicies } =
+    usePlatformGroupPolicies(!isTenant ? groupId : undefined);
+  const groupPoliciesData = isTenant ? tenantGroupPoliciesData : platformGroupPoliciesData;
+  const loadingGroupPolicies = isTenant ? loadingTenantGroupPolicies : loadingPlatformGroupPolicies;
+
+  const directPolicies = groupPoliciesData?.directPolicies ?? [];
+  const inheritedRolePolicies = groupPoliciesData?.inheritedRolePolicies ?? [];
+  const totalPoliciesCount = directPolicies.length + inheritedRolePolicies.length;
 
   const unbindTenantGroupRoleMutation = useUnbindTenantGroupRole(activeTenantId);
+  const unbindPlatformGroupRoleMutation = useUnbindPlatformGroupRole();
+  const unbindTenantGroupPolicyMutation = useUnbindTenantGroupPolicy(activeTenantId);
+  const unbindPlatformGroupPolicyMutation = useUnbindPlatformGroupPolicy();
 
   const [isAssignRoleModalOpen, setIsAssignRoleModalOpen] = useState(false);
   const [roleToUnbind, setRoleToUnbind] = useState<{ id: string; name: string } | null>(null);
+  const [isAssignPolicyModalOpen, setIsAssignPolicyModalOpen] = useState(false);
+  const [policyToUnbind, setPolicyToUnbind] = useState<{ id: string; name: string } | null>(null);
 
   const handleUnbindRole = async () => {
     if (!roleToUnbind) return;
     try {
-      await unbindTenantGroupRoleMutation.mutateAsync({ groupId, roleId: roleToUnbind.id });
+      if (isTenant) {
+        await unbindTenantGroupRoleMutation.mutateAsync({ groupId, roleId: roleToUnbind.id });
+      } else {
+        await unbindPlatformGroupRoleMutation.mutateAsync({ groupId, roleId: roleToUnbind.id });
+      }
       toast.success(`Role "${roleToUnbind.name}" unbound successfully.`);
       setRoleToUnbind(null);
     } catch {
       toast.error("Failed to unbind role.");
+    }
+  };
+
+  const handleUnbindPolicy = async () => {
+    if (!policyToUnbind) return;
+    try {
+      if (isTenant) {
+        await unbindTenantGroupPolicyMutation.mutateAsync({
+          groupId,
+          policyId: policyToUnbind.id,
+        });
+      } else {
+        await unbindPlatformGroupPolicyMutation.mutateAsync({
+          groupId,
+          policyId: policyToUnbind.id,
+        });
+      }
+      toast.success(`Policy "${policyToUnbind.name}" unbound successfully.`);
+      setPolicyToUnbind(null);
+    } catch {
+      toast.error("Failed to unbind policy.");
     }
   };
 
@@ -338,30 +410,32 @@ export function GroupDetailsPage({ scope, groupId, backHref }: GroupDetailsPageP
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       {/* Back button & Breadcrumb */}
-      <div className="flex items-center gap-3">
-        <Button variant="outline" size="sm" asChild className="gap-2">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <Button variant="outline" size="sm" asChild className="shrink-0 gap-2">
           <Link href={defaultBackHref}>
             <ArrowLeft className="h-4 w-4" />
             Back to Groups
           </Link>
         </Button>
         <span className="text-muted-foreground text-sm font-medium">/</span>
-        <span className="text-sm font-medium">{group.name}</span>
+        <span className="truncate text-sm font-medium">{group.name}</span>
       </div>
 
       {/* Group Header Hero Card */}
       <Card className="border-border/80 bg-card/60 overflow-hidden rounded-2xl shadow-xs">
-        <CardContent className="p-6">
+        <CardContent className="p-4 sm:p-6">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex items-start gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-indigo-200 bg-indigo-50 text-xl font-bold text-indigo-600 dark:border-indigo-800/40 dark:bg-indigo-950/40 dark:text-indigo-400">
+            <div className="flex min-w-0 items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-indigo-200 bg-indigo-50 text-lg font-bold text-indigo-600 sm:h-14 sm:w-14 sm:text-xl dark:border-indigo-800/40 dark:bg-indigo-950/40 dark:text-indigo-400">
                 {group.name.slice(0, 2).toUpperCase()}
               </div>
-              <div className="space-y-1">
+              <div className="min-w-0 flex-1 space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-2xl font-bold tracking-tight">{group.name}</h1>
+                  <h1 className="text-xl font-bold tracking-tight break-words sm:text-2xl">
+                    {group.name}
+                  </h1>
                   <Badge variant="outline" className="font-mono text-xs">
                     {group.slug}
                   </Badge>
@@ -425,23 +499,27 @@ export function GroupDetailsPage({ scope, groupId, backHref }: GroupDetailsPageP
       </Card>
 
       {/* Details Tabs */}
-      <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="bg-muted/70 rounded-xl p-1">
+      <Tabs defaultValue="overview" className="min-w-0 space-y-4">
+        <TabsList className="bg-muted/70 w-full rounded-xl p-1 sm:w-fit">
           <TabsTrigger value="overview" className="gap-2 rounded-lg">
-            <Clock className="h-4 w-4" />
+            <Clock className="h-4 w-4 shrink-0" />
             Overview
           </TabsTrigger>
           <TabsTrigger value="members" className="gap-2 rounded-lg">
-            <Users className="h-4 w-4" />
+            <Users className="h-4 w-4 shrink-0" />
             Members ({members.length})
           </TabsTrigger>
           <TabsTrigger value="roles" className="gap-2 rounded-lg">
-            <Shield className="h-4 w-4" />
+            <Shield className="h-4 w-4 shrink-0" />
             Assigned Roles ({groupRoles.length})
           </TabsTrigger>
           <TabsTrigger value="permissions" className="gap-2 rounded-lg">
-            <Key className="h-4 w-4" />
+            <Key className="h-4 w-4 shrink-0" />
             Effective Permissions ({groupPermissionsData?.permissions?.length ?? 0})
+          </TabsTrigger>
+          <TabsTrigger value="policies" className="gap-2 rounded-lg">
+            <ShieldCheck className="h-4 w-4 shrink-0" />
+            Policies ({totalPoliciesCount})
           </TabsTrigger>
         </TabsList>
 
@@ -487,13 +565,15 @@ export function GroupDetailsPage({ scope, groupId, backHref }: GroupDetailsPageP
                     <GroupStatusBadge status={group.status} />
                   </dd>
                 </div>
-                <div className="bg-muted/40 rounded-xl border p-3">
+                <div className="bg-muted/40 min-w-0 rounded-xl border p-3">
                   <dt className="text-muted-foreground font-mono text-xs uppercase">Group ID</dt>
-                  <dd className="text-muted-foreground mt-1 font-mono text-xs">{group.id}</dd>
+                  <dd className="text-muted-foreground mt-1 font-mono text-xs break-all">
+                    {group.id}
+                  </dd>
                 </div>
-                <div className="bg-muted/40 rounded-xl border p-3">
+                <div className="bg-muted/40 min-w-0 rounded-xl border p-3">
                   <dt className="text-muted-foreground font-mono text-xs uppercase">Tenant ID</dt>
-                  <dd className="text-muted-foreground mt-1 font-mono text-xs">
+                  <dd className="text-muted-foreground mt-1 font-mono text-xs break-all">
                     {group.tenantId || "N/A (Platform Scope)"}
                   </dd>
                 </div>
@@ -897,6 +977,160 @@ export function GroupDetailsPage({ scope, groupId, backHref }: GroupDetailsPageP
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Tab: PBAC Policies */}
+        <TabsContent value="policies" className="space-y-4">
+          <Card className="rounded-2xl border shadow-xs">
+            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <CardTitle className="text-lg">Group Security Policies</CardTitle>
+                <CardDescription>
+                  Fine-grained allow/deny ABAC rules applied directly to this group or inherited
+                  from bound roles.
+                </CardDescription>
+              </div>
+              {canAssignPolicies && group.status === "ACTIVE" && (
+                <Button
+                  onClick={() => setIsAssignPolicyModalOpen(true)}
+                  size="sm"
+                  className="gap-2"
+                >
+                  <Plus className="h-4 w-4" /> Assign Policy to Group
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-5 pt-0">
+              {loadingGroupPolicies ? (
+                <div className="flex h-32 items-center justify-center">
+                  <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-semibold tracking-wider uppercase">
+                        Direct Group Policies ({directPolicies.length})
+                      </h4>
+                    </div>
+                    {directPolicies.length === 0 ? (
+                      <div className="text-muted-foreground rounded-xl border border-dashed p-6 text-center text-xs">
+                        No direct PBAC policies bound to this group. Bind a policy to enforce
+                        group-specific allow/deny conditions without creating another role.
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {directPolicies.map((policy) => {
+                          const isDeny = policy.effect === "deny";
+                          return (
+                            <div
+                              key={policy.id}
+                              className="bg-background flex items-start justify-between gap-3 rounded-xl border p-3.5"
+                            >
+                              <div className="space-y-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="text-sm font-semibold">{policy.name}</span>
+                                  <Badge
+                                    variant="outline"
+                                    className={
+                                      isDeny
+                                        ? "border-red-500/40 bg-red-50 font-mono text-[10px] text-red-700 uppercase dark:bg-red-950/30 dark:text-red-400"
+                                        : "border-emerald-500/40 bg-emerald-50 font-mono text-[10px] text-emerald-700 uppercase dark:bg-emerald-950/30 dark:text-emerald-400"
+                                    }
+                                  >
+                                    {policy.effect}
+                                  </Badge>
+                                  <Badge variant="secondary" className="font-mono text-[10px]">
+                                    {policy.resource}:{policy.action}
+                                  </Badge>
+                                  <Badge variant="outline" className="font-mono text-[10px]">
+                                    Priority {policy.priority}
+                                  </Badge>
+                                </div>
+                                {policy.description && (
+                                  <p className="text-muted-foreground text-xs">
+                                    {policy.description}
+                                  </p>
+                                )}
+                              </div>
+
+                              {canAssignPolicies && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    setPolicyToUnbind({ id: policy.id, name: policy.name })
+                                  }
+                                  className="text-muted-foreground hover:text-destructive h-8 w-8 p-0"
+                                  title="Unbind policy from group"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2.5 border-t pt-4">
+                    <h4 className="text-xs font-semibold tracking-wider uppercase">
+                      Inherited via Assigned Roles ({inheritedRolePolicies.length})
+                    </h4>
+                    {inheritedRolePolicies.length === 0 ? (
+                      <div className="text-muted-foreground rounded-xl border border-dashed p-6 text-center text-xs">
+                        No PBAC policies are attached to the roles currently bound to this group.
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {inheritedRolePolicies.map((item) => {
+                          const isDeny = item.policy.effect === "deny";
+                          return (
+                            <div
+                              key={`${item.roleId}-${item.policy.id}`}
+                              className="bg-muted/20 flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3.5"
+                            >
+                              <div className="space-y-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="text-sm font-semibold">{item.policy.name}</span>
+                                  <Badge
+                                    variant="outline"
+                                    className={
+                                      isDeny
+                                        ? "border-red-500/40 bg-red-50 font-mono text-[10px] text-red-700 uppercase dark:bg-red-950/30 dark:text-red-400"
+                                        : "border-emerald-500/40 bg-emerald-50 font-mono text-[10px] text-emerald-700 uppercase dark:bg-emerald-950/30 dark:text-emerald-400"
+                                    }
+                                  >
+                                    {item.policy.effect}
+                                  </Badge>
+                                  <Badge variant="secondary" className="font-mono text-[10px]">
+                                    {item.policy.resource}:{item.policy.action}
+                                  </Badge>
+                                  <Badge variant="outline" className="font-mono text-[10px]">
+                                    Priority {item.policy.priority}
+                                  </Badge>
+                                </div>
+                                {item.policy.description && (
+                                  <p className="text-muted-foreground text-xs">
+                                    {item.policy.description}
+                                  </p>
+                                )}
+                              </div>
+                              <Badge variant="outline" className="gap-1 font-mono text-[10px]">
+                                <Shield className="h-3 w-3" />
+                                via {item.roleName}
+                              </Badge>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       {/* Assign Role to Group Dialog */}
@@ -908,6 +1142,17 @@ export function GroupDetailsPage({ scope, groupId, backHref }: GroupDetailsPageP
         scope={scope}
         tenantId={activeTenantId}
         alreadyBoundRoleIds={groupRoles.map((r) => r.id)}
+      />
+
+      {/* Assign Policy to Group Dialog */}
+      <AssignGroupPoliciesDialog
+        open={isAssignPolicyModalOpen}
+        onOpenChange={setIsAssignPolicyModalOpen}
+        groupId={groupId}
+        groupName={group.name}
+        scope={scope}
+        tenantId={activeTenantId}
+        alreadyBoundPolicyIds={directPolicies.map((p) => p.id)}
       />
 
       {/* Confirm Archive Dialog (Destructive confirmation only) */}
@@ -951,7 +1196,27 @@ export function GroupDetailsPage({ scope, groupId, backHref }: GroupDetailsPageP
         confirmLabel="Unbind Role"
         destructive
         onConfirm={handleUnbindRole}
-        pending={unbindTenantGroupRoleMutation.isPending}
+        pending={
+          isTenant
+            ? unbindTenantGroupRoleMutation.isPending
+            : unbindPlatformGroupRoleMutation.isPending
+        }
+      />
+
+      {/* Confirm Unbind Policy Dialog */}
+      <ConfirmDialog
+        open={Boolean(policyToUnbind)}
+        onOpenChange={(open) => !open && setPolicyToUnbind(null)}
+        title="Unbind Policy from Group"
+        description={`Are you sure you want to unbind the policy "${policyToUnbind?.name}" from "${group.name}"? Direct group policy rules will stop applying to members of this group.`}
+        confirmLabel="Unbind Policy"
+        destructive
+        onConfirm={handleUnbindPolicy}
+        pending={
+          isTenant
+            ? unbindTenantGroupPolicyMutation.isPending
+            : unbindPlatformGroupPolicyMutation.isPending
+        }
       />
     </div>
   );
