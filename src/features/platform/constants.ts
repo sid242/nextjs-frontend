@@ -6,6 +6,7 @@ import {
   Layers,
   LayoutDashboard,
   LifeBuoy,
+  MessageSquare,
   Shield,
   ShieldCheck,
   UserCheck,
@@ -47,6 +48,13 @@ export const PLATFORM_NAV_GROUPS: NavGroup[] = [
         description: "Customer organizations, databases & status",
         icon: Building2,
         permission: PLATFORM_PERMISSION_KEYS.TENANTS_READ,
+      },
+      {
+        href: PLATFORM_ROUTES.CHAT,
+        label: "Team Chat",
+        description: "Internal operator channels & direct messages",
+        icon: MessageSquare,
+        permission: PLATFORM_PERMISSION_KEYS.CHAT_READ,
       },
       {
         href: PLATFORM_ROUTES.DATABASE_OPERATIONS,

@@ -2,10 +2,10 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { ACCESS_COOKIE } from "@/lib/auth/constants";
 import { applyAuthCookies, clearAuthCookies } from "@/lib/auth/cookies";
-import { getEnv } from "@/lib/server/env";
 import { refreshTokens } from "@/lib/server/refresh";
 import { assertSameOrigin } from "@/lib/server/request";
 import { errorResponse } from "@/lib/server/response";
+import { resolveClientSocketUrl } from "@/lib/server/socket-url";
 
 export const dynamic = "force-dynamic";
 
@@ -18,28 +18,7 @@ export async function GET(req: NextRequest) {
   const blocked = assertSameOrigin(req);
   if (blocked) return blocked;
 
-  let url = getEnv().SOCKET_URL;
-  if (process.env.NODE_ENV === "development") {
-    try {
-      const socketParsed = new URL(url);
-      const reqHost = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
-      if (reqHost) {
-        const clientHostname = reqHost.split(":")[0];
-        if (
-          clientHostname &&
-          clientHostname !== "localhost" &&
-          clientHostname !== "127.0.0.1" &&
-          (socketParsed.hostname === "localhost" || socketParsed.hostname === "127.0.0.1")
-        ) {
-          socketParsed.hostname = clientHostname;
-          url = socketParsed.toString();
-        }
-      }
-    } catch {
-      /* ignore invalid URL */
-    }
-  }
-
+  const url = resolveClientSocketUrl(req);
   const headers = { "Cache-Control": "no-store" };
 
   const current = req.cookies.get(ACCESS_COOKIE)?.value;

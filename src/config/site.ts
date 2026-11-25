@@ -9,6 +9,7 @@ export type NavIcon =
   | "palette"
   | "mail"
   | "folder"
+  | "message-square"
   | "scroll-text"
   | "settings"
   | "life-buoy"
@@ -81,6 +82,12 @@ export const navSections: NavSection[] = [
         ],
       },
       ...Object.values(WORKSPACE_MODULES).map(({ navigation }) => navigation),
+      {
+        title: "Team Chat",
+        href: "/chat",
+        icon: "message-square",
+        permission: TENANT_PERMISSIONS.CHAT_READ,
+      },
       {
         title: "Files",
         href: "/files",

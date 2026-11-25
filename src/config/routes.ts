@@ -44,6 +44,7 @@ export const PLATFORM_ROUTES = {
   USERS: "/platform/users",
   AUDIT_LOGS: "/platform/audit-logs",
   SUPPORT_SESSIONS: "/platform/support-sessions",
+  CHAT: "/platform/chat",
 } as const;
 
 /**
@@ -57,6 +58,7 @@ export const TENANT_PATHS = {
   LEAD_NEW: "/leads/new",
   LEAD_EDIT: (id: string) => `/leads/${id}/edit` as const,
   FILES: "/files",
+  CHAT: "/chat",
   ROLES: "/roles",
   GROUPS: "/groups",
   GROUP_NEW: "/groups/new",
@@ -107,6 +109,7 @@ export const ROUTES = {
       LEAD_NEW: `${base}${TENANT_PATHS.LEAD_NEW}` as const,
       LEAD_EDIT: (id: string) => `${base}${TENANT_PATHS.LEAD_EDIT(id)}` as const,
       FILES: `${base}${TENANT_PATHS.FILES}` as const,
+      CHAT: `${base}${TENANT_PATHS.CHAT}` as const,
       ROLES: `${base}${TENANT_PATHS.ROLES}` as const,
       GROUPS: `${base}${TENANT_PATHS.GROUPS}` as const,
       TEAM: `${base}${TENANT_PATHS.TEAM}` as const,

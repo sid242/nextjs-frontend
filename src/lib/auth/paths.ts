@@ -17,6 +17,7 @@ export function safeNextPath(next: string | null | undefined, fallback = "/dashb
 export const PROTECTED_PREFIXES = [
   "/dashboard",
   "/files",
+  "/chat",
   "/settings",
   "/team",
   "/roles",
@@ -51,6 +52,7 @@ export const RESERVED_ROOT_SEGMENTS = new Set([
   "w",
   "dashboard",
   "files",
+  "chat",
   "settings",
   "email-templates",
   "team",

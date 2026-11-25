@@ -90,6 +90,11 @@ export const TENANT_PERMISSIONS = {
   SUPPORT_CREATE: "support:create",
   SUPPORT_REPLY: "support:reply",
   FEEDBACK_CREATE: "feedback:create",
+
+  // Team Chat
+  CHAT_READ: "chat:read",
+  CHAT_WRITE: "chat:write",
+  CHAT_MANAGE: "chat:manage",
 } as const;
 
 export type TenantPermissionKey = (typeof TENANT_PERMISSIONS)[keyof typeof TENANT_PERMISSIONS];
@@ -134,6 +139,11 @@ export const PLATFORM_PERMISSION_KEYS = {
   SUPPORT_TICKETS_READ: "support_tickets:read",
   SUPPORT_TICKETS_MANAGE: "support_tickets:manage",
   FEEDBACK_READ: "feedback:read",
+
+  // Internal Platform Staff Chat
+  CHAT_READ: "platform_chat:read",
+  CHAT_WRITE: "platform_chat:write",
+  CHAT_MANAGE: "platform_chat:manage",
 } as const;
 
 export type PlatformPermissionKey =

@@ -1,6 +1,7 @@
 import { type ReactNode } from "react";
 
 import { PlatformShell } from "@/features/platform";
+import { SocketProvider } from "@/features/realtime";
 import { requirePlatformStaff } from "@/lib/server/platform-session";
 
 export const metadata = {
@@ -11,5 +12,9 @@ export const metadata = {
 
 export default async function PlatformPortalLayout({ children }: { children: ReactNode }) {
   await requirePlatformStaff();
-  return <PlatformShell>{children}</PlatformShell>;
+  return (
+    <SocketProvider scope="platform">
+      <PlatformShell>{children}</PlatformShell>
+    </SocketProvider>
+  );
 }
