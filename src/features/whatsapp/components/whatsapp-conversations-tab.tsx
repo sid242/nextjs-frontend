@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircleIcon,
   CheckCheckIcon,
@@ -23,7 +23,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { useSocket, useSocketEvent } from "@/features/realtime";
+import { useActiveTenant } from "@/features/tenants";
 
+import { whatsappKeys } from "../keys";
 import {
   useReplyConversationMutation,
   whatsAppConversationMessagesQueryOptions,
@@ -49,6 +52,39 @@ export function WhatsAppConversationsTab() {
   );
 
   const replyMutation = useReplyConversationMutation(activeConversationId || "");
+  const queryClient = useQueryClient();
+  const socket = useSocket();
+  const { activeTenant } = useActiveTenant();
+
+  // Join dedicated WhatsApp room for the active tenant
+  useEffect(() => {
+    if (!socket || !activeTenant?.id) return;
+    const roomId = `tenant:${activeTenant.id}:whatsapp`;
+    socket.emit("room:join", { roomId });
+    return () => {
+      socket.emit("room:leave", { roomId });
+    };
+  }, [socket, activeTenant?.id]);
+
+  // Real-time inbound messages: instantly refresh conversations and active thread
+  useSocketEvent("whatsapp:message:received", (payload) => {
+    queryClient.invalidateQueries({ queryKey: whatsappKeys.conversations() });
+    if (payload.conversationId) {
+      queryClient.invalidateQueries({
+        queryKey: whatsappKeys.conversationMessages(payload.conversationId),
+      });
+    }
+  });
+
+  // Real-time status updates: refresh message bubbles
+  useSocketEvent("whatsapp:status:updated", () => {
+    if (activeConversationId) {
+      queryClient.invalidateQueries({
+        queryKey: whatsappKeys.conversationMessages(activeConversationId),
+      });
+    }
+    queryClient.invalidateQueries({ queryKey: whatsappKeys.messages() });
+  });
 
   const handleSendReply = async () => {
     if (!replyText.trim() || !activeConversationId) return;

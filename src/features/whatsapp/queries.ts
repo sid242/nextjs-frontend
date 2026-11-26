@@ -36,7 +36,7 @@ export const whatsAppConversationsQueryOptions = (status?: string) =>
   queryOptions({
     queryKey: whatsappKeys.conversations(status),
     queryFn: ({ signal }) => api.getWhatsAppConversations(status, signal),
-    refetchInterval: 10_000,
+    refetchInterval: 60_000,
   });
 
 export const whatsAppConversationMessagesQueryOptions = (conversationId?: string) =>
@@ -47,7 +47,7 @@ export const whatsAppConversationMessagesQueryOptions = (conversationId?: string
         ? api.getWhatsAppConversationMessages(conversationId, signal)
         : Promise.resolve([]),
     enabled: Boolean(conversationId),
-    refetchInterval: 5_000,
+    refetchInterval: 60_000,
   });
 
 export const whatsAppMessagesQueryOptions = (filters?: { limit?: number }) =>
