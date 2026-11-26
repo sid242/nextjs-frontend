@@ -7,8 +7,11 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const isHi = typeof document !== "undefined" && document.cookie.includes("app_locale=hi");
+  const locale = isHi ? "hi" : "en";
+
   return (
-    <html lang="en">
+    <html lang={locale}>
       <body
         style={{
           fontFamily: "system-ui, sans-serif",

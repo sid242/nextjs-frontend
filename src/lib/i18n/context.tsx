@@ -15,6 +15,7 @@ import { api } from "@/lib/api/http";
 import { dictionaries, en } from "./dictionaries";
 import {
   DEFAULT_LOCALE,
+  isSupportedLocale,
   SUPPORTED_LOCALES,
   type LocaleInfo,
   type SupportedLocale,
@@ -30,6 +31,7 @@ interface I18nContextValue {
   isRTL: boolean;
   formatDate: (date: Date | string | number, options?: Intl.DateTimeFormatOptions) => string;
   formatNumber: (value: number, options?: Intl.NumberFormatOptions) => string;
+  formatMoney: (amount: number, currency?: string) => string;
 }
 
 const I18nContext = createContext<I18nContextValue | null>(null);
@@ -41,13 +43,16 @@ function getInitialLocale(): SupportedLocale {
   if (typeof window === "undefined") return DEFAULT_LOCALE;
 
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved && isSupportedLocale(saved)) return saved;
-
+    // 1. Cookie is single source of truth (aligns client and SSR)
     const cookieMatch = document.cookie.match(new RegExp(`(?:^|; )${COOKIE_KEY}=([^;]*)`));
     const cookieVal = cookieMatch ? decodeURIComponent(cookieMatch[1] ?? "") : null;
     if (cookieVal && isSupportedLocale(cookieVal)) return cookieVal;
 
+    // 2. localStorage fallback
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved && isSupportedLocale(saved)) return saved;
+
+    // 3. Browser navigator language
     const navLang = navigator.language?.split("-")[0]?.toLowerCase();
     if (navLang && isSupportedLocale(navLang)) return navLang;
   } catch {
@@ -57,11 +62,7 @@ function getInitialLocale(): SupportedLocale {
   return DEFAULT_LOCALE;
 }
 
-function isSupportedLocale(val: string): val is SupportedLocale {
-  return SUPPORTED_LOCALES.some((l) => l.code === val);
-}
-
-function resolveNestedKey(obj: unknown, path: string): string | undefined {
+export function resolveNestedKey(obj: unknown, path: string): string | undefined {
   if (!obj || typeof obj !== "object") return undefined;
   const parts = path.split(".");
   let current: unknown = obj;
@@ -95,8 +96,10 @@ export function I18nProvider({
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
+      const isHttps = window.location.protocol === "https:";
+      const secureFlag = isHttps ? "; Secure" : "";
       localStorage.setItem(STORAGE_KEY, locale);
-      document.cookie = `${COOKIE_KEY}=${locale}; path=/; max-age=31536000; SameSite=Lax`;
+      document.cookie = `${COOKIE_KEY}=${locale}; path=/; max-age=31536000; SameSite=Lax${secureFlag}`;
       document.documentElement.lang = locale;
       document.documentElement.dir = currentLocaleInfo.dir;
     } catch {
@@ -108,8 +111,10 @@ export function I18nProvider({
     setLocaleState(newLocale);
     if (typeof window !== "undefined") {
       try {
+        const isHttps = window.location.protocol === "https:";
+        const secureFlag = isHttps ? "; Secure" : "";
         localStorage.setItem(STORAGE_KEY, newLocale);
-        document.cookie = `${COOKIE_KEY}=${newLocale}; path=/; max-age=31536000; SameSite=Lax`;
+        document.cookie = `${COOKIE_KEY}=${newLocale}; path=/; max-age=31536000; SameSite=Lax${secureFlag}`;
         document.documentElement.lang = newLocale;
         const locInfo = SUPPORTED_LOCALES.find((l) => l.code === newLocale);
         if (locInfo) document.documentElement.dir = locInfo.dir;
@@ -138,8 +143,11 @@ export function I18nProvider({
         text = resolveNestedKey(en, key);
       }
 
-      // If still not found, return key
+      // If still not found, return key and warn in dev
       if (text === undefined) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn(`[i18n] Missing translation key: "${key}" in locale: "${locale}"`);
+        }
         return key;
       }
 
@@ -179,6 +187,20 @@ export function I18nProvider({
     [locale],
   );
 
+  const formatMoney = useCallback(
+    (amount: number, currency = "USD"): string => {
+      try {
+        return new Intl.NumberFormat(locale === "hi" ? "hi-IN" : "en-US", {
+          style: "currency",
+          currency,
+        }).format(amount);
+      } catch {
+        return `${currency} ${amount}`;
+      }
+    },
+    [locale],
+  );
+
   const value = useMemo<I18nContextValue>(
     () => ({
       locale,
@@ -189,8 +211,9 @@ export function I18nProvider({
       isRTL: currentLocaleInfo.dir === "rtl",
       formatDate,
       formatNumber,
+      formatMoney,
     }),
-    [locale, setLocale, t, currentLocaleInfo, formatDate, formatNumber],
+    [locale, setLocale, t, currentLocaleInfo, formatDate, formatNumber, formatMoney],
   );
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;

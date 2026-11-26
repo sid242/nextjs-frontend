@@ -44,7 +44,7 @@ export function LanguageSwitcher({ className, variant = "icon" }: LanguageSwitch
             className={cn("h-8 gap-2 text-xs font-normal", className)}
             aria-label="Change language"
           >
-            <span className="text-sm">{currentLocaleInfo.flag}</span>
+            <Globe className="text-muted-foreground size-3.5" />
             <span>{currentLocaleInfo.nativeName}</span>
           </Button>
         )}
@@ -65,7 +65,6 @@ export function LanguageSwitcher({ className, variant = "icon" }: LanguageSwitch
               className="flex cursor-pointer items-center justify-between py-1.5 text-xs"
             >
               <div className="flex items-center gap-2">
-                <span className="text-sm leading-none">{loc.flag}</span>
                 <span className="font-medium">{loc.nativeName}</span>
                 {loc.name !== loc.nativeName && (
                   <span className="text-muted-foreground text-[10px]">({loc.name})</span>

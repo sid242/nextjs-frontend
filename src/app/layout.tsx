@@ -4,7 +4,7 @@ import { cookies, headers } from "next/headers";
 
 import { AppProviders } from "@/components/providers/app-providers";
 import { siteConfig } from "@/config/site";
-import type { SupportedLocale } from "@/lib/i18n";
+import { DEFAULT_LOCALE, isSupportedLocale, type SupportedLocale } from "@/lib/i18n";
 
 import "./globals.css";
 
@@ -33,7 +33,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const nonce = (await headers()).get("x-nonce") ?? undefined;
   const cookieStore = await cookies();
   const cookieLocale = cookieStore.get("app_locale")?.value;
-  const initialLocale: SupportedLocale = cookieLocale === "hi" ? "hi" : "en";
+  const initialLocale: SupportedLocale = isSupportedLocale(cookieLocale)
+    ? cookieLocale
+    : DEFAULT_LOCALE;
 
   return (
     <html lang={initialLocale} className={poppins.variable} suppressHydrationWarning>

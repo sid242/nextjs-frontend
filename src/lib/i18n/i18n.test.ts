@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import { dictionaries, en } from "./dictionaries";
-import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type SupportedLocale } from "./types";
+import {
+  DEFAULT_LOCALE,
+  isSupportedLocale,
+  SUPPORTED_LOCALES,
+  type SupportedLocale,
+} from "./types";
 
 function getAllKeys(obj: Record<string, unknown>, prefix = ""): string[] {
   let keys: string[] = [];
@@ -84,5 +89,9 @@ describe("i18n Translation Dictionary Integrity", () => {
     expect(codes).toContain("en");
     expect(codes).toContain("hi");
     expect(DEFAULT_LOCALE).toBe("en");
+    expect(isSupportedLocale("en")).toBe(true);
+    expect(isSupportedLocale("hi")).toBe(true);
+    expect(isSupportedLocale("xx")).toBe(false);
+    expect(isSupportedLocale(null)).toBe(false);
   });
 });

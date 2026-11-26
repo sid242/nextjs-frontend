@@ -49,8 +49,15 @@ export function assertSameOrigin(req: Request): Response | null {
  */
 export function forwardedHeaders(req: Request): Record<string, string | undefined> {
   const supportHeader = req.headers.get("x-support-session-id");
-  const cookieMatch = req.headers.get("cookie")?.match(/(?:^|;\s*)support_session_id=([^;]+)/);
+  const cookieHeader = req.headers.get("cookie") ?? "";
+  const cookieMatch = cookieHeader.match(/(?:^|;\s*)support_session_id=([^;]+)/);
   const supportSession = supportHeader ?? cookieMatch?.[1] ?? undefined;
+
+  const localeCookieMatch = cookieHeader.match(/(?:^|;\s*)app_locale=([^;]+)/);
+  const localeFromCookie = localeCookieMatch?.[1] ?? undefined;
+  const locale = req.headers.get("x-locale") ?? localeFromCookie;
+  const acceptLanguage = req.headers.get("accept-language") ?? undefined;
+
   const host = (
     req.headers.get("x-client-host") ??
     req.headers.get("x-forwarded-host") ??
@@ -66,5 +73,7 @@ export function forwardedHeaders(req: Request): Record<string, string | undefine
     "x-client-host": host,
     "user-agent": req.headers.get("user-agent") ?? undefined,
     "x-support-session-id": supportSession,
+    "x-locale": locale,
+    "accept-language": acceptLanguage,
   };
 }

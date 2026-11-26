@@ -77,8 +77,15 @@ export function toApiError(err: unknown): unknown {
 export function getErrorMessage(
   err: unknown,
   fallback = "Something went wrong. Please try again.",
+  t?: (key: string) => string,
 ): string {
   if (err instanceof ApiError) {
+    if (t && err.code) {
+      const translated = t(`errors.${err.code}`);
+      if (translated && translated !== `errors.${err.code}`) {
+        return translated;
+      }
+    }
     if (err.status === 429) {
       return err.retryAfter
         ? `Too many requests. Please try again in ${err.retryAfter}s.`

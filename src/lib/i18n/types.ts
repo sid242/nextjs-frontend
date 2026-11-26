@@ -1,4 +1,11 @@
-export type SupportedLocale = "en" | "hi";
+export const SUPPORTED_LOCALE_CODES = ["en", "hi"] as const;
+export type SupportedLocale = (typeof SUPPORTED_LOCALE_CODES)[number];
+
+export function isSupportedLocale(locale: unknown): locale is SupportedLocale {
+  return (
+    typeof locale === "string" && (SUPPORTED_LOCALE_CODES as readonly string[]).includes(locale)
+  );
+}
 
 export interface LocaleInfo {
   code: SupportedLocale;
