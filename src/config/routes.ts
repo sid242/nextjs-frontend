@@ -87,6 +87,8 @@ export const TENANT_PATHS = {
   SETTINGS_SSO: "/settings/sso",
   SETTINGS_AUDIT: "/settings/audit",
   SETTINGS_URL: "/settings/url",
+  SETTINGS_WHATSAPP: "/settings/whatsapp",
+  SETTINGS_INTEGRATIONS_WHATSAPP: "/settings/integrations/whatsapp",
 } as const;
 
 /**

@@ -11,6 +11,7 @@ import {
   GlobeIcon,
   KeyRoundIcon,
   MailIcon,
+  MessageSquareIcon,
   PaletteIcon,
   ShieldIcon,
   SparklesIcon,
@@ -90,6 +91,18 @@ export function SettingsNav() {
       icon: MailIcon,
       active: normalizedPathname === "/settings/email" || normalizedPathname === "/settings/smtp",
       visible: hasTenantPermission(permissions, TENANT_PERMISSIONS.TENANTS_UPDATE),
+    },
+    {
+      href: "/settings/integrations/whatsapp",
+      label: "WhatsApp Business",
+      icon: MessageSquareIcon,
+      active:
+        normalizedPathname.startsWith("/settings/integrations/whatsapp") ||
+        normalizedPathname.startsWith("/settings/whatsapp"),
+      visible:
+        hasTenantPermission(permissions, TENANT_PERMISSIONS.WHATSAPP_ACCOUNT_READ) ||
+        hasTenantPermission(permissions, TENANT_PERMISSIONS.WHATSAPP_MESSAGE_READ) ||
+        hasTenantPermission(permissions, TENANT_PERMISSIONS.TENANTS_UPDATE),
     },
     {
       href: "/settings/security",

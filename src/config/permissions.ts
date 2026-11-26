@@ -95,6 +95,27 @@ export const TENANT_PERMISSIONS = {
   CHAT_READ: "chat:read",
   CHAT_WRITE: "chat:write",
   CHAT_MANAGE: "chat:manage",
+
+  // WhatsApp Business Platform
+  WHATSAPP_ACCOUNT_READ: "whatsapp:account:read",
+  WHATSAPP_ACCOUNT_MANAGE: "whatsapp:account:manage",
+  WHATSAPP_PHONE_NUMBER_READ: "whatsapp:phone-number:read",
+  WHATSAPP_PHONE_NUMBER_MANAGE: "whatsapp:phone-number:manage",
+  WHATSAPP_TEMPLATE_READ: "whatsapp:template:read",
+  WHATSAPP_TEMPLATE_WRITE: "whatsapp:template:write",
+  WHATSAPP_TEMPLATE_SUBMIT: "whatsapp:template:submit",
+  WHATSAPP_TEMPLATE_DELETE: "whatsapp:template:delete",
+  WHATSAPP_MESSAGE_READ: "whatsapp:message:read",
+  WHATSAPP_MESSAGE_SEND: "whatsapp:message:send",
+  WHATSAPP_CONTACT_READ: "whatsapp:contact:read",
+  WHATSAPP_CONTACT_MANAGE: "whatsapp:contact:manage",
+  WHATSAPP_CONVERSATION_READ: "whatsapp:conversation:read",
+  WHATSAPP_CONVERSATION_REPLY: "whatsapp:conversation:reply",
+  WHATSAPP_CONVERSATION_ASSIGN: "whatsapp:conversation:assign",
+  WHATSAPP_CAMPAIGN_READ: "whatsapp:campaign:read",
+  WHATSAPP_CAMPAIGN_WRITE: "whatsapp:campaign:write",
+  WHATSAPP_CAMPAIGN_MANAGE: "whatsapp:campaign:manage",
+  WHATSAPP_USAGE_READ: "whatsapp:usage:read",
 } as const;
 
 export type TenantPermissionKey = (typeof TENANT_PERMISSIONS)[keyof typeof TENANT_PERMISSIONS];
