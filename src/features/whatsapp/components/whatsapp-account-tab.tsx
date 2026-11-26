@@ -24,6 +24,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+import { createOnboardingSession } from "../api";
 import {
   useCompleteOnboardingMutation,
   useDisconnectAccountMutation,
@@ -39,15 +40,20 @@ export function WhatsAppAccountTab() {
   const [wabaId, setWabaId] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [accessToken, setAccessToken] = useState("");
+  const [isSubmittingConnect, setIsSubmittingConnect] = useState(false);
   const [disconnectModalOpen, setDisconnectModalOpen] = useState(false);
 
   const isConnected = account?.connectionStatus === "CONNECTED";
 
   const handleConnect = async () => {
     if (!wabaId || !accessToken) return;
+    setIsSubmittingConnect(true);
     try {
+      // 1. Request a single-use onboarding session state/nonce from backend
+      const session = await createOnboardingSession();
+      // 2. Submit onboarding completion with the validated session state
       await completeMutation.mutateAsync({
-        state: "manual-setup",
+        state: session.state,
         wabaId,
         displayName: displayName || "WhatsApp Business",
         accessToken,
@@ -58,6 +64,8 @@ export function WhatsAppAccountTab() {
       setAccessToken("");
     } catch {
       // Error handled by query/toast
+    } finally {
+      setIsSubmittingConnect(false);
     }
   };
 
@@ -171,7 +179,17 @@ export function WhatsAppAccountTab() {
       </Card>
 
       {/* Connect Modal */}
-      <Dialog open={connectModalOpen} onOpenChange={setConnectModalOpen}>
+      <Dialog
+        open={connectModalOpen}
+        onOpenChange={(open) => {
+          setConnectModalOpen(open);
+          if (!open) {
+            setAccessToken("");
+            setWabaId("");
+            setDisplayName("");
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Connect WhatsApp Business Account</DialogTitle>
@@ -214,14 +232,22 @@ export function WhatsAppAccountTab() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConnectModalOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setConnectModalOpen(false);
+                setAccessToken("");
+              }}
+            >
               Cancel
             </Button>
             <Button
               onClick={handleConnect}
-              disabled={completeMutation.isPending || !wabaId || !accessToken}
+              disabled={
+                isSubmittingConnect || completeMutation.isPending || !wabaId || !accessToken
+              }
             >
-              {completeMutation.isPending ? "Connecting..." : "Connect"}
+              {isSubmittingConnect || completeMutation.isPending ? "Connecting..." : "Connect"}
             </Button>
           </DialogFooter>
         </DialogContent>
