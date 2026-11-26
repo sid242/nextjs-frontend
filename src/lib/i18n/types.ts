@@ -155,6 +155,31 @@ export interface BillingDictionary {
   billingCycle: string;
 }
 
+export interface WhatsAppDictionary {
+  title: string;
+  description: string;
+  overview: string;
+  account: string;
+  phoneNumbers: string;
+  templates: string;
+  inbox: string;
+  composeLogs: string;
+  campaigns: string;
+  contacts: string;
+  usageBilling: string;
+  connectWhatsApp: string;
+  disconnect: string;
+  createTemplate: string;
+  sendMessage: string;
+  createCampaign: string;
+  connected: string;
+  disconnected: string;
+  notConnected: string;
+  status: string;
+  phone: string;
+  verified: string;
+}
+
 export interface TranslationSchema {
   common: CommonDictionary;
   nav: NavDictionary;
@@ -162,4 +187,5 @@ export interface TranslationSchema {
   team: TeamDictionary;
   settings: SettingsDictionary;
   billing: BillingDictionary;
+  whatsapp?: WhatsAppDictionary;
 }

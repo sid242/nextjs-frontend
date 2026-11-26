@@ -21,7 +21,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 import {
   whatsAppAccountQueryOptions,
-  whatsAppCampaignsQueryOptions,
   whatsAppConversationsQueryOptions,
   whatsAppPhoneNumbersQueryOptions,
   whatsAppTemplatesQueryOptions,

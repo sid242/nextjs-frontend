@@ -115,6 +115,21 @@ export interface ServerToClientEvents {
     actorId: string;
     online: boolean;
   }) => void;
+  "whatsapp:message:received": (payload: {
+    conversationId: string;
+    messageId?: string;
+    phoneNumberId?: string;
+    direction?: string;
+    messageType?: string;
+    createdAt?: string;
+    unreadCount?: number;
+    contact?: { id: string; name?: string; phoneNumber?: string };
+  }) => void;
+  "whatsapp:status:updated": (payload: {
+    messageId: string;
+    providerMessageId?: string;
+    status: string;
+  }) => void;
 }
 
 export interface ClientToServerEvents {
