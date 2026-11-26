@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { Check, Globe } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ interface LanguageSwitcherProps {
 }
 
 export function LanguageSwitcher({ className, variant = "icon" }: LanguageSwitcherProps) {
+  const router = useRouter();
   const { locale, setLocale, locales, currentLocaleInfo } = useTranslation();
 
   return (
@@ -56,7 +58,10 @@ export function LanguageSwitcher({ className, variant = "icon" }: LanguageSwitch
           return (
             <DropdownMenuItem
               key={loc.code}
-              onSelect={() => setLocale(loc.code as SupportedLocale, true)}
+              onSelect={() => {
+                setLocale(loc.code as SupportedLocale, true);
+                router.refresh();
+              }}
               className="flex cursor-pointer items-center justify-between py-1.5 text-xs"
             >
               <div className="flex items-center gap-2">

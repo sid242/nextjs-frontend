@@ -11,7 +11,15 @@ import { I18nProvider } from "@/lib/i18n";
 import { QueryProvider } from "./query-provider";
 import { StoreHydrator } from "./store-hydrator";
 
-export function AppProviders({ children, nonce }: { children: ReactNode; nonce?: string }) {
+export function AppProviders({
+  children,
+  nonce,
+  initialLocale,
+}: {
+  children: ReactNode;
+  nonce?: string;
+  initialLocale?: import("@/lib/i18n").SupportedLocale;
+}) {
   return (
     <ThemeProvider
       attribute="class"
@@ -20,7 +28,7 @@ export function AppProviders({ children, nonce }: { children: ReactNode; nonce?:
       disableTransitionOnChange
       nonce={nonce}
     >
-      <I18nProvider>
+      <I18nProvider initialLocale={initialLocale}>
         <QueryProvider>
           <TooltipProvider delayDuration={150}>
             <StoreHydrator />

@@ -81,6 +81,12 @@ export interface NavDictionary {
   logout: string;
   workspaces: string;
   platform: string;
+  analytics: string;
+  chat: string;
+  files: string;
+  emailTemplates: string;
+  policies: string;
+  whatsapp: string;
 }
 
 export interface DashboardDictionary {
@@ -124,6 +130,13 @@ export interface SettingsDictionary {
   integrations: string;
   language: string;
   localePreferences: string;
+  notifications: string;
+  sso: string;
+  email: string;
+  whatsapp: string;
+  audit: string;
+  access: string;
+  developer: string;
 }
 
 export interface BillingDictionary {

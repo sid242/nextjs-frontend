@@ -24,16 +24,51 @@ import {
   useActiveTenant,
   useTenantContext,
 } from "@/features/tenants";
+import { useTranslation } from "@/lib/i18n";
 import { useTenantHref } from "@/lib/tenancy/use-tenant-href";
 import { cn } from "@/lib/utils";
 
 export function SettingsNav() {
+  const { t } = useTranslation();
   const pathname = usePathname();
   const tenantHref = useTenantHref();
   const normalizedPathname = pathname?.replace?.(/^\/w\/[^/]+/, "") ?? "";
   const { activeTenant } = useActiveTenant();
   const { data: tenantContext } = useTenantContext(activeTenant?.id);
   const permissions = tenantContext?.permissions;
+
+  const translateTabLabel = (label: string) => {
+    switch (label) {
+      case "Profile & Account":
+        return t("nav.profile");
+      case "Notifications & Push":
+        return t("settings.notifications");
+      case "Workspace":
+        return t("settings.title");
+      case "Branding & Theme":
+        return t("settings.branding");
+      case "Domains & URLs":
+        return t("settings.domain");
+      case "SSO & SCIM":
+        return t("settings.sso");
+      case "Plans & Billing":
+        return t("settings.billing");
+      case "Email (SMTP)":
+        return t("settings.email");
+      case "WhatsApp Business":
+        return t("settings.whatsapp");
+      case "Security & Sessions":
+        return t("settings.security");
+      case "Audit Logs":
+        return t("nav.auditLogs");
+      case "Access & Simulator":
+        return t("settings.access");
+      case "Developers & API":
+        return t("settings.developer");
+      default:
+        return label;
+    }
+  };
 
   const allTabs = [
     {
@@ -158,7 +193,7 @@ export function SettingsNav() {
               )}
             >
               <Icon className="size-3.5" />
-              <span>{tab.label}</span>
+              <span>{translateTabLabel(tab.label)}</span>
             </Link>
           );
         })}

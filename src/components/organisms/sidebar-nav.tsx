@@ -36,6 +36,7 @@ import {
   type NavSection,
 } from "@/config/site";
 import { useSidebar } from "@/lib/context/sidebar-context";
+import { useTranslation } from "@/lib/i18n";
 import { useTenantHref } from "@/lib/tenancy/use-tenant-href";
 import { cn } from "@/lib/utils";
 
@@ -105,6 +106,7 @@ export function SidebarNav({
   permissions,
   modules,
 }: SidebarNavProps) {
+  const { t } = useTranslation();
   const pathname = usePathname();
   const sidebar = useSidebar();
   const collapsed = collapsedProp ?? sidebar?.collapsed ?? false;
@@ -112,6 +114,50 @@ export function SidebarNav({
   const handleNavigate = onNavigate ?? (sidebar?.isMobile ? sidebar.toggle : undefined);
   // Track user manual toggle overrides without needing an effect
   const [toggledItems, setToggledItems] = useState<Record<string, boolean>>({});
+
+  const translateNavTitle = (title?: string) => {
+    if (!title) return "";
+    switch (title) {
+      case "Overview":
+        return t("dashboard.overview");
+      case "Dashboard":
+        return t("nav.dashboard");
+      case "Analytics & Reports":
+        return t("nav.analytics");
+      case "Workspace":
+        return t("nav.workspaces");
+      case "Team & Access":
+        return t("nav.team");
+      case "Members":
+        return t("nav.members");
+      case "User Groups":
+        return t("nav.groups");
+      case "Roles & Permissions":
+        return t("nav.roles");
+      case "Access Policies":
+        return t("nav.policies");
+      case "Team Chat":
+        return t("nav.chat");
+      case "Files":
+        return t("nav.files");
+      case "Email Templates":
+        return t("nav.emailTemplates");
+      case "WhatsApp Business":
+        return t("nav.whatsapp");
+      case "Settings":
+        return t("nav.settings");
+      case "Billing & Plans":
+        return t("nav.billing");
+      case "Audit Logs":
+        return t("nav.auditLogs");
+      case "Support & Help":
+        return t("nav.help");
+      case "Platform Portal":
+        return t("nav.platform");
+      default:
+        return title;
+    }
+  };
 
   const filteredSections = useMemo(() => {
     const canShow = (item: NavItem) =>
@@ -165,7 +211,7 @@ export function SidebarNav({
               )}
             >
               <Icon className="size-4 shrink-0" />
-              <span>{item?.title}</span>
+              <span>{translateNavTitle(item?.title)}</span>
             </Link>
           );
         })}
@@ -190,7 +236,7 @@ export function SidebarNav({
                       sIdx === 0 ? "pt-1 pb-1" : "pt-3 pb-1",
                     )}
                   >
-                    {section?.title}
+                    {translateNavTitle(section?.title)}
                   </div>
                 )}
 
@@ -214,7 +260,7 @@ export function SidebarNav({
                             <DropdownMenuTrigger asChild>
                               <button
                                 type="button"
-                                aria-label={item?.title}
+                                aria-label={translateNavTitle(item?.title)}
                                 className={cn(
                                   "hover:bg-sidebar-accent hover:text-sidebar-foreground relative mx-auto flex size-9 cursor-pointer items-center justify-center rounded-md text-sm font-medium transition-all duration-150",
                                   isChildActive || active
@@ -226,11 +272,13 @@ export function SidebarNav({
                                   <span className="bg-primary absolute top-1.5 bottom-1.5 left-0 w-1 rounded-r-full" />
                                 )}
                                 <Icon className="size-4 shrink-0" />
-                                <span className="sr-only">{item?.title}</span>
+                                <span className="sr-only">{translateNavTitle(item?.title)}</span>
                               </button>
                             </DropdownMenuTrigger>
                           </TooltipTrigger>
-                          <TooltipContent side="right">{item?.title}</TooltipContent>
+                          <TooltipContent side="right">
+                            {translateNavTitle(item?.title)}
+                          </TooltipContent>
                         </Tooltip>
 
                         <DropdownMenuContent
@@ -239,7 +287,7 @@ export function SidebarNav({
                           className="min-w-48 p-1.5 shadow-lg"
                         >
                           <DropdownMenuLabel className="text-muted-foreground px-2 py-1 text-xs font-semibold tracking-wider uppercase">
-                            {item?.title}
+                            {translateNavTitle(item?.title)}
                           </DropdownMenuLabel>
                           <DropdownMenuSeparator />
                           {item?.items?.map((subItem) => {
@@ -268,7 +316,9 @@ export function SidebarNav({
                                       )}
                                     />
                                   )}
-                                  <span className="flex-1 truncate">{subItem?.title}</span>
+                                  <span className="flex-1 truncate">
+                                    {translateNavTitle(subItem?.title)}
+                                  </span>
                                   {subItem?.badge != null && (
                                     <span className="bg-muted text-muted-foreground ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-semibold">
                                       {subItem.badge}
@@ -308,7 +358,7 @@ export function SidebarNav({
                       </TooltipTrigger>
                       <TooltipContent side="right">
                         <div className="flex items-center gap-2">
-                          <span>{item?.title}</span>
+                          <span>{translateNavTitle(item?.title)}</span>
                           {item?.badge != null && (
                             <span className="bg-muted text-muted-foreground rounded-full px-1.5 py-0.5 text-[10px] font-semibold">
                               {item.badge}
@@ -336,7 +386,7 @@ export function SidebarNav({
                         )}
                       >
                         <Icon className="group-hover:text-sidebar-foreground size-4 shrink-0 transition-colors" />
-                        <span className="flex-1 truncate">{item?.title}</span>
+                        <span className="flex-1 truncate">{translateNavTitle(item?.title)}</span>
                         {item?.badge != null && (
                           <span className="bg-sidebar-accent text-sidebar-foreground/80 mr-1 rounded-full px-2 py-0.5 text-[10px] font-semibold">
                             {item.badge}
@@ -385,7 +435,9 @@ export function SidebarNav({
                                     )}
                                   />
                                 )}
-                                <span className="flex-1 truncate">{subItem?.title}</span>
+                                <span className="flex-1 truncate">
+                                  {translateNavTitle(subItem?.title)}
+                                </span>
                                 {subItem?.badge != null && (
                                   <span className="bg-sidebar-accent text-sidebar-foreground/80 ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-semibold">
                                     {subItem.badge}
@@ -419,7 +471,7 @@ export function SidebarNav({
                       <span className="bg-primary absolute top-1.5 bottom-1.5 left-0 w-1 rounded-r-full" />
                     )}
                     <Icon className="group-hover:text-sidebar-foreground size-4 shrink-0 transition-colors" />
-                    <span className="flex-1 truncate">{item?.title}</span>
+                    <span className="flex-1 truncate">{translateNavTitle(item?.title)}</span>
                     {item?.badge != null && (
                       <span className="bg-sidebar-accent text-sidebar-foreground/80 ml-auto rounded-full px-2 py-0.5 text-[10px] font-semibold">
                         {item.badge}

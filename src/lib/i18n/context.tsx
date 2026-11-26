@@ -10,6 +10,8 @@ import {
   type ReactNode,
 } from "react";
 
+import { api } from "@/lib/api/http";
+
 import { dictionaries, en } from "./dictionaries";
 import {
   DEFAULT_LOCALE,
@@ -104,13 +106,20 @@ export function I18nProvider({
 
   const setLocale = useCallback((newLocale: SupportedLocale, syncWithProfile = false) => {
     setLocaleState(newLocale);
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(STORAGE_KEY, newLocale);
+        document.cookie = `${COOKIE_KEY}=${newLocale}; path=/; max-age=31536000; SameSite=Lax`;
+        document.documentElement.lang = newLocale;
+        const locInfo = SUPPORTED_LOCALES.find((l) => l.code === newLocale);
+        if (locInfo) document.documentElement.dir = locInfo.dir;
+      } catch {
+        // ignore
+      }
+    }
     if (syncWithProfile && typeof window !== "undefined") {
       try {
-        void fetch("/api/v1/users/me", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ locale: newLocale }),
-        }).catch(() => {
+        void api.patch("/users/me", { locale: newLocale }).catch(() => {
           // best-effort sync
         });
       } catch {

@@ -1,9 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Poppins } from "next/font/google";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 
 import { AppProviders } from "@/components/providers/app-providers";
 import { siteConfig } from "@/config/site";
+import type { SupportedLocale } from "@/lib/i18n";
 
 import "./globals.css";
 
@@ -30,9 +31,12 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // Reading headers() opts the app into dynamic rendering, which the per-request CSP nonce requires.
   const nonce = (await headers()).get("x-nonce") ?? undefined;
+  const cookieStore = await cookies();
+  const cookieLocale = cookieStore.get("app_locale")?.value;
+  const initialLocale: SupportedLocale = cookieLocale === "hi" ? "hi" : "en";
 
   return (
-    <html lang="en" className={poppins.variable} suppressHydrationWarning>
+    <html lang={initialLocale} className={poppins.variable} suppressHydrationWarning>
       <body className="font-sans">
         <a
           href="#main"
@@ -40,7 +44,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         >
           Skip to content
         </a>
-        <AppProviders nonce={nonce}>{children}</AppProviders>
+        <AppProviders nonce={nonce} initialLocale={initialLocale}>
+          {children}
+        </AppProviders>
       </body>
     </html>
   );
