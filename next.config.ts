@@ -35,6 +35,8 @@ const allowedDevOrigins = getAllowedDevOrigins();
 const nextConfig: NextConfig = {
   // Self-contained server bundle => tiny Docker image (see Dockerfile).
   output: "standalone",
+  // Preserve the listener origin (including 127.0.0.1) for internal tenant rewrites.
+  skipProxyUrlNormalize: true,
   poweredByHeader: false,
   reactStrictMode: true,
   ...(allowedDevOrigins.length > 0 ? { allowedDevOrigins } : {}),

@@ -17,7 +17,7 @@ import { TablePagination } from "@/components/molecules/table-pagination";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -288,10 +288,10 @@ export function PlatformUsersTable() {
     <Card className="border-border/60 shadow-xs">
       <CardHeader className="gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <CardTitle className="flex items-center gap-2 text-lg">
+          <h1 className="flex items-center gap-2 text-lg leading-none font-semibold">
             <Users className="text-primary size-5" />
             Customer User Accounts
-          </CardTitle>
+          </h1>
           <CardDescription className="text-sm">
             Inspect customer accounts, login telemetry, verification state, and suspend or
             reactivate access.

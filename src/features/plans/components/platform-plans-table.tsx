@@ -336,9 +336,9 @@ export function PlatformPlansTable() {
         <CardHeader className="pb-4">
           <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
             <div>
-              <CardTitle className="text-base font-semibold">
+              <h1 className="text-base leading-none font-semibold">
                 Commercial Pricing &amp; Entitlements
-              </CardTitle>
+              </h1>
               <CardDescription className="text-xs">
                 Canonical multi-tenant pricing models, seat limits, and storage quotas enforced
                 platform-wide.

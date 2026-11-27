@@ -5,8 +5,10 @@ import {
   createCampaignSchema,
   createTemplateSchema,
   replyConversationSchema,
+  scheduleCampaignFormSchema,
   sendTemplateMessageSchema,
   sendTextMessageSchema,
+  splitCampaignRecipients,
 } from "./schemas";
 
 describe("WhatsApp Schemas Validation", () => {
@@ -107,6 +109,30 @@ describe("WhatsApp Schemas Validation", () => {
       const result = createCampaignSchema.parse(valid);
       expect(result.name).toBe("Special Black Friday Announcement");
     });
+
+    it("accepts each destination once and rejects input without a valid international number", () => {
+      expect(splitCampaignRecipients("+12025550101, +12025550101\n+442079460101")).toEqual([
+        "+12025550101",
+        "+442079460101",
+      ]);
+      const draft = { name: "Workspace update", templateId: "tpl_123" };
+      expect(createCampaignSchema.safeParse({ ...draft, recipients: ", ,\n," })?.success).toBe(
+        false,
+      );
+      expect(
+        createCampaignSchema.safeParse({ ...draft, recipients: "+12025550101, bad-number" })
+          ?.success,
+      ).toBe(false);
+    });
+  });
+
+  it("requires a future date when scheduling and accepts an empty value for immediate launch", () => {
+    expect(scheduleCampaignFormSchema.safeParse({ scheduledAt: "" })?.success).toBe(true);
+    expect(scheduleCampaignFormSchema.safeParse({ scheduledAt: "2000-01-01T09:00" })?.success).toBe(
+      false,
+    );
+    const future = new Date(Date.now() + 60_000).toISOString();
+    expect(scheduleCampaignFormSchema.safeParse({ scheduledAt: future })?.success).toBe(true);
   });
 
   describe("replyConversationSchema", () => {

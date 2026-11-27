@@ -168,10 +168,10 @@ function stripTenantHeaders(headers: Headers): void {
 }
 
 /** Helper to rewrite request cleanly without repeating URL cloning */
-function rewriteTo(req: NextRequest, targetPath: string): NextResponse {
-  const url = req?.nextUrl?.clone?.() ?? new URL(targetPath, req?.url ?? "http://localhost");
+function rewriteTo(req: NextRequest, targetPath: string, headers?: Headers): NextResponse {
+  const url = new URL(req.url);
   url.pathname = targetPath;
-  return NextResponse.rewrite(url);
+  return NextResponse.rewrite(url, headers ? { request: { headers } } : undefined);
 }
 
 /** Helper to compute and execute canonical host redirects safely */
@@ -284,12 +284,7 @@ export async function proxy(req: NextRequest) {
     headers.set("content-security-policy", csp);
 
     const restPath = pathname === "/" ? "" : pathname;
-    const url =
-      req?.nextUrl?.clone?.() ??
-      new URL(`/w/${result?.slug ?? ""}${restPath}`, req?.url ?? "http://localhost");
-    url.pathname = `/w/${result?.slug ?? ""}${restPath}`;
-
-    const res = NextResponse.rewrite(url, { request: { headers } });
+    const res = rewriteTo(req, `/w/${result?.slug ?? ""}${restPath}`, headers);
     res.headers.set("Content-Security-Policy", csp);
     return res;
   }
@@ -410,7 +405,7 @@ export const config = {
   matcher: [
     {
       source:
-        "/((?!api|_next/static|_next/image|favicon.ico|robots.txt|sw.js|manifest.webmanifest|icon.svg).*)",
+        "/((?!api|_next/|__nextjs_|favicon.ico|robots.txt|sw.js|manifest.webmanifest|icon.svg).*)",
       missing: [
         { type: "header", key: "next-router-prefetch" },
         { type: "header", key: "purpose", value: "prefetch" },

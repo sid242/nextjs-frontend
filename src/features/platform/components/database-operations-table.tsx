@@ -23,7 +23,7 @@ import { TablePagination } from "@/components/molecules/table-pagination";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -550,10 +550,10 @@ export function DatabaseOperationsTable() {
       <CardHeader className="pb-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <CardTitle className="flex items-center gap-2 text-xl font-bold">
+            <h1 className="flex items-center gap-2 text-xl leading-none font-bold">
               <Database className="text-primary h-5 w-5" />
               Tenant Database Operations
-            </CardTitle>
+            </h1>
             <CardDescription className="text-muted-foreground text-sm">
               Monitor tenant schema versioning, database placement strategies, health checks &
               migration concurrency.

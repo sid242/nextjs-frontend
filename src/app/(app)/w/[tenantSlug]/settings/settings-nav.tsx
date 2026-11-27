@@ -18,6 +18,8 @@ import {
   UserIcon,
 } from "lucide-react";
 
+import { WHATSAPP_SETTINGS_PERMISSIONS } from "@/config/permissions";
+import { TENANT_PATHS } from "@/config/routes";
 import {
   hasTenantPermission,
   TENANT_PERMISSIONS,
@@ -128,16 +130,13 @@ export function SettingsNav() {
       visible: hasTenantPermission(permissions, TENANT_PERMISSIONS.TENANTS_UPDATE),
     },
     {
-      href: "/settings/integrations/whatsapp",
+      href: TENANT_PATHS.SETTINGS_INTEGRATIONS_WHATSAPP,
       label: "WhatsApp Business",
       icon: MessageSquareIcon,
       active:
-        normalizedPathname.startsWith("/settings/integrations/whatsapp") ||
-        normalizedPathname.startsWith("/settings/whatsapp"),
-      visible:
-        hasTenantPermission(permissions, TENANT_PERMISSIONS.WHATSAPP_ACCOUNT_READ) ||
-        hasTenantPermission(permissions, TENANT_PERMISSIONS.WHATSAPP_MESSAGE_READ) ||
-        hasTenantPermission(permissions, TENANT_PERMISSIONS.TENANTS_UPDATE),
+        normalizedPathname === TENANT_PATHS.SETTINGS_INTEGRATIONS_WHATSAPP ||
+        normalizedPathname === TENANT_PATHS.SETTINGS_WHATSAPP,
+      visible: hasTenantPermission(permissions, WHATSAPP_SETTINGS_PERMISSIONS),
     },
     {
       href: "/settings/security",

@@ -48,14 +48,24 @@ export function WhatsAppUsageTab() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-muted-foreground text-sm font-medium">
-              Estimated Total Cost
+              Estimated Cost by Currency
             </CardTitle>
             <BanknoteIcon className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-emerald-600">
-              {isLoadingSummary ? "..." : `₹${summary?.totalEstimatedCost || "0.00"}`}
-            </div>
+            {isLoadingSummary ? (
+              <p className="text-muted-foreground text-sm">Loading estimates…</p>
+            ) : summary?.estimatedCostByCurrency?.length ? (
+              <ul className="space-y-1 text-lg font-semibold tabular-nums">
+                {summary?.estimatedCostByCurrency?.map(({ currency, estimatedCost }) => (
+                  <li key={currency}>
+                    {currency} {estimatedCost}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-muted-foreground text-sm">No currency estimates available.</p>
+            )}
             <p className="text-muted-foreground mt-1 text-xs">
               Estimated based on Meta Cloud API conversation rate cards
             </p>
@@ -139,7 +149,7 @@ export function WhatsAppUsageTab() {
                       </Badge>
                     </TableCell>
                     <TableCell className="font-medium text-emerald-600">
-                      ₹{rec.estimatedCost} {rec.currency}
+                      {rec?.currency} {rec?.estimatedCost}
                     </TableCell>
                     <TableCell className="text-muted-foreground font-mono text-xs">
                       {rec.pricingRateCardVersion}
