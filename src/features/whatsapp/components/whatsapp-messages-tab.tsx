@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowDownLeftIcon, ArrowUpRightIcon, RefreshCwIcon, SendIcon } from "lucide-react";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { getErrorMessage } from "@/lib/api/errors";
 
 import {
   useSendTemplateMessageMutation,
@@ -51,12 +53,12 @@ export function WhatsAppMessagesTab() {
   // Form states
   const [phoneNumberId, setPhoneNumberId] = useState<string>("");
   const [to, setTo] = useState("");
-  const [selectedTemplateName, setSelectedTemplateName] = useState("");
-  const [language] = useState("en");
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [param1, setParam1] = useState("");
   const [param2, setParam2] = useState("");
   const [param3, setParam3] = useState("");
   const [textContent, setTextContent] = useState("");
+  const [sendError, setSendError] = useState<string | null>(null);
 
   const {
     data: messages = [],
@@ -66,51 +68,62 @@ export function WhatsAppMessagesTab() {
   const { data: phoneNumbers = [] } = useQuery(whatsAppPhoneNumbersQueryOptions());
   const { data: templatesData } = useQuery(whatsAppTemplatesQueryOptions({ status: "APPROVED" }));
   const templates = templatesData?.items ?? [];
+  const selectedTemplate = templates.find((t) => t.id === selectedTemplateId);
 
   const sendTemplateMutation = useSendTemplateMessageMutation();
   const sendTextMutation = useSendTextMessageMutation();
 
   const handleSend = async () => {
     if (!to.trim()) return;
+    setSendError(null);
 
-    if (composerMode === "template") {
-      if (!selectedTemplateName) return;
-      const bodyParameters: string[] = [];
-      if (param1) bodyParameters.push(param1);
-      if (param2) bodyParameters.push(param2);
-      if (param3) bodyParameters.push(param3);
+    try {
+      if (composerMode === "template") {
+        if (!selectedTemplate) return;
+        const bodyParameters: string[] = [];
+        if (param1) bodyParameters.push(param1);
+        if (param2) bodyParameters.push(param2);
+        if (param3) bodyParameters.push(param3);
 
-      await sendTemplateMutation.mutateAsync({
-        phoneNumberId: phoneNumberId || undefined,
-        to: to.trim(),
-        template: {
-          name: selectedTemplateName,
-          language,
-          components: bodyParameters.length
-            ? [
-                {
-                  type: "body",
-                  parameters: bodyParameters.map((text) => ({ type: "text", text })),
-                },
-              ]
-            : undefined,
-        },
-      });
-    } else {
-      if (!textContent.trim()) return;
-      await sendTextMutation.mutateAsync({
-        phoneNumberId: phoneNumberId || undefined,
-        to: to.trim(),
-        text: textContent.trim(),
-      });
+        await sendTemplateMutation.mutateAsync({
+          phoneNumberId: phoneNumberId || undefined,
+          to: to.trim(),
+          template: {
+            name: selectedTemplate.name,
+            language: selectedTemplate.language,
+            components: bodyParameters.length
+              ? [
+                  {
+                    type: "body",
+                    parameters: bodyParameters.map((text) => ({ type: "text", text })),
+                  },
+                ]
+              : undefined,
+          },
+        });
+        toast.success("WhatsApp template message sent");
+      } else {
+        if (!textContent.trim()) return;
+        await sendTextMutation.mutateAsync({
+          phoneNumberId: phoneNumberId || undefined,
+          to: to.trim(),
+          text: textContent.trim(),
+        });
+        toast.success("WhatsApp text message sent");
+      }
+
+      setComposerOpen(false);
+      setTo("");
+      setSelectedTemplateId("");
+      setTextContent("");
+      setParam1("");
+      setParam2("");
+      setParam3("");
+    } catch (err) {
+      const msg = getErrorMessage(err, "Failed to send WhatsApp message");
+      setSendError(msg);
+      toast.error(msg);
     }
-
-    setComposerOpen(false);
-    setTo("");
-    setTextContent("");
-    setParam1("");
-    setParam2("");
-    setParam3("");
   };
 
   const getStatusBadge = (status: WhatsAppMessage["internalStatus"]) => {
@@ -304,13 +317,13 @@ export function WhatsAppMessagesTab() {
               <div className="bg-muted/20 space-y-3 rounded-lg border p-3">
                 <div className="space-y-1">
                   <Label>Select Approved Template</Label>
-                  <Select value={selectedTemplateName} onValueChange={setSelectedTemplateName}>
+                  <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select template..." />
                     </SelectTrigger>
                     <SelectContent>
                       {templates.map((tpl) => (
-                        <SelectItem key={tpl.id} value={tpl.name}>
+                        <SelectItem key={tpl.id} value={tpl.id}>
                           {tpl.name} ({tpl.category}) - {tpl.language}
                         </SelectItem>
                       ))}
@@ -363,6 +376,12 @@ export function WhatsAppMessagesTab() {
             )}
           </div>
 
+          {sendError && (
+            <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-300">
+              {sendError}
+            </div>
+          )}
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setComposerOpen(false)}>
               Cancel
@@ -373,7 +392,7 @@ export function WhatsAppMessagesTab() {
                 sendTemplateMutation.isPending ||
                 sendTextMutation.isPending ||
                 !to.trim() ||
-                (composerMode === "template" && !selectedTemplateName) ||
+                (composerMode === "template" && !selectedTemplate) ||
                 (composerMode === "text" && !textContent.trim())
               }
             >
