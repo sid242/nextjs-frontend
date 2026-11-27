@@ -39,3 +39,4 @@ export {
   type UseTableColumnsReturn,
 } from "./use-table-columns";
 export { useServerSentEvents, type SseOptions } from "./use-sse";
+export { usePersistedTab, type UsePersistedTabOptions } from "./use-persisted-tab";

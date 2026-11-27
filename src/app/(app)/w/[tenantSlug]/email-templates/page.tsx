@@ -8,10 +8,18 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DeliveryLogsTable, SuppressionsTable, TemplatesTable } from "@/features/email-templates";
 import { TENANT_PERMISSIONS, TenantPermissionGate } from "@/features/tenants";
+import { usePersistedTab } from "@/lib/hooks";
 import { useTenantHref } from "@/lib/tenancy";
+
+const EMAIL_TABS = ["templates", "delivery-logs", "suppressions"] as const;
 
 export default function EmailTemplatesPage() {
   const tenantHref = useTenantHref();
+  const [activeTab, setActiveTab] = usePersistedTab({
+    defaultTab: "templates",
+    allowedTabs: EMAIL_TABS,
+    storageKey: "email_templates_active_tab",
+  });
 
   return (
     <TenantPermissionGate permission={TENANT_PERMISSIONS.TENANTS_READ}>
@@ -34,7 +42,7 @@ export default function EmailTemplatesPage() {
           </TenantPermissionGate>
         </div>
 
-        <Tabs defaultValue="templates" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList>
             <TabsTrigger value="templates" className="gap-2">
               <MailIcon className="size-4" />

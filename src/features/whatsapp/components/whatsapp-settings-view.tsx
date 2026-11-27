@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   BarChart3Icon,
   InboxIcon,
@@ -19,6 +18,7 @@ import {
   type WhatsAppTab,
 } from "@/config/permissions";
 import { hasTenantPermission, TenantPermissionGate, useTenantContext } from "@/features/tenants";
+import { usePersistedTab } from "@/lib/hooks";
 import { useTranslation } from "@/lib/i18n";
 
 import { WhatsAppAccountTab } from "./whatsapp-account-tab";
@@ -77,19 +77,25 @@ export function WhatsAppSettingsView() {
 }
 
 function WhatsAppSettingsTabs() {
-  const [selectedTab, setSelectedTab] = useState<WhatsAppTab>("overview");
   const { t } = useTranslation();
   const { data: context } = useTenantContext();
   const canAccess = (tab: WhatsAppTab) =>
     hasTenantPermission(context?.permissions, WHATSAPP_TAB_PERMISSIONS[tab]);
   const visibleTabs = tabs.filter((tab) => canAccess(tab?.id));
-  const activeTab = canAccess(selectedTab) ? selectedTab : visibleTabs?.[0]?.id;
+  const allowedTabIds = visibleTabs.map((t) => t.id);
+
+  const [activeTab, setActiveTab] = usePersistedTab<WhatsAppTab>({
+    paramName: "tab",
+    defaultTab: "overview",
+    allowedTabs: allowedTabIds,
+    storageKey: "whatsapp_active_tab",
+  });
+
   const navigate = (value: string) => {
-    const allowedTab = visibleTabs.find((tab) => tab?.id === value);
-    if (allowedTab) setSelectedTab(allowedTab?.id);
+    setActiveTab(value as WhatsAppTab);
   };
 
-  if (!activeTab) return null;
+  if (!activeTab || visibleTabs.length === 0) return null;
 
   return (
     <div className="space-y-6">

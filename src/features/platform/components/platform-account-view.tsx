@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState, type ComponentType, type FormEvent } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   BellRing,
@@ -32,10 +31,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PLATFORM_ROUTES } from "@/config/routes";
 import { PushSettingsCard } from "@/features/notifications";
 import { getErrorMessage } from "@/lib/api/errors";
 import { api } from "@/lib/api/http";
+import { usePersistedTab } from "@/lib/hooks";
 import { resolveStorageUrl } from "@/lib/storage";
 
 import {
@@ -73,15 +72,15 @@ const ACCOUNT_TABS: AccountTabConfig[] = [
   },
 ];
 
-export function PlatformAccountView() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const currentTab = searchParams.get("tab") || "profile";
-  const activeTab = ACCOUNT_TABS.some((t) => t.id === currentTab) ? currentTab : "profile";
+const ACCOUNT_TAB_IDS = ACCOUNT_TABS.map((t) => t.id);
 
-  const handleTabChange = (nextTab: string) => {
-    router.replace(`${PLATFORM_ROUTES.ACCOUNT}?tab=${nextTab}`, { scroll: false });
-  };
+export function PlatformAccountView() {
+  const [activeTab, setActiveTab] = usePersistedTab({
+    paramName: "tab",
+    defaultTab: "profile",
+    allowedTabs: ACCOUNT_TAB_IDS,
+    storageKey: "platform_account_active_tab",
+  });
 
   return (
     <div className="space-y-6">
@@ -90,7 +89,7 @@ export function PlatformAccountView() {
         description="Manage your operator identity, password authentication, two-factor verification, and push alert preferences."
       />
 
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <div className="w-full overflow-x-auto pb-1">
           <TabsList className="bg-muted/60 inline-flex h-auto w-max flex-nowrap items-center justify-start gap-1 p-1">
             {ACCOUNT_TABS.map(({ id, label, icon: Icon }) => (
