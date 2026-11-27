@@ -39,9 +39,6 @@ import { cn } from "@/lib/utils";
 import { PLATFORM_NAV_GROUPS } from "../constants";
 import { hasPlatformPermission, PLATFORM_PERMISSION_KEYS } from "../permissions";
 import { usePlatformLogout, usePlatformMe, useSupportSessions } from "../queries";
-import { PlatformChangePasswordDialog } from "./platform-change-password-dialog";
-import { PlatformProfileDialog } from "./platform-profile-dialog";
-import { PlatformTwoFactorDialog } from "./platform-two-factor-dialog";
 
 interface PlatformShellProps {
   children: ReactNode;
@@ -51,9 +48,6 @@ export function PlatformShell({ children }: PlatformShellProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const [twoFactorOpen, setTwoFactorOpen] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [passwordOpen, setPasswordOpen] = useState(false);
   const { data: staff, isLoading: staffLoading } = usePlatformMe();
   const { mutate: logout, isPending: loggingOut } = usePlatformLogout();
 
@@ -396,21 +390,33 @@ export function PlatformShell({ children }: PlatformShellProps) {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setProfileOpen(true)} className="cursor-pointer">
-                  <UserCog className="mr-2 h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-                  <span>Edit Profile</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setPasswordOpen(true)} className="cursor-pointer">
-                  <Lock className="mr-2 h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-                  <span>Change Password</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTwoFactorOpen(true)} className="cursor-pointer">
-                  <KeyRound className="mr-2 h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-                  <span>Security & 2FA</span>
+                <DropdownMenuItem asChild className="cursor-pointer">
+                  <Link href={PLATFORM_ROUTES.ACCOUNT} onClick={() => setMobileOpen(false)}>
+                    <UserCog className="mr-2 h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                    <span>Edit Profile</span>
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild className="cursor-pointer">
                   <Link
-                    href={PLATFORM_ROUTES.SETTINGS_NOTIFICATIONS}
+                    href={`${PLATFORM_ROUTES.ACCOUNT}?tab=security`}
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    <Lock className="mr-2 h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                    <span>Change Password</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild className="cursor-pointer">
+                  <Link
+                    href={`${PLATFORM_ROUTES.ACCOUNT}?tab=2fa`}
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    <KeyRound className="mr-2 h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                    <span>Security & 2FA</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild className="cursor-pointer">
+                  <Link
+                    href={`${PLATFORM_ROUTES.ACCOUNT}?tab=notifications`}
                     onClick={() => setMobileOpen(false)}
                   >
                     <BellRing className="mr-2 h-4 w-4 text-indigo-600 dark:text-indigo-400" />
@@ -466,10 +472,6 @@ export function PlatformShell({ children }: PlatformShellProps) {
           {/* Content Body */}
           <main className="mx-auto w-full max-w-7xl min-w-0 flex-1 p-4 md:p-8">{children}</main>
         </div>
-
-        <PlatformProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
-        <PlatformChangePasswordDialog open={passwordOpen} onOpenChange={setPasswordOpen} />
-        <PlatformTwoFactorDialog open={twoFactorOpen} onOpenChange={setTwoFactorOpen} />
       </div>
     </TooltipProvider>
   );

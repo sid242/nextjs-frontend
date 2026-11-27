@@ -6,6 +6,7 @@ export * from "./types";
 
 // Components
 export { WhatsAppSettingsView } from "./components/whatsapp-settings-view";
+export { WhatsAppIntegrationCard } from "./components/whatsapp-integration-card";
 export { WhatsAppOverviewTab } from "./components/whatsapp-overview-tab";
 export { WhatsAppAccountTab } from "./components/whatsapp-account-tab";
 export { WhatsAppPhoneNumbersTab } from "./components/whatsapp-phone-numbers-tab";

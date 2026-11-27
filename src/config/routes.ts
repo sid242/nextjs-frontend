@@ -45,6 +45,7 @@ export const PLATFORM_ROUTES = {
   AUDIT_LOGS: "/platform/audit-logs",
   SUPPORT_SESSIONS: "/platform/support-sessions",
   CHAT: "/platform/chat",
+  ACCOUNT: "/platform/account",
   SETTINGS_NOTIFICATIONS: "/platform/settings/notifications",
 } as const;
 
@@ -89,6 +90,7 @@ export const TENANT_PATHS = {
   SETTINGS_URL: "/settings/url",
   SETTINGS_WHATSAPP: "/settings/whatsapp",
   SETTINGS_INTEGRATIONS_WHATSAPP: "/settings/integrations/whatsapp",
+  WHATSAPP: "/whatsapp",
 } as const;
 
 /**

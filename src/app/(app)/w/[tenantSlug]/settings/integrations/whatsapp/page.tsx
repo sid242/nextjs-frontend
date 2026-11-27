@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 
-import { WhatsAppSettingsView } from "@/features/whatsapp";
+import { WhatsAppIntegrationCard } from "@/features/whatsapp";
 
 export const metadata: Metadata = {
-  title: "WhatsApp Business Settings",
+  title: "WhatsApp API & Integration Settings",
   description:
-    "Manage WhatsApp Business Account, phone numbers, templates, conversations, and campaigns.",
+    "Manage WhatsApp Business Account credentials, Meta webhook, and verified phone numbers.",
 };
 
 export default function WhatsAppSettingsPage() {
-  return <WhatsAppSettingsView />;
+  return <WhatsAppIntegrationCard />;
 }
