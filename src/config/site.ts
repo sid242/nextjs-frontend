@@ -1,5 +1,5 @@
 import { WORKSPACE_MODULES, type WorkspaceModuleKey } from "./optional-modules";
-import { TENANT_PERMISSIONS } from "./permissions";
+import { TENANT_PERMISSIONS, WHATSAPP_SETTINGS_PERMISSIONS } from "./permissions";
 
 export type NavIcon =
   | "layout-dashboard"
@@ -59,6 +59,7 @@ export const navSections: NavSection[] = [
           {
             title: "Members",
             href: "/team",
+            icon: "users",
             permission: TENANT_PERMISSIONS.MEMBERS_READ,
           },
           {
@@ -87,6 +88,12 @@ export const navSections: NavSection[] = [
         href: "/chat",
         icon: "message-square",
         permission: TENANT_PERMISSIONS.CHAT_READ,
+      },
+      {
+        title: "WhatsApp Business",
+        href: "/whatsapp",
+        icon: "message-square",
+        permission: WHATSAPP_SETTINGS_PERMISSIONS,
       },
       {
         title: "Files",

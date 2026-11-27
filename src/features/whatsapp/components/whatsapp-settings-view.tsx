@@ -15,10 +15,20 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   WHATSAPP_SETTINGS_PERMISSIONS,
+  WHATSAPP_SETTINGS_PERMISSIONS,
+  WHATSAPP_TAB_PERMISSIONS,
   WHATSAPP_TAB_PERMISSIONS,
   type WhatsAppTab,
+  type WhatsAppTab,
 } from "@/config/permissions";
-import { hasTenantPermission, TenantPermissionGate, useTenantContext } from "@/features/tenants";
+import {
+  hasTenantPermission,
+  hasTenantPermission,
+  TenantPermissionGate,
+  TenantPermissionGate,
+  useTenantContext,
+  useTenantContext,
+} from "@/features/tenants";
 import { useTranslation } from "@/lib/i18n";
 
 import { WhatsAppAccountTab } from "./whatsapp-account-tab";
@@ -98,17 +108,23 @@ function WhatsAppSettingsTabs() {
         <p className="text-muted-foreground text-sm">{t("whatsapp.description")}</p>
       </div>
       <Tabs value={activeTab} onValueChange={navigate} className="space-y-6">
-        <TabsList
-          aria-label={t("whatsapp.title")}
-          className="bg-muted/60 flex h-auto w-full flex-wrap justify-start gap-1 p-1"
-        >
-          {visibleTabs.map(({ id, label, icon: Icon }) => (
-            <TabsTrigger key={id} value={id} className="data-[state=active]:bg-background gap-1.5">
-              <Icon aria-hidden="true" className="size-4" />
-              <span>{t(label)}</span>
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        <div className="w-full overflow-x-auto pb-1">
+          <TabsList
+            aria-label={t("whatsapp.title")}
+            className="bg-muted/60 inline-flex h-auto w-max flex-nowrap items-center justify-start gap-1 p-1"
+          >
+            {visibleTabs.map(({ id, label, icon: Icon }) => (
+              <TabsTrigger
+                key={id}
+                value={id}
+                className="data-[state=active]:bg-background shrink-0 gap-1.5 whitespace-nowrap"
+              >
+                <Icon aria-hidden="true" className="size-4 shrink-0" />
+                <span>{t(label)}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
         {visibleTabs.map((tab) => (
           <TabsContent key={tab?.id} value={tab?.id}>
             {"Content" in tab ? (

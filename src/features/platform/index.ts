@@ -84,6 +84,7 @@ export { TenantInspector } from "./components/tenant-inspector";
 export { PlatformTwoFactorDialog } from "./components/platform-two-factor-dialog";
 export { PlatformProfileDialog } from "./components/platform-profile-dialog";
 export { PlatformChangePasswordDialog } from "./components/platform-change-password-dialog";
+export { PlatformAccountView } from "./components/platform-account-view";
 export { PlatformPoliciesTable } from "./components/platform-policies-table";
 export { PlatformPolicyFormPage } from "./components/platform-policy-form-page";
 export { AttachPlatformRoleDialog } from "./components/attach-platform-role-dialog";
