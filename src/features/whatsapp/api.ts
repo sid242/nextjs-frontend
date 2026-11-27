@@ -73,6 +73,14 @@ export const createWhatsAppTemplate = (data: {
   components: Record<string, unknown>[];
 }) => api.post<WhatsAppTemplate>("/tenant/whatsapp/templates", data);
 
+export const updateWhatsAppTemplate = (
+  id: string,
+  data: {
+    category?: string;
+    components?: Record<string, unknown>[];
+  },
+) => api.patch<WhatsAppTemplate>(`/tenant/whatsapp/templates/${id}`, data);
+
 export const submitWhatsAppTemplate = (id: string) =>
   api.post<WhatsAppTemplate>(`/tenant/whatsapp/templates/${id}/submit`, {});
 

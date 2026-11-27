@@ -129,6 +129,22 @@ export function useCreateTemplateMutation() {
   });
 }
 
+export function useUpdateTemplateMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: { category?: string; components?: Record<string, unknown>[] };
+    }) => api.updateWhatsAppTemplate(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: whatsappKeys.templates() });
+    },
+  });
+}
+
 export function useSubmitTemplateMutation() {
   const queryClient = useQueryClient();
   return useMutation({

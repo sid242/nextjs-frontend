@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   CheckIcon,
@@ -34,22 +34,36 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { getErrorMessage } from "@/lib/api/errors";
 
-import { useCreateTemplateMutation } from "../queries";
+import { useCreateTemplateMutation, useUpdateTemplateMutation } from "../queries";
 import {
   createTemplateSchema,
   type CreateTemplateFormValues,
   type TemplateButtonFormValues,
 } from "../schemas";
+import type { WhatsAppTemplate } from "../types";
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  template?: WhatsAppTemplate | null;
 }
 
 interface TemplateButtonState extends TemplateButtonFormValues {
   id: string;
 }
+
+const LANGUAGE_OPTIONS = [
+  { value: "en", label: "English (en)" },
+  { value: "en_US", label: "English US (en_US)" },
+  { value: "en_GB", label: "English UK (en_GB)" },
+  { value: "hi", label: "Hindi (hi)" },
+  { value: "gu", label: "Gujarati (gu)" },
+  { value: "ar", label: "Arabic (ar)" },
+  { value: "es", label: "Spanish (es)" },
+  { value: "fr", label: "French (fr)" },
+];
 
 const COMMON_VARIABLE_PRESETS = [
   { label: "Customer Name", variable: "{{1}}" },
@@ -59,8 +73,10 @@ const COMMON_VARIABLE_PRESETS = [
   { label: "Amount / Price", variable: "{{5}}" },
 ];
 
-export function WhatsAppTemplateBuilderDialog({ open, onOpenChange }: Props) {
+export function WhatsAppTemplateBuilderDialog({ open, onOpenChange, template }: Props) {
+  const isEditing = !!template;
   const createMutation = useCreateTemplateMutation();
+  const updateMutation = useUpdateTemplateMutation();
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const [buttons, setButtons] = useState<TemplateButtonState[]>([]);
@@ -85,6 +101,48 @@ export function WhatsAppTemplateBuilderDialog({ open, onOpenChange }: Props) {
       footerText: "",
     },
   });
+
+  useEffect(() => {
+    if (!open) return;
+    if (template) {
+      const comps = template.components ?? [];
+      const header = comps.find((c) => c.type === "HEADER");
+      const body = comps.find((c) => c.type === "BODY");
+      const footer = comps.find((c) => c.type === "FOOTER");
+      const btns = comps.find((c) => c.type === "BUTTONS")?.buttons ?? [];
+
+      reset({
+        name: template.name,
+        category: template.category,
+        language: template.language,
+        headerType:
+          (header?.format as "TEXT" | "IMAGE" | "DOCUMENT" | "VIDEO" | undefined) ?? "NONE",
+        headerText: header?.text ?? "",
+        bodyText: body?.text ?? "",
+        footerText: footer?.text ?? "",
+      });
+      setButtons(
+        btns.map((b, i) => ({
+          id: `btn_edit_${i}_${Date.now()}`,
+          type: (b.type === "OTP" ? "QUICK_REPLY" : b.type) as
+            "QUICK_REPLY" | "URL" | "PHONE_NUMBER",
+          text: b.text,
+          value: b.url || b.phone_number || "",
+        })),
+      );
+    } else {
+      reset({
+        name: "",
+        category: "UTILITY",
+        language: "en",
+        headerType: "NONE",
+        headerText: "",
+        bodyText: "",
+        footerText: "",
+      });
+      setButtons([]);
+    }
+  }, [open, template, reset]);
 
   const formValues = watch();
 
@@ -212,18 +270,31 @@ export function WhatsAppTemplateBuilderDialog({ open, onOpenChange }: Props) {
     }
 
     try {
-      await createMutation.mutateAsync({
-        name: values.name,
-        category: values.category,
-        language: values.language,
-        components,
-      });
+      if (isEditing && template) {
+        await updateMutation.mutateAsync({
+          id: template.id,
+          data: {
+            category: values.category,
+            components,
+          },
+        });
+        toast.success("Template updated successfully!");
+      } else {
+        await createMutation.mutateAsync({
+          name: values.name,
+          category: values.category,
+          language: values.language,
+          components,
+        });
+        toast.success("Template draft created successfully!");
+      }
       reset();
       setButtons([]);
       onOpenChange(false);
-      toast.success("Template draft created successfully!");
-    } catch {
-      // Handled by query
+    } catch (err) {
+      toast.error(
+        getErrorMessage(err, isEditing ? "Failed to update template" : "Failed to create template"),
+      );
     }
   };
 
@@ -233,11 +304,12 @@ export function WhatsAppTemplateBuilderDialog({ open, onOpenChange }: Props) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <SparklesIcon className="text-primary h-5 w-5" />
-            Create WhatsApp Message Template
+            {isEditing ? "Edit WhatsApp Message Template" : "Create WhatsApp Message Template"}
           </DialogTitle>
           <DialogDescription>
-            Design a custom Meta-compliant message template with dynamic variables, multiple
-            interactive buttons, and live mobile preview.
+            {isEditing
+              ? "Update template category, message body, header, footer, or interactive buttons."
+              : "Design a custom Meta-compliant message template with dynamic variables, multiple interactive buttons, and live mobile preview."}
           </DialogDescription>
         </DialogHeader>
 
@@ -247,10 +319,15 @@ export function WhatsAppTemplateBuilderDialog({ open, onOpenChange }: Props) {
         >
           {/* Builder Form Left Pane (7 cols) */}
           <div className="space-y-4 md:col-span-7">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div className="space-y-1.5">
                 <Label htmlFor="name">Template Name *</Label>
-                <Input id="name" placeholder="e.g. visit_reminder" {...register("name")} />
+                <Input
+                  id="name"
+                  placeholder="e.g. visit_reminder"
+                  disabled={isEditing}
+                  {...register("name")}
+                />
                 {errors.name && <p className="text-destructive text-xs">{errors.name.message}</p>}
               </div>
               <div className="space-y-1.5">
@@ -268,6 +345,25 @@ export function WhatsAppTemplateBuilderDialog({ open, onOpenChange }: Props) {
                     <SelectItem value="UTILITY">Utility</SelectItem>
                     <SelectItem value="MARKETING">Marketing</SelectItem>
                     <SelectItem value="AUTHENTICATION">Authentication</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Language *</Label>
+                <Select
+                  value={formValues.language}
+                  onValueChange={(val) => setValue("language", val)}
+                  disabled={isEditing}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LANGUAGE_OPTIONS.map((lang) => (
+                      <SelectItem key={lang.value} value={lang.value}>
+                        {lang.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -583,8 +679,12 @@ export function WhatsAppTemplateBuilderDialog({ open, onOpenChange }: Props) {
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={createMutation.isPending}>
-              {createMutation.isPending ? "Saving Draft..." : "Save Draft Template"}
+            <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
+              {createMutation.isPending || updateMutation.isPending
+                ? "Saving..."
+                : isEditing
+                  ? "Save Changes"
+                  : "Save Draft Template"}
             </Button>
           </div>
         </form>

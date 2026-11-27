@@ -45,6 +45,7 @@ import {
   whatsAppTemplatesQueryOptions,
 } from "../queries";
 import type { WhatsAppMessage } from "../types";
+import { resolveTemplateMessageDisplay } from "../utils/template-render";
 
 export function WhatsAppMessagesTab() {
   const [composerOpen, setComposerOpen] = useState(false);
@@ -246,7 +247,11 @@ export function WhatsAppMessagesTab() {
                     </TableCell>
                     <TableCell className="font-mono text-xs">{msg.contactId}</TableCell>
                     <TableCell className="max-w-[280px] truncate text-sm">
-                      {msg.body || (msg.templateId ? `Template: ${msg.templateId}` : "—")}
+                      {(() => {
+                        const rendered = resolveTemplateMessageDisplay(msg, templates);
+                        if (rendered?.body) return rendered.body;
+                        return msg.body || (msg.templateId ? `Template: ${msg.templateId}` : "—");
+                      })()}
                     </TableCell>
                     <TableCell>{getStatusBadge(msg.internalStatus)}</TableCell>
                     <TableCell className="text-muted-foreground font-mono text-xs">

@@ -31,8 +31,10 @@ import {
   useReplyConversationMutation,
   whatsAppConversationMessagesQueryOptions,
   whatsAppConversationsQueryOptions,
+  whatsAppTemplatesQueryOptions,
 } from "../queries";
 import type { WhatsAppMessage } from "../types";
+import { resolveTemplateMessageDisplay } from "../utils/template-render";
 
 export function WhatsAppConversationsTab() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -50,6 +52,8 @@ export function WhatsAppConversationsTab() {
   const { data: messages = [], isLoading: isLoadingMessages } = useQuery(
     whatsAppConversationMessagesQueryOptions(activeConversationId),
   );
+  const { data: templatesData } = useQuery(whatsAppTemplatesQueryOptions());
+  const templates = templatesData?.items ?? [];
 
   const replyMutation = useReplyConversationMutation(activeConversationId || "");
   const queryClient = useQueryClient();
@@ -254,6 +258,7 @@ export function WhatsAppConversationsTab() {
                 ) : (
                   messages.map((msg: WhatsAppMessage) => {
                     const isOutbound = msg.direction === "OUTBOUND";
+                    const renderedTemplate = resolveTemplateMessageDisplay(msg, templates);
                     return (
                       <div
                         key={msg.id}
@@ -266,9 +271,68 @@ export function WhatsAppConversationsTab() {
                               : "bg-card text-card-foreground rounded-bl-xs border"
                           }`}
                         >
-                          <div className="whitespace-pre-wrap">
-                            {msg.body || `[${msg.messageType}]`}
-                          </div>
+                          {renderedTemplate &&
+                          (renderedTemplate.body || renderedTemplate.header) ? (
+                            <div className="space-y-1.5">
+                              <div
+                                className={`text-[10px] font-medium tracking-wide uppercase ${
+                                  isOutbound
+                                    ? "text-primary-foreground/75"
+                                    : "text-muted-foreground"
+                                }`}
+                              >
+                                Template: {renderedTemplate.name}
+                              </div>
+                              {renderedTemplate.header?.text && (
+                                <div className="font-semibold">{renderedTemplate.header.text}</div>
+                              )}
+                              {renderedTemplate.header &&
+                                renderedTemplate.header.format &&
+                                renderedTemplate.header.format !== "TEXT" && (
+                                  <div
+                                    className={`rounded px-2 py-1 text-xs font-medium ${
+                                      isOutbound ? "bg-white/15" : "bg-muted text-muted-foreground"
+                                    }`}
+                                  >
+                                    [{renderedTemplate.header.format}] Media Header
+                                  </div>
+                                )}
+                              {renderedTemplate.body && (
+                                <div className="whitespace-pre-wrap">{renderedTemplate.body}</div>
+                              )}
+                              {renderedTemplate.footer && (
+                                <div
+                                  className={`border-t pt-1 text-[11px] ${
+                                    isOutbound
+                                      ? "border-primary-foreground/20 text-primary-foreground/75"
+                                      : "text-muted-foreground"
+                                  }`}
+                                >
+                                  {renderedTemplate.footer}
+                                </div>
+                              )}
+                              {renderedTemplate.buttons && renderedTemplate.buttons.length > 0 && (
+                                <div className="flex flex-wrap gap-1 pt-1">
+                                  {renderedTemplate.buttons.map((btn, bIdx) => (
+                                    <span
+                                      key={bIdx}
+                                      className={`rounded border px-2 py-0.5 text-[11px] font-medium ${
+                                        isOutbound
+                                          ? "border-primary-foreground/30 bg-white/10"
+                                          : "bg-muted/50"
+                                      }`}
+                                    >
+                                      {btn.text}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="whitespace-pre-wrap">
+                              {msg.body || `[${msg.messageType}]`}
+                            </div>
+                          )}
                           <div
                             className={`mt-1 flex items-center justify-end gap-1 text-[10px] ${
                               isOutbound ? "text-primary-foreground/70" : "text-muted-foreground"

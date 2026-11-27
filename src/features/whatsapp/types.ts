@@ -57,7 +57,7 @@ export interface WhatsAppTemplate {
   category: "AUTHENTICATION" | "UTILITY" | "MARKETING";
   language: string;
   components: Array<{
-    type: "HEADER" | "BODY" | "FOOTER" | "BUTTONS";
+    type: "HEADER" | "BODY" | "FOOTER" | "BUTTONS" | "CAROUSEL";
     format?: "TEXT" | "IMAGE" | "DOCUMENT" | "VIDEO" | "LOCATION";
     text?: string;
     buttons?: Array<{
@@ -65,6 +65,14 @@ export interface WhatsAppTemplate {
       text: string;
       url?: string;
       phone_number?: string;
+    }>;
+    cards?: Array<{
+      components: Array<{
+        type: string;
+        format?: string;
+        text?: string;
+        buttons?: Array<{ type: string; text: string; url?: string; phone_number?: string }>;
+      }>;
     }>;
   }>;
   status:
@@ -131,6 +139,7 @@ export interface WhatsAppMessage {
   templateId?: string | null;
   providerMessageId?: string | null;
   body?: string | null;
+  payload?: Record<string, unknown> | null;
   internalStatus: "QUEUED" | "ACCEPTED" | "SENT" | "DELIVERED" | "READ" | "FAILED";
   errorCode?: string | null;
   errorMessage?: string | null;
