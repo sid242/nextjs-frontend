@@ -1,12 +1,8 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { resolveInitialTab, usePersistedTab } from "./use-persisted-tab";
-
-vi.mock("next/navigation", () => ({
-  useSearchParams: () => new URLSearchParams("tab=campaigns"),
-}));
 
 function DummyTabComponent() {
   const [activeTab] = usePersistedTab({
@@ -60,9 +56,9 @@ describe("usePersistedTab", () => {
   });
 
   describe("component hook execution", () => {
-    it("renders with the active tab from useSearchParams", () => {
+    it("renders with the default tab during SSR/static markup", () => {
       const html = renderToStaticMarkup(React.createElement(DummyTabComponent));
-      expect(html).toContain("Active: campaigns");
+      expect(html).toContain("Active: overview");
     });
   });
 });

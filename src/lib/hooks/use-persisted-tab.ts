@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { useSearchParams } from "next/navigation";
 
 export interface UsePersistedTabOptions<T extends string> {
   /**
@@ -48,22 +47,39 @@ export function resolveInitialTab<T extends string>({
   return (allowedTabs[0] ?? defaultTab) as T;
 }
 
+/**
+ * Helper to safely read a URL query parameter in the browser without importing
+ * `useSearchParams` from next/navigation, which avoids triggering Next.js dynamic
+ * client-side suspense or infinite loading boundaries when Suspense is omitted.
+ */
+function getBrowserQueryParam(name: string): string | null {
+  if (typeof window === "undefined" || !window.location.search) return null;
+  try {
+    return new URLSearchParams(window.location.search).get(name);
+  } catch {
+    return null;
+  }
+}
+
 export function usePersistedTab<T extends string>({
   paramName = "tab",
   defaultTab,
   allowedTabs,
   storageKey,
 }: UsePersistedTabOptions<T>) {
-  const searchParams = useSearchParams();
-
-  // Read URL query parameter
-  const urlTab = searchParams?.get(paramName) as T | null;
-
-  // Read localStorage fallback on initial client render
+  // Read initial tab safely without Next.js App Router de-opt
   const [persistedTab, setPersistedTab] = useState<T | null>(() => {
+    const urlVal = getBrowserQueryParam(paramName);
+    if (urlVal && (allowedTabs as readonly string[]).includes(urlVal)) {
+      return urlVal as T;
+    }
+
     if (storageKey && typeof window !== "undefined") {
       try {
-        return localStorage.getItem(storageKey) as T | null;
+        const stored = localStorage.getItem(storageKey);
+        if (stored && (allowedTabs as readonly string[]).includes(stored)) {
+          return stored as T;
+        }
       } catch {
         return null;
       }
@@ -71,9 +87,10 @@ export function usePersistedTab<T extends string>({
     return null;
   });
 
-  // Calculate the active tab purely during render - zero cascading renders or setState in effects
+  // Calculate the active tab purely during render
+  const currentUrlParam = getBrowserQueryParam(paramName);
   const activeTab = resolveInitialTab({
-    paramValue: urlTab,
+    paramValue: currentUrlParam ?? persistedTab,
     storedValue: persistedTab,
     defaultTab,
     allowedTabs,
@@ -96,7 +113,7 @@ export function usePersistedTab<T extends string>({
         }
       }
 
-      // Persist to URL synchronously without page refresh or scroll jumps
+      // Persist to URL synchronously without page reload or scroll jumps
       if (typeof window !== "undefined") {
         try {
           const url = new URL(window.location.href);
@@ -107,7 +124,7 @@ export function usePersistedTab<T extends string>({
         }
       }
     },
-    [allowedTabs, storageKey, paramName, setPersistedTab],
+    [allowedTabs, storageKey, paramName],
   );
 
   return [activeTab, setTab] as const;
