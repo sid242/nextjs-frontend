@@ -13,8 +13,12 @@ import {
 } from "lucide-react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TENANT_PERMISSIONS } from "@/config/permissions";
-import { TenantPermissionGate } from "@/features/tenants";
+import {
+  WHATSAPP_SETTINGS_PERMISSIONS,
+  WHATSAPP_TAB_PERMISSIONS,
+  type WhatsAppTab,
+} from "@/config/permissions";
+import { hasTenantPermission, TenantPermissionGate, useTenantContext } from "@/features/tenants";
 import { useTranslation } from "@/lib/i18n";
 
 import { WhatsAppAccountTab } from "./whatsapp-account-tab";
@@ -27,107 +31,93 @@ import { WhatsAppPhoneNumbersTab } from "./whatsapp-phone-numbers-tab";
 import { WhatsAppTemplatesTab } from "./whatsapp-templates-tab";
 import { WhatsAppUsageTab } from "./whatsapp-usage-tab";
 
+const tabs = [
+  { id: "overview", label: "whatsapp.overview", icon: LayoutDashboardIcon },
+  { id: "account", label: "whatsapp.account", icon: Settings2Icon, Content: WhatsAppAccountTab },
+  {
+    id: "phone-numbers",
+    label: "whatsapp.phoneNumbers",
+    icon: PhoneCallIcon,
+    Content: WhatsAppPhoneNumbersTab,
+  },
+  {
+    id: "templates",
+    label: "whatsapp.templates",
+    icon: MessageSquareIcon,
+    Content: WhatsAppTemplatesTab,
+  },
+  {
+    id: "conversations",
+    label: "whatsapp.inbox",
+    icon: InboxIcon,
+    Content: WhatsAppConversationsTab,
+  },
+  {
+    id: "messages",
+    label: "whatsapp.composeLogs",
+    icon: MessageSquareIcon,
+    Content: WhatsAppMessagesTab,
+  },
+  {
+    id: "campaigns",
+    label: "whatsapp.campaigns",
+    icon: MegaphoneIcon,
+    Content: WhatsAppCampaignsTab,
+  },
+  { id: "contacts", label: "whatsapp.contacts", icon: UsersIcon, Content: WhatsAppContactsTab },
+  { id: "usage", label: "whatsapp.usageBilling", icon: BarChart3Icon, Content: WhatsAppUsageTab },
+] as const;
+
 export function WhatsAppSettingsView() {
-  const [activeTab, setActiveTab] = useState("overview");
+  return (
+    <TenantPermissionGate permission={WHATSAPP_SETTINGS_PERMISSIONS}>
+      <WhatsAppSettingsTabs />
+    </TenantPermissionGate>
+  );
+}
+
+function WhatsAppSettingsTabs() {
+  const [selectedTab, setSelectedTab] = useState<WhatsAppTab>("overview");
   const { t } = useTranslation();
+  const { data: context } = useTenantContext();
+  const canAccess = (tab: WhatsAppTab) =>
+    hasTenantPermission(context?.permissions, WHATSAPP_TAB_PERMISSIONS[tab]);
+  const visibleTabs = tabs.filter((tab) => canAccess(tab?.id));
+  const activeTab = canAccess(selectedTab) ? selectedTab : visibleTabs?.[0]?.id;
+  const navigate = (value: string) => {
+    const allowedTab = visibleTabs.find((tab) => tab?.id === value);
+    if (allowedTab) setSelectedTab(allowedTab?.id);
+  };
+
+  if (!activeTab) return null;
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">
-          {t("whatsapp.title") || "WhatsApp Business Settings"}
-        </h1>
-        <p className="text-muted-foreground text-sm">
-          {t("whatsapp.description") ||
-            "Configure Meta Cloud API credentials, phone numbers, message templates, customer inbox, and broadcast marketing."}
-        </p>
+        <h1 className="text-2xl font-bold tracking-tight">{t("whatsapp.title")}</h1>
+        <p className="text-muted-foreground text-sm">{t("whatsapp.description")}</p>
       </div>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="bg-muted/60 flex h-auto w-full flex-wrap justify-start gap-1 p-1">
-          <TabsTrigger value="overview" className="data-[state=active]:bg-background gap-1.5">
-            <LayoutDashboardIcon className="h-4 w-4" />
-            <span>{t("whatsapp.overview") || "Overview"}</span>
-          </TabsTrigger>
-          <TabsTrigger value="account" className="data-[state=active]:bg-background gap-1.5">
-            <Settings2Icon className="h-4 w-4" />
-            <span>{t("whatsapp.account") || "Account"}</span>
-          </TabsTrigger>
-          <TabsTrigger value="phone-numbers" className="data-[state=active]:bg-background gap-1.5">
-            <PhoneCallIcon className="h-4 w-4" />
-            <span>{t("whatsapp.phoneNumbers") || "Phone Numbers"}</span>
-          </TabsTrigger>
-          <TabsTrigger value="templates" className="data-[state=active]:bg-background gap-1.5">
-            <MessageSquareIcon className="h-4 w-4" />
-            <span>{t("whatsapp.templates") || "Templates"}</span>
-          </TabsTrigger>
-          <TabsTrigger value="conversations" className="data-[state=active]:bg-background gap-1.5">
-            <InboxIcon className="h-4 w-4" />
-            <span>{t("whatsapp.inbox") || "Inbox"}</span>
-          </TabsTrigger>
-          <TabsTrigger value="messages" className="data-[state=active]:bg-background gap-1.5">
-            <MessageSquareIcon className="h-4 w-4" />
-            <span>{t("whatsapp.composeLogs") || "Compose & Logs"}</span>
-          </TabsTrigger>
-          <TabsTrigger value="campaigns" className="data-[state=active]:bg-background gap-1.5">
-            <MegaphoneIcon className="h-4 w-4" />
-            <span>{t("whatsapp.campaigns") || "Campaigns"}</span>
-          </TabsTrigger>
-          <TabsTrigger value="contacts" className="data-[state=active]:bg-background gap-1.5">
-            <UsersIcon className="h-4 w-4" />
-            <span>{t("whatsapp.contacts") || "Contacts"}</span>
-          </TabsTrigger>
-          <TabsTrigger value="usage" className="data-[state=active]:bg-background gap-1.5">
-            <BarChart3Icon className="h-4 w-4" />
-            <span>{t("whatsapp.usageBilling") || "Usage & Billing"}</span>
-          </TabsTrigger>
+      <Tabs value={activeTab} onValueChange={navigate} className="space-y-6">
+        <TabsList
+          aria-label={t("whatsapp.title")}
+          className="bg-muted/60 flex h-auto w-full flex-wrap justify-start gap-1 p-1"
+        >
+          {visibleTabs.map(({ id, label, icon: Icon }) => (
+            <TabsTrigger key={id} value={id} className="data-[state=active]:bg-background gap-1.5">
+              <Icon aria-hidden="true" className="size-4" />
+              <span>{t(label)}</span>
+            </TabsTrigger>
+          ))}
         </TabsList>
-
-        <TabsContent value="overview">
-          <TenantPermissionGate permission={TENANT_PERMISSIONS.WHATSAPP_ACCOUNT_READ}>
-            <WhatsAppOverviewTab onNavigate={setActiveTab} />
-          </TenantPermissionGate>
-        </TabsContent>
-        <TabsContent value="account">
-          <TenantPermissionGate permission={TENANT_PERMISSIONS.WHATSAPP_ACCOUNT_READ}>
-            <WhatsAppAccountTab />
-          </TenantPermissionGate>
-        </TabsContent>
-        <TabsContent value="phone-numbers">
-          <TenantPermissionGate permission={TENANT_PERMISSIONS.WHATSAPP_PHONE_NUMBER_READ}>
-            <WhatsAppPhoneNumbersTab />
-          </TenantPermissionGate>
-        </TabsContent>
-        <TabsContent value="templates">
-          <TenantPermissionGate permission={TENANT_PERMISSIONS.WHATSAPP_TEMPLATE_READ}>
-            <WhatsAppTemplatesTab />
-          </TenantPermissionGate>
-        </TabsContent>
-        <TabsContent value="conversations">
-          <TenantPermissionGate permission={TENANT_PERMISSIONS.WHATSAPP_CONVERSATION_READ}>
-            <WhatsAppConversationsTab />
-          </TenantPermissionGate>
-        </TabsContent>
-        <TabsContent value="messages">
-          <TenantPermissionGate permission={TENANT_PERMISSIONS.WHATSAPP_MESSAGE_READ}>
-            <WhatsAppMessagesTab />
-          </TenantPermissionGate>
-        </TabsContent>
-        <TabsContent value="campaigns">
-          <TenantPermissionGate permission={TENANT_PERMISSIONS.WHATSAPP_CAMPAIGN_READ}>
-            <WhatsAppCampaignsTab />
-          </TenantPermissionGate>
-        </TabsContent>
-        <TabsContent value="contacts">
-          <TenantPermissionGate permission={TENANT_PERMISSIONS.WHATSAPP_CONTACT_READ}>
-            <WhatsAppContactsTab />
-          </TenantPermissionGate>
-        </TabsContent>
-        <TabsContent value="usage">
-          <TenantPermissionGate permission={TENANT_PERMISSIONS.WHATSAPP_USAGE_READ}>
-            <WhatsAppUsageTab />
-          </TenantPermissionGate>
-        </TabsContent>
+        {visibleTabs.map((tab) => (
+          <TabsContent key={tab?.id} value={tab?.id}>
+            {"Content" in tab ? (
+              <tab.Content />
+            ) : (
+              <WhatsAppOverviewTab onNavigate={navigate} canAccess={canAccess} />
+            )}
+          </TabsContent>
+        ))}
       </Tabs>
     </div>
   );

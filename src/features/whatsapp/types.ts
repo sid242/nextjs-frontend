@@ -161,6 +161,7 @@ export interface WhatsAppCampaign {
 export interface WhatsAppUsageSummary {
   totalMessages: number;
   totalEstimatedCost: string;
+  estimatedCostByCurrency?: Array<{ currency: string; estimatedCost: string }>;
   categoryBreakdown: Array<{ category: string; count: number }>;
 }
 

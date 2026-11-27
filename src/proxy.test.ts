@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ACCESS_COOKIE, PLATFORM_STAFF_COOKIE } from "@/lib/auth/constants";
 import * as resolveModule from "@/lib/tenancy/resolve";
@@ -17,7 +17,31 @@ describe("Proxy / Middleware Routing Decision Table", () => {
     process.env.PLATFORM_HOST = "example.com";
   });
 
+  afterEach(() => vi.unstubAllEnvs());
+
   describe("Subdomain & Custom Domain Host Routing", () => {
+    it("rewrites through the original server listener while retaining the public workspace context", async () => {
+      // Next sets this flag for skipProxyUrlNormalize in the running server.
+      vi.stubEnv("__NEXT_NO_MIDDLEWARE_URL_NORMALIZE", "true");
+      vi.mocked(resolveModule.resolveTenantByHost).mockResolvedValueOnce({
+        kind: "tenant",
+        tenantId: "t-1",
+        slug: "acme",
+        urlMode: "subdomain",
+        canonicalBase: "http://acme.example.com:3001",
+        status: "ACTIVE",
+      });
+      const request = new NextRequest("http://127.0.0.1:3001/dashboard?view=activity", {
+        headers: { host: "acme.example.com:3001", cookie: `${ACCESS_COOKIE}=valid-token` },
+      });
+
+      const response = await proxy(request);
+      expect(response.headers.get("x-middleware-rewrite")).toBe(
+        "http://127.0.0.1:3001/w/acme/dashboard?view=activity",
+      );
+      expect(response.headers.get("x-middleware-request-x-tenant-slug")).toBe("acme");
+      expect(response.headers.get("location")).toBeNull();
+    });
     it("rewrites to /tenant-not-found when host resolution fails", async () => {
       vi.mocked(resolveModule.resolveTenantByHost).mockResolvedValueOnce(null);
 

@@ -55,14 +55,37 @@ export const sendTextMessageSchema = z.object({
 
 export type SendTextMessageFormValues = z.infer<typeof sendTextMessageSchema>;
 
+export function splitCampaignRecipients(value: string) {
+  return [
+    ...new Set(
+      value
+        .split(/[\n,]+/)
+        .map((number) => number.trim())
+        .filter(Boolean),
+    ),
+  ];
+}
+
 export const createCampaignSchema = z.object({
-  name: z.string().min(1, "Campaign name is required"),
+  name: z.string().trim().min(1, "Campaign name is required").max(255),
   templateId: z.string().min(1, "Template selection is required"),
   phoneNumberId: z.string().optional(),
-  recipients: z.string().min(7, "Provide comma- or newline-separated phone numbers"),
+  recipients: z.string().refine((value) => {
+    const recipients = splitCampaignRecipients(value);
+    return recipients.length > 0 && recipients.every((number) => /^\+[1-9]\d{6,14}$/.test(number));
+  }, "Enter international phone numbers with a country code, separated by commas or new lines"),
 });
 
 export type CreateCampaignFormValues = z.infer<typeof createCampaignSchema>;
+
+export const scheduleCampaignFormSchema = z.object({
+  scheduledAt: z
+    .string()
+    .refine(
+      (value) => value === "" || Date.parse(value) > Date.now(),
+      "Choose a future time to schedule the campaign",
+    ),
+});
 
 export const replyConversationSchema = z.object({
   text: z.string().min(1, "Reply message cannot be empty").max(4096),

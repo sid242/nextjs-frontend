@@ -1,9 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
 import { BanIcon, MegaphoneIcon, PlayIcon, PlusIcon, UsersIcon } from "lucide-react";
+import { useForm, useWatch } from "react-hook-form";
 
+import {
+  ControlledInput,
+  ControlledSelect,
+  ControlledTextarea,
+  FormWrapper,
+} from "@/components/molecules/forms";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,15 +23,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -32,7 +31,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
+import { TENANT_PERMISSIONS } from "@/config/permissions";
+import { hasTenantPermission, useTenantContext } from "@/features/tenants";
+import { getErrorMessage } from "@/lib/api/errors";
 
 import {
   useCancelCampaignMutation,
@@ -42,64 +43,110 @@ import {
   whatsAppPhoneNumbersQueryOptions,
   whatsAppTemplatesQueryOptions,
 } from "../queries";
+import {
+  createCampaignSchema,
+  scheduleCampaignFormSchema,
+  splitCampaignRecipients,
+  type CreateCampaignFormValues,
+} from "../schemas";
 import type { WhatsAppCampaign } from "../types";
 
+const DEFAULT_SENDER = "default";
+
 export function WhatsAppCampaignsTab() {
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
-  const [selectedCampaign, setSelectedCampaign] = useState<WhatsAppCampaign | null>(null);
+  const [dialog, setDialog] = useState<
+    { kind: "create" } | { kind: "schedule"; id: string } | null
+  >(null);
+  const { data: context } = useTenantContext();
+  const canCreate =
+    hasTenantPermission(context?.permissions, TENANT_PERMISSIONS.WHATSAPP_CAMPAIGN_WRITE) &&
+    hasTenantPermission(context?.permissions, TENANT_PERMISSIONS.WHATSAPP_TEMPLATE_READ);
+  const canSelectSender = hasTenantPermission(
+    context?.permissions,
+    TENANT_PERMISSIONS.WHATSAPP_PHONE_NUMBER_READ,
+  );
+  const canManage = hasTenantPermission(
+    context?.permissions,
+    TENANT_PERMISSIONS.WHATSAPP_CAMPAIGN_MANAGE,
+  );
+  const createOpen = dialog?.kind === "create" && canCreate;
+  const scheduleOpen = dialog?.kind === "schedule" && canManage;
+  const createForm = useForm<CreateCampaignFormValues>({
+    resolver: zodResolver(createCampaignSchema),
+    defaultValues: { name: "", templateId: "", phoneNumberId: DEFAULT_SENDER, recipients: "" },
+  });
+  const templateId = useWatch({ control: createForm?.control, name: "templateId" });
 
-  // Form states
-  const [name, setName] = useState("");
-  const [templateId, setTemplateId] = useState("");
-  const [phoneNumberId, setPhoneNumberId] = useState("");
-  const [recipientsText, setRecipientsText] = useState("");
-  const [scheduledAt, setScheduledAt] = useState("");
-
-  const { data: campaigns = [], isLoading } = useQuery(whatsAppCampaignsQueryOptions());
-  const { data: templatesData } = useQuery(whatsAppTemplatesQueryOptions({ status: "APPROVED" }));
-  const templates = templatesData?.items ?? [];
-  const { data: phoneNumbers = [] } = useQuery(whatsAppPhoneNumbersQueryOptions());
+  const {
+    data: campaigns = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery(whatsAppCampaignsQueryOptions());
+  const templatesQuery = useQuery({
+    ...whatsAppTemplatesQueryOptions({ status: "APPROVED" }),
+    enabled: createOpen,
+  });
+  const phoneNumbersQuery = useQuery({
+    ...whatsAppPhoneNumbersQueryOptions(),
+    enabled: createOpen && canSelectSender,
+  });
+  const templateOptions =
+    templatesQuery?.data?.items?.map((template) => ({
+      label: `${template?.name} (${template?.category})`,
+      value: template?.id,
+    })) ?? [];
+  const accountId = templatesQuery?.data?.items?.find(
+    (template) => template?.id === templateId,
+  )?.businessAccountId;
+  const senderOptions = [
+    { label: "Use default sending number", value: DEFAULT_SENDER },
+    ...(phoneNumbersQuery?.data
+      ?.filter((phone) => phone?.isEnabled && phone?.businessAccountId === accountId)
+      ?.map((phone) => ({
+        label: phone?.displayPhoneNumber,
+        value: phone?.phoneNumberId,
+      })) ?? []),
+  ];
 
   const createMutation = useCreateCampaignMutation();
   const scheduleMutation = useScheduleCampaignMutation();
   const cancelMutation = useCancelCampaignMutation();
+  const scheduleForm = useForm({
+    resolver: zodResolver(scheduleCampaignFormSchema),
+    defaultValues: { scheduledAt: "" },
+  });
 
-  const handleCreate = async () => {
-    if (!name.trim() || !templateId || !recipientsText.trim()) return;
-
-    const recipients = recipientsText
-      .split(/[\n,]+/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-
-    await createMutation.mutateAsync({
-      name: name.trim(),
-      templateId,
-      phoneNumberId: phoneNumberId || undefined,
-      recipients: recipients.map((phone) => ({ phoneNumber: phone })),
-    });
-
-    setCreateDialogOpen(false);
-    setName("");
-    setTemplateId("");
-    setPhoneNumberId("");
-    setRecipientsText("");
+  const createCampaign = async (values: CreateCampaignFormValues) => {
+    try {
+      await createMutation.mutateAsync({
+        name: values?.name,
+        templateId: values?.templateId,
+        phoneNumberId:
+          canSelectSender && values?.phoneNumberId !== DEFAULT_SENDER
+            ? values?.phoneNumberId
+            : undefined,
+        recipients: splitCampaignRecipients(values?.recipients).map((phoneNumber) => ({
+          phoneNumber,
+        })),
+      });
+      setDialog(null);
+    } catch (error) {
+      createForm.setError("root", { message: getErrorMessage(error) });
+    }
   };
 
-  const handleSchedule = async () => {
-    if (!selectedCampaign) return;
-    await scheduleMutation.mutateAsync({
-      id: selectedCampaign.id,
-      scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : undefined,
-    });
-    setScheduleDialogOpen(false);
-    setSelectedCampaign(null);
-    setScheduledAt("");
-  };
-
-  const handleCancel = async (id: string) => {
-    await cancelMutation.mutateAsync(id);
+  const scheduleCampaign = async ({ scheduledAt }: { scheduledAt: string }) => {
+    if (dialog?.kind !== "schedule") return;
+    try {
+      await scheduleMutation.mutateAsync({
+        id: dialog?.id,
+        scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : undefined,
+      });
+      setDialog(null);
+    } catch (error) {
+      scheduleForm.setError("root", { message: getErrorMessage(error) });
+    }
   };
 
   const getStatusBadge = (status: WhatsAppCampaign["status"]) => {
@@ -163,7 +210,7 @@ export function WhatsAppCampaignsTab() {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-4">
+        <CardHeader className="flex flex-col gap-3 pb-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle>WhatsApp Broadcast Campaigns</CardTitle>
             <CardDescription>
@@ -171,20 +218,40 @@ export function WhatsAppCampaignsTab() {
               WhatsApp templates.
             </CardDescription>
           </div>
-          <Button onClick={() => setCreateDialogOpen(true)} className="gap-1.5">
-            <PlusIcon className="h-4 w-4" />
-            Create Campaign
-          </Button>
+          {canCreate && (
+            <Button
+              onClick={() => {
+                createForm.reset();
+                setDialog({ kind: "create" });
+              }}
+              className="gap-1.5"
+            >
+              <PlusIcon className="h-4 w-4" />
+              Create Campaign
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
-          {isLoading ? (
+          {cancelMutation?.isError && (
+            <p role="alert" className="text-destructive mb-4 text-sm">
+              {getErrorMessage(cancelMutation?.error)}
+            </p>
+          )}
+          {isError ? (
+            <div role="alert" className="space-y-3 p-6 text-center text-sm">
+              <p>Could not load campaigns.</p>
+              <Button type="button" variant="outline" onClick={() => void refetch()}>
+                Try again
+              </Button>
+            </div>
+          ) : isLoading ? (
             <div className="text-muted-foreground p-8 text-center text-sm">
               Loading broadcast campaigns...
             </div>
           ) : campaigns.length === 0 ? (
             <div className="text-muted-foreground rounded-lg border border-dashed p-8 text-center text-sm">
               <MegaphoneIcon className="text-muted-foreground/50 mx-auto mb-2 h-8 w-8" />
-              No campaigns created yet. Click above to create your first broadcast campaign.
+              No campaigns created yet.
             </div>
           ) : (
             <Table>
@@ -198,7 +265,7 @@ export function WhatsAppCampaignsTab() {
                   <TableHead>Read</TableHead>
                   <TableHead>Failed</TableHead>
                   <TableHead>Scheduled / Created</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  {canManage && <TableHead className="text-right">Actions</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -221,33 +288,36 @@ export function WhatsAppCampaignsTab() {
                         ? `Scheduled: ${new Date(camp.scheduledAt).toLocaleString()}`
                         : new Date(camp.createdAt).toLocaleDateString()}
                     </TableCell>
-                    <TableCell className="space-x-2 text-right">
-                      {camp.status === "DRAFT" && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedCampaign(camp);
-                            setScheduleDialogOpen(true);
-                          }}
-                          className="h-8 gap-1"
-                        >
-                          <PlayIcon className="h-3.5 w-3.5" />
-                          Launch / Schedule
-                        </Button>
-                      )}
-                      {(camp.status === "SCHEDULED" || camp.status === "DRAFT") && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleCancel(camp.id)}
-                          className="text-destructive hover:text-destructive h-8 gap-1"
-                        >
-                          <BanIcon className="h-3.5 w-3.5" />
-                          Cancel
-                        </Button>
-                      )}
-                    </TableCell>
+                    {canManage && (
+                      <TableCell className="space-x-2 text-right">
+                        {camp.status === "DRAFT" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              scheduleForm.reset();
+                              setDialog({ kind: "schedule", id: camp.id });
+                            }}
+                            className="h-8 gap-1"
+                          >
+                            <PlayIcon className="h-3.5 w-3.5" />
+                            Launch / Schedule
+                          </Button>
+                        )}
+                        {(camp.status === "SCHEDULED" || camp.status === "DRAFT") && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={cancelMutation?.isPending}
+                            onClick={() => cancelMutation.mutate(camp.id)}
+                            className="text-destructive hover:text-destructive h-8 gap-1"
+                          >
+                            <BanIcon className="h-3.5 w-3.5" />
+                            Cancel
+                          </Button>
+                        )}
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -256,121 +326,113 @@ export function WhatsAppCampaignsTab() {
         </CardContent>
       </Card>
 
-      {/* Create Campaign Dialog */}
-      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="sm:max-w-[560px]">
+      <Dialog
+        open={createOpen}
+        onOpenChange={(open) => {
+          if (!open && !createMutation?.isPending) setDialog(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-140">
           <DialogHeader>
             <DialogTitle>Create Broadcast Campaign</DialogTitle>
             <DialogDescription>
-              Configure an outbound broadcast campaign. Meta requires an approved template for
-              broadcasts.
+              Choose an approved template and enter the recipients for this draft.
             </DialogDescription>
           </DialogHeader>
-
-          <div className="space-y-4 py-2">
-            <div className="space-y-1">
-              <Label>Campaign Name</Label>
-              <Input
-                placeholder="e.g. Black Friday Special VIP Announcement"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-1">
-              <Label>Approved WhatsApp Template</Label>
-              <Select value={templateId} onValueChange={setTemplateId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select an approved template..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {templates.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.name} ({t.category})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1">
-              <Label>Sending Phone Number (Optional)</Label>
-              <Select value={phoneNumberId} onValueChange={setPhoneNumberId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Use Default Sending Number" />
-                </SelectTrigger>
-                <SelectContent>
-                  {phoneNumbers.map((p) => (
-                    <SelectItem key={p.id} value={p.phoneNumberId}>
-                      {p.displayPhoneNumber} {p.isDefault ? "(Default)" : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1">
-              <Label>Recipient Phone Numbers (E.164, one per line or comma-separated)</Label>
-              <Textarea
-                placeholder="+14155552671&#10;+919876543210&#10;+447911123456"
-                rows={5}
-                value={recipientsText}
-                onChange={(e) => setRecipientsText(e.target.value)}
-              />
-              <p className="text-muted-foreground text-[11px]">
-                * Ensure all recipients have explicitly opted in to receive promotional messages to
-                comply with WhatsApp Business Messaging Policies.
+          <FormWrapper methods={createForm} onSubmit={createCampaign}>
+            <ControlledInput name="name" label="Campaign name" required />
+            <ControlledSelect
+              name="templateId"
+              label="Approved WhatsApp template"
+              options={templateOptions}
+              returnPrimitiveValue
+              isClearable={false}
+              handleChange={() => createForm.resetField("phoneNumberId")}
+              required
+            />
+            {templatesQuery?.isError && (
+              <p role="alert" className="text-destructive text-sm">
+                Could not load approved templates.
               </p>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleCreate}
-              disabled={
-                createMutation.isPending || !name.trim() || !templateId || !recipientsText.trim()
-              }
-            >
-              {createMutation.isPending ? "Creating..." : "Create Campaign"}
-            </Button>
-          </DialogFooter>
+            )}
+            {templatesQuery?.isSuccess && templateOptions?.length === 0 && (
+              <p className="text-muted-foreground text-sm">No approved templates are available.</p>
+            )}
+            {canSelectSender && (
+              <ControlledSelect
+                name="phoneNumberId"
+                label="Sending phone number"
+                options={senderOptions}
+                returnPrimitiveValue
+                isClearable={false}
+              />
+            )}
+            <ControlledTextarea
+              name="recipients"
+              label="Recipient phone numbers"
+              rows={5}
+              description="Include each country code. Separate numbers by commas or new lines."
+              required
+            />
+            {createForm?.formState?.errors?.root?.message && (
+              <p role="alert" className="text-destructive text-sm">
+                {createForm?.formState?.errors?.root?.message}
+              </p>
+            )}
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={createMutation?.isPending}
+                onClick={() => setDialog(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={createMutation?.isPending || templateOptions.length === 0}
+              >
+                Create Campaign
+              </Button>
+            </DialogFooter>
+          </FormWrapper>
         </DialogContent>
       </Dialog>
 
-      {/* Schedule Campaign Dialog */}
-      <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
-        <DialogContent className="sm:max-w-[420px]">
+      <Dialog
+        open={scheduleOpen}
+        onOpenChange={(open) => {
+          if (!open && !scheduleMutation?.isPending) setDialog(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-105">
           <DialogHeader>
             <DialogTitle>Launch or Schedule Campaign</DialogTitle>
             <DialogDescription>
-              Launch campaign immediately or set a future date and time.
+              Enter a time in your local timezone or leave it empty to send now.
             </DialogDescription>
           </DialogHeader>
-
-          <div className="space-y-3 py-2">
-            <Label>Scheduled Time (Leave empty to send immediately)</Label>
-            <Input
-              type="datetime-local"
-              value={scheduledAt}
-              onChange={(e) => setScheduledAt(e.target.value)}
-            />
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setScheduleDialogOpen(false)}>
-              Back
-            </Button>
-            <Button onClick={handleSchedule} disabled={scheduleMutation.isPending}>
-              {scheduleMutation.isPending
-                ? "Starting..."
-                : scheduledAt
-                  ? "Schedule"
-                  : "Send Immediately"}
-            </Button>
-          </DialogFooter>
+          <FormWrapper methods={scheduleForm} onSubmit={scheduleCampaign}>
+            <ControlledInput name="scheduledAt" label="Scheduled time" type="datetime-local" />
+            {scheduleForm?.formState?.errors?.root?.message && (
+              <p role="alert" className="text-destructive text-sm">
+                {scheduleForm?.formState?.errors?.root?.message}
+              </p>
+            )}
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={scheduleMutation?.isPending}
+                onClick={() => setDialog(null)}
+              >
+                Back
+              </Button>
+              <Button type="submit" disabled={scheduleMutation?.isPending}>
+                Confirm
+              </Button>
+            </DialogFooter>
+          </FormWrapper>
         </DialogContent>
       </Dialog>
     </div>
